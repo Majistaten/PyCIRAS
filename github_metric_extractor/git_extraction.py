@@ -26,7 +26,7 @@ def _get_repository(repo_address: str, repo_name, clone_repo_to: str) -> Reposit
     return Repository(repo_path)
 
 def _get_metrics(Repository: str) -> list[float]:
-    # TODO: Implement extraciton of all metrict, structure 
+    # TODO: Implement extraciton of all metrict, structure the output etc...
     pass
 
 def process_repositories(repositories: dict[str, str]) -> dict[str, list[float]]:
