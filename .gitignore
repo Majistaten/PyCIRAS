@@ -6,3 +6,5 @@ env/
 venv/
 build/
 __pycache__/
+repositories/*
+secrets.json
