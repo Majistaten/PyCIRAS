@@ -32,8 +32,8 @@ def clone_repository(repo_url, destination_folder):
 
         logging.info('Git Repository cloned to ' + destination_folder)
         return True
-    except Exception as e:
-        logging.error('Something went wrong!\n' + str(e))
+    except Exception as ex:
+        logging.error('Something went wrong!\n' + str(ex))
         return False
 
 
@@ -46,7 +46,7 @@ def download_repositories(repo_url_file, destination_folder):
         logging.info('Downloading repositories from ' + url_file.name)
         for line in file:
             sanitized_line = sanitize_url(line)
-            if not clone_repository(sanitized_line, destination_folder):
+            if clone_repository(sanitized_line, destination_folder):
                 logging.info('Repository ' + sanitized_line + ' was cloned to ' + destination_folder)
         logging.info('Finished downloading repositories from ' + url_file.name)
     return True
