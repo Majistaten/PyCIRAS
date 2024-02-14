@@ -4,3 +4,4 @@ lizard
 PyDriller
 pytest
 rich
+tqdm
