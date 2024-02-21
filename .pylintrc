@@ -1,0 +1,10 @@
+[MASTER]
+
+disable = all
+
+[MESSAGES CONTROL]
+
+enable = missing-module-docstring,
+         missing-class-docstring,
+         missing-function-docstring,
+         missing-method-docstring

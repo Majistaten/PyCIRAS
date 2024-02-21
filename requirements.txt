@@ -6,3 +6,4 @@ pytest
 rich
 tqdm
 jupyter
+pylint
