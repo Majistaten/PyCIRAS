@@ -5,3 +5,4 @@ PyDriller
 pytest
 rich
 tqdm
+jupyter

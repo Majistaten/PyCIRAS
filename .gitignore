@@ -8,3 +8,4 @@ build/
 __pycache__/
 repositories/*
 secrets.json
+.ipynb_checkpoints/
