@@ -60,6 +60,9 @@ def get_python_files_from_directory(directory):
 def analyze_repository(repository_path):
     result = {}
     target_files = get_python_files_from_directory(repository_path)
+    if target_files is None or len(target_files) == 0:
+        logging.warning(f"No python files found in {repository_path}")
+        return result
     out = StringIO()
     reporter = LintReporter(output=out)
     logging.info(f"Analyzing {len(target_files)} files in {repository_path}")
@@ -87,14 +90,12 @@ def analyze_repositories(repositories):
 
 if __name__ == '__main__':
     # result = analyze_repository("../analyze_files")
-    # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s')
     repositories = [
         os.path.join("../repositories", repo) for repo in os.listdir("../repositories")
-        if os.path.isdir(os.path.join("../repositories", repo)) and
-           len(get_python_files_from_directory(os.path.join("../repositories", repo))) > 0
+        if os.path.isdir(os.path.join("../repositories", repo))
     ]
 
-    print(repositories)
     # result = analyze_repository("../repositories/astnn")
     result = analyze_repositories(repositories)
     pprint.pprint(result, width=300, indent=3)
