@@ -8,9 +8,10 @@ from tqdm import tqdm
 
 
 class CloneProgress(RemoteProgress):
-    def __init__(self, ncols=None):
+    def __init__(self, repo_name='', ncols=None):
         super().__init__()
-        self.pbar = tqdm(ncols=ncols)
+        self.repo_name = repo_name
+        self.pbar = tqdm(desc=f'Cloning {repo_name}', ncols=ncols)
 
     def update(self, op_code, cur_count, max_count=None, message=''):
         if max_count is not None:
@@ -40,17 +41,17 @@ def clone_repository(repo_url, destination_folder):
             path.mkdir(parents=True, exist_ok=True)
 
         if (path / repo_name).exists():
-            logging.warning('Repository ' + repo_name + ' already exists in ' + destination_folder + ', skipping...')
-            return True
+            logging.info('Repository ' + repo_name + ' already exists in ' + destination_folder + ', skipping...')
+            return str(path / repo_name)
 
         logging.info('Cloning Git Repository ' + repo_name + ' from ' + repo_url + ' ...')
-        Repo.clone_from(repo_url, destination_folder + '/' + repo_name, progress=CloneProgress(100))
+        Repo.clone_from(repo_url, destination_folder + '/' + repo_name, progress=CloneProgress(repo_name, 100))
 
         logging.info(repo_name + ' cloned to ' + destination_folder)
-        return True
+        return destination_folder + '/' + repo_name
     except Exception as ex:
         logging.error('Something went wrong when cloning the repository!\n' + str(ex))
-        return False
+        return None
 
 
 def download_repositories(repo_url_file=None, destination_folder='./repositories', repo_url_list=None):
@@ -65,6 +66,7 @@ def download_repositories(repo_url_file=None, destination_folder='./repositories
         True if all repositories were successfully cloned, else False.
     """
     repo_urls = []
+    repository_paths = []
 
     if repo_url_list is not None:
         repo_urls = [_sanitize_url(url) for url in repo_url_list]
@@ -83,10 +85,13 @@ def download_repositories(repo_url_file=None, destination_folder='./repositories
     total_repos = len(repo_urls)
     for i, repo_url in enumerate(repo_urls):
         logging.info('Downloading repository ' + str(i + 1) + ' of ' + str(total_repos) + '...')
-        if not clone_repository(repo_url, destination_folder):
+        repository_path = clone_repository(repo_url, destination_folder)
+        if repository_path is None:
             logging.error('Failed to download repository from ' + repo_url)
+        else:
+            repository_paths.append(repository_path)
     logging.info('Finished downloading repositories.')
-    return True
+    return repository_paths
 
 
 def _sanitize_url(url: str):

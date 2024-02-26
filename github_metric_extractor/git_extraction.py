@@ -1,6 +1,7 @@
 from datetime import datetime
 import pathlib
 import logging
+from tqdm import tqdm
 from collections import ChainMap
 from pydriller import Repository
 from pydriller.metrics.process.change_set import ChangeSet
@@ -13,15 +14,15 @@ from pydriller.metrics.process.lines_count import LinesCount
 
 def _get_repositories(repositories: list[str], clone_repo_to: str) -> dict[str, Repository]:
     base_path = pathlib.Path(clone_repo_to).absolute()
+    base_path.mkdir(parents=True, exist_ok=True)
+    logging.debug('Fetching repositories.')
 
-    if not base_path.exists():
-        base_path.mkdir(parents=True)
-        logging.debug('Fetching repositories.')
-    return {repo_address: _get_repository(repo_address, clone_repo_to) for repo_address in repositories}
+    return {repo_address: _get_repository(repo_address, clone_repo_to) for repo_address in tqdm(repositories, desc="Cloning Repositories")}
 
 
 def _get_repository(repo_address: str, clone_repo_to: str) -> Repository:
-    repo_path = pathlib.Path(clone_repo_to + get_repo_name(repo_address))
+    repo_name = get_repo_name(repo_address)
+    repo_path = pathlib.Path(clone_repo_to +  repo_name)
 
     if not repo_path.exists():
         return Repository(repo_address, clone_repo_to=clone_repo_to)
@@ -39,7 +40,7 @@ def _get_metrics(repo: Repository) -> dict[str, float]:
         "files_modified": 0,
     }
 
-    for commit in repo.traverse_commits():
+    for commit in tqdm(repo.traverse_commits(), desc="Traversing Commits", ncols=100):
         metrics["total_commits"] += 1
         metrics["developers"].add(commit.author.name)
         metrics["files_modified"] += len(commit.modified_files)
@@ -106,7 +107,7 @@ def _change_set_metrics(repo_path: str, from_commit: str = None, to_commit: str 
     return change_set_metric.max(), change_set_metric.avg()
 
 
-def process_repositories(repositories: list[str], clone_repo_to="../repositories") -> dict[str, dict[str, float]]:
+def process_repositories(repositories: list[str], clone_repo_to=None) -> dict[str, dict[str, float]]:
     # TODO: clean input, make sure there are no trailing and no /
     metrics = {}
     repos = _get_repositories(repositories, clone_repo_to)
@@ -131,7 +132,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     with open('../repos.txt', 'r') as repo_file:
         links = [line.strip() for line in repo_file.readlines()]
-        result = process_repositories(links)
+        result = process_repositories(links, clone_repo_to="../repositories")
     
     print(result)
     with open('./test_out.txt', 'w') as file:
