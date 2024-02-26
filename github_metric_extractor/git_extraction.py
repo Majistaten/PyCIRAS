@@ -59,7 +59,6 @@ def _extract_process_metrics(repo_path: str, from_commit: str = None, to_commit:
         'change_set_max': 0,
         'change_set_avg': 0,
         'code_churn': {},
-        'commits_count': {},
         'contributors_count': {'total': 0, 'minor': 0},
         'contributors_experience': {},
         'hunks_count': {},
@@ -70,7 +69,7 @@ def _extract_process_metrics(repo_path: str, from_commit: str = None, to_commit:
     metrics['hunks_count'] = _hunk_count_metrics(repo_path, from_commit, to_commit, since, to)
     metrics['contributors_experience'] = _contribution_experience_metrics(repo_path, from_commit, to_commit, since, to)
     metrics['contributors_count']['total'], metrics['contributors_count']['minor'] = _contribution_count_metrics(repo_path, from_commit, to_commit, since, to)
-    metrics['code_churns'] = _code_churns_metrics(repo_path, from_commit, to_commit, since, to)
+    metrics['code_churn'] = _code_churns_metrics(repo_path, from_commit, to_commit, since, to)
     metrics['change_set_max'], metrics['change_set_avg'] = _change_set_metrics(repo_path, from_commit, to_commit, since, to)
 
     return metrics
