@@ -4,6 +4,8 @@ from pylint.message import Message
 from io import StringIO
 import os
 import pprint
+import logging
+from tqdm import tqdm
 
 
 class LintReporter(TextReporter):
@@ -20,6 +22,7 @@ class LintReporter(TextReporter):
 
 def lint_message_extraction(messages):
     result = {}
+    logging.info(f"Extracting messages from {len(messages)} messages")
     for msg in messages:
         module = msg.module
         if module not in result:
@@ -33,19 +36,14 @@ def lint_message_extraction(messages):
         if msg_id not in result[module]['categories'][category]['message_ids']:
             result[module]['categories'][category]['message_ids'][msg_id] = {
                 'count': 0,
-                'symbol': msg.symbol,
-                'message': msg.msg,
-                'occurrences': []
+                'symbol': msg.symbol
             }
 
         result[module]['total_messages'] += 1
         result[module]['categories'][category]['total'] += 1
         result[module]['categories'][category]['message_ids'][msg_id]['count'] += 1
-        result[module]['categories'][category]['message_ids'][msg_id]['occurrences'].append({
-            'line': msg.line,
-            'column': msg.column,
-        })
 
+    logging.info(f"Extracted {len(result)} modules")
     return result
 
 
@@ -54,7 +52,7 @@ def get_python_files_from_directory(directory):
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith(".py"):
-                print(f"Found: {str(os.path.join(root, file))}")
+                logging.info(f"Found python file: {str(os.path.join(root, file))}")
                 python_files.append(str(os.path.join(root, file)))
     return python_files
 
@@ -64,6 +62,7 @@ def analyze_repository(repository_path):
     target_files = get_python_files_from_directory(repository_path)
     out = StringIO()
     reporter = LintReporter(output=out)
+    logging.info(f"Analyzing {len(target_files)} files in {repository_path}")
     run = Run(target_files, reporter=reporter, exit=False)
     stats = run.linter.stats
     if not isinstance(stats, dict):
@@ -74,20 +73,28 @@ def analyze_repository(repository_path):
 
     result['messages'] = lint_message_extraction(reporter.messages)
     result['stats'] = stats_dict
-
+    logging.info(f"Analyzed {len(target_files)} files in {repository_path}")
     return result
 
 
+def analyze_repositories(repositories):
+    results = {}
+    for repository in tqdm(repositories, desc="Analyzing repositories"):
+        logging.info(f"Analyzing repository {repository}")
+        results[repository] = analyze_repository(repository)
+    return results
+
+
 if __name__ == '__main__':
-    classification = analyze_repository("../repositories/NDStudy")
+    # result = analyze_repository("../analyze_files")
+    # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    repositories = [
+        os.path.join("../repositories", repo) for repo in os.listdir("../repositories")
+        if os.path.isdir(os.path.join("../repositories", repo)) and
+           len(get_python_files_from_directory(os.path.join("../repositories", repo))) > 0
+    ]
 
-    print("\nClassification Results:")
-    for module, info in classification["messages"].items():
-        print(f"Module: {module}, Total Messages: {info['total_messages']}")
-        for category, cat_info in info['categories'].items():
-            print(" " * 2 + f"Category: {category}, Total: {cat_info['total']}")
-            for msg_id, msg_info in cat_info['message_ids'].items():
-                print(" " * 4 + f"Message ID: {msg_id}, Count: {msg_info['count']}")
-                print(" " * 6 + f"Symbol: {msg_info['symbol']}")
-
-    pprint.pprint(classification["stats"])
+    print(repositories)
+    # result = analyze_repository("../repositories/astnn")
+    result = analyze_repositories(repositories)
+    pprint.pprint(result, width=300, indent=3)
