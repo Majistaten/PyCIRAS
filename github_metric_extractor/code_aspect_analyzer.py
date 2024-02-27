@@ -84,7 +84,7 @@ def analyze_repository(repository_path):
 def analyze_repository_commits(repository_path, commits):
     results = {}
     repo = Repo(repository_path)
-    for commit in tqdm(commits, desc=f"Analyzing commits", postfix=repository_path, ncols=100):
+    for commit in tqdm(commits, desc=f"Analyzing commits", postfix=repository_path, ncols=100, colour="blue"):
         hash = commit["commit_hash"]
         repo.git.checkout(hash)
         results[hash] = analyze_repository(repository_path)
@@ -93,7 +93,7 @@ def analyze_repository_commits(repository_path, commits):
 
 def analyze_repositories(repositories):
     results = {}
-    for repository in tqdm(repositories, desc="Analyzing repositories"):
+    for repository in tqdm(repositories, desc="Analyzing repositories", ncols=100, colour="blue"):
         logging.info(f"Analyzing repository {repository}")
         results[repository] = analyze_repository(repository)
     return results

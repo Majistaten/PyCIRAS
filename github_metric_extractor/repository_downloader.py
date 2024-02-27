@@ -11,7 +11,7 @@ class CloneProgress(RemoteProgress):
     def __init__(self, repo_name='', ncols=None):
         super().__init__()
         self.repo_name = repo_name
-        self.pbar = tqdm(desc=f'Cloning {repo_name}', ncols=ncols)
+        self.pbar = tqdm(desc=f'Cloning {repo_name}', ncols=ncols, colour="blue")
 
     def update(self, op_code, cur_count, max_count=None, message=''):
         if max_count is not None:

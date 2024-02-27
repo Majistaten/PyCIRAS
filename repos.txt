@@ -1,11 +1,1 @@
-https://github.com/meelgroup/baital
-https://github.com/zhangj111/astnn
 https://github.com/conala-corpus/conala-baseline
-https://github.com/LeonYang95/PLELog
-https://github.com/soarsmu/Chronos
-https://github.com/microsoft/toga
-https://github.com/Yuanyuan-Yuan/NeuraL-Coverage
-https://github.com/teobaluta/provero
-https://github.com/ncoop57/tango
-https://github.com/sola-st/Nalin
-https://github.com/vrthra/Ewoks/

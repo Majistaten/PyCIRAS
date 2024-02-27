@@ -1,10 +1,8 @@
-from datetime import datetime
 import pathlib
 import logging
-import code_aspect_analyzer
+import re
 from tqdm import tqdm
-import subprocess
-import os
+from datetime import datetime
 from collections import ChainMap
 from pydriller import Repository
 from pydriller.metrics.process.change_set import ChangeSet
@@ -25,7 +23,7 @@ def _get_repositories(repositories: list[str], clone_repo_to: str) -> dict[str, 
 
 def _get_repository(repo_address: str, clone_repo_to: str) -> Repository:
     repo_name = get_repo_name(repo_address)
-    repo_path = pathlib.Path(clone_repo_to +  repo_name)
+    repo_path = pathlib.Path(clone_repo_to + repo_name)
 
     if not repo_path.exists():
         return Repository(repo_address, clone_repo_to=clone_repo_to)
@@ -37,16 +35,17 @@ def _get_metrics(repo: Repository) -> dict[str, float]:
     metrics = {
         "total_commits": 0,
         "commits": [],
-        "developers": set(),
+        "developers": [],
         "developer_count": 0,
         "lines_added": 0,
         "lines_deleted": 0,
         "files_modified": 0,
     }
 
-    for commit in tqdm(repo.traverse_commits(), desc="Traversing Commits", ncols=100):
+    for commit in tqdm(repo.traverse_commits(), desc="Traversing Commits", ncols=100, colour="blue"):
         metrics["total_commits"] += 1
-        metrics["developers"].add(commit.author.name)
+        if not commit.author.name in metrics["developers"]:
+            metrics["developers"].append(commit.author.name)
         metrics["files_modified"] += len(commit.modified_files)
 
         metrics["commits"].append({
@@ -126,15 +125,16 @@ def process_repositories(repositories: list[str], clone_repo_to=None) -> dict[st
 
     for address, repo in repos.items():
         repo_name = get_repo_name(address)
-        metrics[repo] = ChainMap(_get_metrics(repo), _extract_process_metrics(repo_path=clone_repo_to + '\\' + repo_name, since=since, to=to))
-        metrics[repo]['repository_name'] = repo_name
-        metrics[repo]['repository_address'] = address
+        metrics[repo_name] = _get_metrics(repo)
+        metrics[repo_name].update(_extract_process_metrics(repo_path=clone_repo_to + '\\' + repo_name, since=since, to=to))
+        metrics[repo_name]['repository_name'] = repo_name
+        metrics[repo_name]['repository_address'] = address
 
     return metrics
 
 
 def get_repo_name(repo: str):
-    repo_name = repo.split(r'/|\\')[-1].replace('.git', '')
+    repo_name = re.split(r'[/\\]', repo)[-1].replace('.git', '')
     return repo_name
 
 
