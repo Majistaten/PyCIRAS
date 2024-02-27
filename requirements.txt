@@ -7,3 +7,4 @@ rich
 tqdm
 jupyter
 pylint
+python-dotenv
