@@ -126,7 +126,7 @@ def process_repositories(repositories: list[str], clone_repo_to=None) -> dict[st
     for address, repo in repos.items():
         repo_name = get_repo_name(address)
         metrics[repo_name] = _get_metrics(repo)
-        metrics[repo_name].update(_extract_process_metrics(repo_path=clone_repo_to + '\\' + repo_name, since=since, to=to))
+        metrics[repo_name].update(_extract_process_metrics(repo_path=clone_repo_to + '/' + repo_name, since=since, to=to))
         metrics[repo_name]['repository_name'] = repo_name
         metrics[repo_name]['repository_address'] = address
 
@@ -134,7 +134,7 @@ def process_repositories(repositories: list[str], clone_repo_to=None) -> dict[st
 
 
 def get_repo_name(repo: str):
-    repo_name = re.split(r'[/\\]', repo)[-1].replace('.git', '')
+    repo_name = repo.split(r'/|\\')[-1].replace('.git', '')
     return repo_name
 
 
