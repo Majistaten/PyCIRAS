@@ -126,7 +126,7 @@ def process_repositories(repositories: list[str], clone_repo_to=None) -> dict[st
 
     for address, repo in repos.items():
         repo_name = get_repo_name(address)
-        metrics[repo] = ChainMap(_get_metrics(repo), _extract_process_metrics(repo_path=clone_repo_to + '\\' + repo_name, since=since, to=to))
+        metrics[repo] = ChainMap(_get_metrics(repo), _extract_process_metrics(repo_path=clone_repo_to + '/' + repo_name, since=since, to=to))
         metrics[repo]['repository_name'] = repo_name
         metrics[repo]['repository_address'] = address
 
