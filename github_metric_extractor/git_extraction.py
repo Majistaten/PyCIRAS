@@ -1,7 +1,10 @@
 from datetime import datetime
 import pathlib
 import logging
+import code_aspect_analyzer
 from tqdm import tqdm
+import subprocess
+import os
 from collections import ChainMap
 from pydriller import Repository
 from pydriller.metrics.process.change_set import ChangeSet
@@ -33,6 +36,7 @@ def _get_metrics(repo: Repository) -> dict[str, float]:
     """Extract various metrics from a repository."""
     metrics = {
         "total_commits": 0,
+        "commits": [],
         "developers": set(),
         "developer_count": 0,
         "lines_added": 0,
@@ -44,6 +48,12 @@ def _get_metrics(repo: Repository) -> dict[str, float]:
         metrics["total_commits"] += 1
         metrics["developers"].add(commit.author.name)
         metrics["files_modified"] += len(commit.modified_files)
+
+        metrics["commits"].append({
+            "commit_hash": commit.hash,
+            "commit_date": str(commit.committer_date),
+        })
+
         for file in commit.modified_files:
             metrics["lines_added"] += file.added_lines
             metrics["lines_deleted"] += file.deleted_lines
@@ -123,8 +133,8 @@ def process_repositories(repositories: list[str], clone_repo_to=None) -> dict[st
     return metrics
 
 
-def get_repo_name(repo):
-    repo_name = repo.split('/')[-1].replace('.git', '')
+def get_repo_name(repo: str):
+    repo_name = repo.split(r'/|\\')[-1].replace('.git', '')
     return repo_name
 
 

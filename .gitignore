@@ -9,3 +9,4 @@ __pycache__/
 repositories/*
 secrets.json
 .ipynb_checkpoints/
+*.out

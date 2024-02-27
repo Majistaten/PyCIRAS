@@ -6,6 +6,7 @@ import os
 import pprint
 import logging
 from tqdm import tqdm
+from git import Repo, Git
 
 
 class LintReporter(TextReporter):
@@ -62,7 +63,7 @@ def analyze_repository(repository_path):
     target_files = get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
         logging.warning(f"No python files found in {repository_path}")
-        return result
+        return None
     out = StringIO()
     reporter = LintReporter(output=out)
     logging.info(f"Analyzing {len(target_files)} files in {repository_path}")
@@ -80,11 +81,29 @@ def analyze_repository(repository_path):
     return result
 
 
+def analyze_repository_commits(repository_path, commits):
+    results = {}
+    repo = Repo(repository_path)
+    for commit in tqdm(commits, desc=f"Analyzing commits", postfix=repository_path, ncols=100):
+        hash = commit["commit_hash"]
+        repo.git.checkout(hash)
+        results[hash] = analyze_repository(repository_path)
+    return results
+
+
 def analyze_repositories(repositories):
     results = {}
     for repository in tqdm(repositories, desc="Analyzing repositories"):
         logging.info(f"Analyzing repository {repository}")
         results[repository] = analyze_repository(repository)
+    return results
+
+
+def analyze_repositories_commits(repo_commits):
+    results = {}
+    for repository, commits in repo_commits.items():
+        logging.info(f"Analyzing repository {repository}")
+        results[repository] = analyze_repository_commits(repository, commits)
     return results
 
 
