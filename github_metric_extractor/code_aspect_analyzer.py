@@ -114,7 +114,7 @@ def lint_message_extraction(messages) -> dict:
 
             result[module]['categories'][category]['message_ids'][msg_id] = {
                 'count': 0,
-                'symbol': str(msg.symbol)
+                'symbol': msg.symbol
             }
 
         result[module]['total_messages'] += 1
