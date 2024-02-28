@@ -1,322 +1,540 @@
 {
-    "conala-baseline": {
-        "total_commits": 24,
-        "commits": [
-            {
-                "commit_hash": "7deff169c3e3b690fd9b0df5f9b939cac0fa0632",
-                "commit_date": "2018-06-03 02:38:59-04:00"
+    "../repositories/conala-baseline": {
+        "7deff169c3e3b690fd9b0df5f9b939cac0fa0632": null,
+        "f36eef31cbb4752a309043dc642ca26ee936d806": null,
+        "39d54639d2caa4902029b9f4cf08afde91036c44": null,
+        "ae7b09aaadf30630e0d16484dbfe82362763ef14": null,
+        "529a079293ff1cc8323d912b8725895e53b3c13c": null,
+        "e043292b9422df8ed0199c6df848b8e9e3bb3dbc": null,
+        "3ef90a37c22731dd4601c35358a4f76b527710a0": {
+            "messages": {
+                "evaluate": {
+                    "total_messages": 1,
+                    "categories": {
+                        "error": {
+                            "total": 1,
+                            "message_ids": {
+                                "E0001": {
+                                    "count": 1,
+                                    "symbol": "syntax-error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "bleu_score": {
+                    "total_messages": 49,
+                    "categories": {
+                        "warning": {
+                            "total": 47,
+                            "message_ids": {
+                                "W0311": {
+                                    "count": 47,
+                                    "symbol": "bad-indentation"
+                                }
+                            }
+                        },
+                        "refactor": {
+                            "total": 2,
+                            "message_ids": {
+                                "R0914": {
+                                    "count": 1,
+                                    "symbol": "too-many-locals"
+                                },
+                                "R0912": {
+                                    "count": 1,
+                                    "symbol": "too-many-branches"
+                                }
+                            }
+                        }
+                    }
+                },
+                "util": {
+                    "total_messages": 27,
+                    "categories": {
+                        "convention": {
+                            "total": 14,
+                            "message_ids": {
+                                "C0301": {
+                                    "count": 1,
+                                    "symbol": "line-too-long"
+                                },
+                                "C0114": {
+                                    "count": 1,
+                                    "symbol": "missing-module-docstring"
+                                },
+                                "C0116": {
+                                    "count": 8,
+                                    "symbol": "missing-function-docstring"
+                                },
+                                "C0200": {
+                                    "count": 1,
+                                    "symbol": "consider-using-enumerate"
+                                },
+                                "C0321": {
+                                    "count": 2,
+                                    "symbol": "multiple-statements"
+                                },
+                                "C0411": {
+                                    "count": 1,
+                                    "symbol": "wrong-import-order"
+                                }
+                            }
+                        },
+                        "error": {
+                            "total": 1,
+                            "message_ids": {
+                                "E0401": {
+                                    "count": 1,
+                                    "symbol": "import-error"
+                                }
+                            }
+                        },
+                        "warning": {
+                            "total": 11,
+                            "message_ids": {
+                                "W0631": {
+                                    "count": 1,
+                                    "symbol": "undefined-loop-variable"
+                                },
+                                "W0612": {
+                                    "count": 9,
+                                    "symbol": "unused-variable"
+                                },
+                                "W0611": {
+                                    "count": 1,
+                                    "symbol": "unused-import"
+                                }
+                            }
+                        },
+                        "refactor": {
+                            "total": 1,
+                            "message_ids": {
+                                "R1705": {
+                                    "count": 1,
+                                    "symbol": "no-else-return"
+                                }
+                            }
+                        }
+                    }
+                },
+                "extract_raw_data": {
+                    "total_messages": 29,
+                    "categories": {
+                        "convention": {
+                            "total": 13,
+                            "message_ids": {
+                                "C0301": {
+                                    "count": 3,
+                                    "symbol": "line-too-long"
+                                },
+                                "C0114": {
+                                    "count": 1,
+                                    "symbol": "missing-module-docstring"
+                                },
+                                "C0209": {
+                                    "count": 4,
+                                    "symbol": "consider-using-f-string"
+                                },
+                                "C0103": {
+                                    "count": 3,
+                                    "symbol": "invalid-name"
+                                },
+                                "C0411": {
+                                    "count": 1,
+                                    "symbol": "wrong-import-order"
+                                },
+                                "C0412": {
+                                    "count": 1,
+                                    "symbol": "ungrouped-imports"
+                                }
+                            }
+                        },
+                        "warning": {
+                            "total": 13,
+                            "message_ids": {
+                                "W0311": {
+                                    "count": 2,
+                                    "symbol": "bad-indentation"
+                                },
+                                "W0404": {
+                                    "count": 1,
+                                    "symbol": "reimported"
+                                },
+                                "W0401": {
+                                    "count": 1,
+                                    "symbol": "wildcard-import"
+                                },
+                                "W1514": {
+                                    "count": 3,
+                                    "symbol": "unspecified-encoding"
+                                },
+                                "W0702": {
+                                    "count": 1,
+                                    "symbol": "bare-except"
+                                },
+                                "W0127": {
+                                    "count": 1,
+                                    "symbol": "self-assigning-variable"
+                                },
+                                "W0611": {
+                                    "count": 3,
+                                    "symbol": "unused-import"
+                                },
+                                "W0614": {
+                                    "count": 1,
+                                    "symbol": "unused-wildcard-import"
+                                }
+                            }
+                        },
+                        "error": {
+                            "total": 1,
+                            "message_ids": {
+                                "E0401": {
+                                    "count": 1,
+                                    "symbol": "import-error"
+                                }
+                            }
+                        },
+                        "refactor": {
+                            "total": 2,
+                            "message_ids": {
+                                "R1732": {
+                                    "count": 2,
+                                    "symbol": "consider-using-with"
+                                }
+                            }
+                        }
+                    }
+                },
+                "canonicalize": {
+                    "total_messages": 19,
+                    "categories": {
+                        "warning": {
+                            "total": 9,
+                            "message_ids": {
+                                "W0311": {
+                                    "count": 6,
+                                    "symbol": "bad-indentation"
+                                },
+                                "W0612": {
+                                    "count": 1,
+                                    "symbol": "unused-variable"
+                                },
+                                "W0702": {
+                                    "count": 2,
+                                    "symbol": "bare-except"
+                                }
+                            }
+                        },
+                        "convention": {
+                            "total": 7,
+                            "message_ids": {
+                                "C0114": {
+                                    "count": 1,
+                                    "symbol": "missing-module-docstring"
+                                },
+                                "C0116": {
+                                    "count": 4,
+                                    "symbol": "missing-function-docstring"
+                                },
+                                "C0321": {
+                                    "count": 2,
+                                    "symbol": "multiple-statements"
+                                }
+                            }
+                        },
+                        "error": {
+                            "total": 1,
+                            "message_ids": {
+                                "E0401": {
+                                    "count": 1,
+                                    "symbol": "import-error"
+                                }
+                            }
+                        },
+                        "refactor": {
+                            "total": 2,
+                            "message_ids": {
+                                "R1735": {
+                                    "count": 1,
+                                    "symbol": "use-dict-literal"
+                                },
+                                "R1702": {
+                                    "count": 1,
+                                    "symbol": "too-many-nested-blocks"
+                                }
+                            }
+                        }
+                    }
+                },
+                "seq2seq_output_to_code": {
+                    "total_messages": 9,
+                    "categories": {
+                        "convention": {
+                            "total": 3,
+                            "message_ids": {
+                                "C0114": {
+                                    "count": 1,
+                                    "symbol": "missing-module-docstring"
+                                },
+                                "C0410": {
+                                    "count": 1,
+                                    "symbol": "multiple-imports"
+                                },
+                                "C0103": {
+                                    "count": 1,
+                                    "symbol": "invalid-name"
+                                }
+                            }
+                        },
+                        "refactor": {
+                            "total": 3,
+                            "message_ids": {
+                                "R1732": {
+                                    "count": 3,
+                                    "symbol": "consider-using-with"
+                                }
+                            }
+                        },
+                        "warning": {
+                            "total": 3,
+                            "message_ids": {
+                                "W1514": {
+                                    "count": 3,
+                                    "symbol": "unspecified-encoding"
+                                }
+                            }
+                        }
+                    }
+                },
+                "convert_to_python3": {
+                    "total_messages": 33,
+                    "categories": {
+                        "warning": {
+                            "total": 26,
+                            "message_ids": {
+                                "W0311": {
+                                    "count": 26,
+                                    "symbol": "bad-indentation"
+                                }
+                            }
+                        },
+                        "convention": {
+                            "total": 7,
+                            "message_ids": {
+                                "C0305": {
+                                    "count": 1,
+                                    "symbol": "trailing-newlines"
+                                },
+                                "C0114": {
+                                    "count": 1,
+                                    "symbol": "missing-module-docstring"
+                                },
+                                "C0209": {
+                                    "count": 5,
+                                    "symbol": "consider-using-f-string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "json_to_seq2seq": {
+                    "total_messages": 7,
+                    "categories": {
+                        "convention": {
+                            "total": 3,
+                            "message_ids": {
+                                "C0114": {
+                                    "count": 1,
+                                    "symbol": "missing-module-docstring"
+                                },
+                                "C0410": {
+                                    "count": 1,
+                                    "symbol": "multiple-imports"
+                                },
+                                "C0116": {
+                                    "count": 1,
+                                    "symbol": "missing-function-docstring"
+                                }
+                            }
+                        },
+                        "refactor": {
+                            "total": 1,
+                            "message_ids": {
+                                "R1732": {
+                                    "count": 1,
+                                    "symbol": "consider-using-with"
+                                }
+                            }
+                        },
+                        "warning": {
+                            "total": 3,
+                            "message_ids": {
+                                "W1514": {
+                                    "count": 3,
+                                    "symbol": "unspecified-encoding"
+                                }
+                            }
+                        }
+                    }
+                }
             },
-            {
-                "commit_hash": "f36eef31cbb4752a309043dc642ca26ee936d806",
-                "commit_date": "2018-06-03 02:53:21-04:00"
-            },
-            {
-                "commit_hash": "39d54639d2caa4902029b9f4cf08afde91036c44",
-                "commit_date": "2018-06-03 03:07:35-04:00"
-            },
-            {
-                "commit_hash": "ae7b09aaadf30630e0d16484dbfe82362763ef14",
-                "commit_date": "2018-06-05 23:55:43-04:00"
-            },
-            {
-                "commit_hash": "529a079293ff1cc8323d912b8725895e53b3c13c",
-                "commit_date": "2018-06-06 17:53:47-04:00"
-            },
-            {
-                "commit_hash": "e043292b9422df8ed0199c6df848b8e9e3bb3dbc",
-                "commit_date": "2018-06-06 18:17:29-04:00"
-            },
-            {
-                "commit_hash": "3ef90a37c22731dd4601c35358a4f76b527710a0",
-                "commit_date": "2018-06-11 09:14:40-04:00"
-            },
-            {
-                "commit_hash": "c18755acacead62fb7d0c078a9f420c7fe467c66",
-                "commit_date": "2018-06-11 09:15:15-04:00"
-            },
-            {
-                "commit_hash": "41fd6d5e1fa1ba0cc5cbb27d863044cc63745130",
-                "commit_date": "2018-06-11 10:03:06-04:00"
-            },
-            {
-                "commit_hash": "7e9a6125012b48a4afc3474bf482b7e125668380",
-                "commit_date": "2018-06-11 10:05:59-04:00"
-            },
-            {
-                "commit_hash": "3f64279e196615c13d8ef5c76042d015ea880d9e",
-                "commit_date": "2018-06-11 14:10:39-04:00"
-            },
-            {
-                "commit_hash": "b6c8960c859c5aaa9374f6f48c9124405726d424",
-                "commit_date": "2018-06-11 21:26:03-04:00"
-            },
-            {
-                "commit_hash": "ebed6c6c4b0cd78f15a99c1766ed76c5589c0e8d",
-                "commit_date": "2018-06-11 21:26:18-04:00"
-            },
-            {
-                "commit_hash": "8fc78e7953f707aec9014a3e3028b8e28912a8bd",
-                "commit_date": "2018-06-11 21:30:22-04:00"
-            },
-            {
-                "commit_hash": "5ac53e1385970ff5f8079d097d4e9ffdb3aeb95f",
-                "commit_date": "2018-06-12 23:17:10-04:00"
-            },
-            {
-                "commit_hash": "305f610b733936d9b57a1a11249481d6c37a0efc",
-                "commit_date": "2018-06-12 23:17:41-04:00"
-            },
-            {
-                "commit_hash": "5114cd93a9094dc28aa31841af2c09b5f75e7321",
-                "commit_date": "2018-06-13 18:16:45-04:00"
-            },
-            {
-                "commit_hash": "b28382b0d2e34767403bab157608b568332c4584",
-                "commit_date": "2018-06-13 18:17:03-04:00"
-            },
-            {
-                "commit_hash": "b9c72a55a5a00777f1285aca60860ff5340b4a10",
-                "commit_date": "2018-06-15 10:07:00-04:00"
-            },
-            {
-                "commit_hash": "0d8b87fa2b44bbb740a1efe9b46370db75dc8044",
-                "commit_date": "2018-06-15 10:07:23-04:00"
-            },
-            {
-                "commit_hash": "1856808d63f3b0606cb2620cf889f7a56c7a5546",
-                "commit_date": "2018-06-18 09:28:12-04:00"
-            },
-            {
-                "commit_hash": "d109d90da57103f858539fc40110c41e2e90685e",
-                "commit_date": "2018-06-18 11:39:37-04:00"
-            },
-            {
-                "commit_hash": "8fee97894ecc89324ee1a293007bc088caa38702",
-                "commit_date": "2021-10-20 19:04:11+02:00"
-            },
-            {
-                "commit_hash": "7d3e5821677cb02613a7cc43fb346745e3fa0731",
-                "commit_date": "2021-10-20 17:53:27-04:00"
-            }
-        ],
-        "developers": [
-            "Graham Neubig",
-            "Edgar Chen",
-            "Bernhard Stadler"
-        ],
-        "developer_count": 3,
-        "lines_added": 1296,
-        "lines_deleted": 310,
-        "files_modified": 43,
-        "average_lines_added_per_commit": 54.0,
-        "average_lines_deleted_per_commit": 12.916666666666666,
-        "change_set_max": 12,
-        "change_set_avg": 2,
-        "code_churn": {
-            "total": {
-                "setup.cfg": 40,
-                "setup.py": 12,
-                "README.md": 25,
-                "preproc\\convert_to_python3.py": 45,
-                "conala_baseline.sh": 52,
-                "eval\\metadata": 2,
-                "eval\\conala_eval.py": 141,
-                "preproc\\util.py": 154,
-                ".gitignore": 1,
-                "null": -204,
-                "config\\annot.yaml": 103,
-                "config\\annotmined.yaml": 101,
-                "eval\\bleu_score.py": 107,
-                "preproc\\canonicalize.py": 72,
-                "preproc\\extract_raw_data.py": 81,
-                "preproc\\json_to_seq2seq.py": 24,
-                "preproc\\seq2seq_output_to_code.py": 24,
-                "annot.yaml": 103,
-                "annotmined.yaml": 101,
-                "requirements.txt": 2
-            },
-            "max": {
-                "setup.cfg": 40,
-                "setup.py": 12,
-                "README.md": 13,
-                "preproc\\convert_to_python3.py": 42,
-                "conala_baseline.sh": 35,
-                "eval\\metadata": 2,
-                "eval\\conala_eval.py": 114,
-                "preproc\\util.py": 150,
-                ".gitignore": 1,
-                "null": -101,
-                "config\\annot.yaml": 103,
-                "config\\annotmined.yaml": 101,
-                "eval\\bleu_score.py": 107,
-                "preproc\\canonicalize.py": 72,
-                "preproc\\extract_raw_data.py": 81,
-                "preproc\\json_to_seq2seq.py": 24,
-                "preproc\\seq2seq_output_to_code.py": 24,
-                "annot.yaml": 102,
-                "annotmined.yaml": 101,
-                "requirements.txt": 2
-            },
-            "avg": {
-                "setup.cfg": 40,
-                "setup.py": 12,
-                "README.md": 8,
-                "preproc\\convert_to_python3.py": 22,
-                "conala_baseline.sh": 5,
-                "eval\\metadata": 1,
-                "eval\\conala_eval.py": 28,
-                "preproc\\util.py": 77,
-                ".gitignore": 1,
-                "null": -102,
-                "config\\annot.yaml": 103,
-                "config\\annotmined.yaml": 101,
-                "eval\\bleu_score.py": 107,
-                "preproc\\canonicalize.py": 72,
-                "preproc\\extract_raw_data.py": 81,
-                "preproc\\json_to_seq2seq.py": 24,
-                "preproc\\seq2seq_output_to_code.py": 24,
-                "annot.yaml": 34,
-                "annotmined.yaml": 50,
-                "requirements.txt": 2
-            }
-        },
-        "contributors_count": {
-            "total": {
-                "setup.cfg": 1,
-                "setup.py": 1,
-                "README.md": 1,
-                "preproc\\convert_to_python3.py": 1,
-                "conala_baseline.sh": 1,
-                "eval\\metadata": 1,
-                "eval\\conala_eval.py": 2,
-                "preproc\\util.py": 1,
-                ".gitignore": 1,
-                "null": 1,
-                "config\\annot.yaml": 1,
-                "config\\annotmined.yaml": 1,
-                "eval\\bleu_score.py": 1,
-                "preproc\\canonicalize.py": 1,
-                "preproc\\extract_raw_data.py": 1,
-                "preproc\\json_to_seq2seq.py": 1,
-                "preproc\\seq2seq_output_to_code.py": 1,
-                "annot.yaml": 1,
-                "annotmined.yaml": 1,
-                "requirements.txt": 1
-            },
-            "minor": {
-                "setup.cfg": 0,
-                "setup.py": 0,
-                "README.md": 0,
-                "preproc\\convert_to_python3.py": 0,
-                "conala_baseline.sh": 0,
-                "eval\\metadata": 0,
-                "eval\\conala_eval.py": 0,
-                "preproc\\util.py": 0,
-                ".gitignore": 0,
-                "null": 0,
-                "config\\annot.yaml": 0,
-                "config\\annotmined.yaml": 0,
-                "eval\\bleu_score.py": 0,
-                "preproc\\canonicalize.py": 0,
-                "preproc\\extract_raw_data.py": 0,
-                "preproc\\json_to_seq2seq.py": 0,
-                "preproc\\seq2seq_output_to_code.py": 0,
-                "annot.yaml": 0,
-                "annotmined.yaml": 0,
-                "requirements.txt": 0
-            }
-        },
-        "contributors_experience": {
-            "setup.cfg": 100.0,
-            "setup.py": 100.0,
-            "README.md": 100.0,
-            "preproc\\convert_to_python3.py": 100.0,
-            "conala_baseline.sh": 100.0,
-            "eval\\metadata": 100.0,
-            "eval\\conala_eval.py": 90.05,
-            "preproc\\util.py": 100.0,
-            ".gitignore": 100.0,
-            "null": 100.0,
-            "config\\annot.yaml": 100.0,
-            "config\\annotmined.yaml": 100.0,
-            "eval\\bleu_score.py": 100.0,
-            "preproc\\canonicalize.py": 100.0,
-            "preproc\\extract_raw_data.py": 100.0,
-            "preproc\\json_to_seq2seq.py": 100.0,
-            "preproc\\seq2seq_output_to_code.py": 100.0,
-            "annot.yaml": 100.0,
-            "annotmined.yaml": 100.0,
-            "requirements.txt": 100.0
-        },
-        "hunks_count": {
-            "setup.cfg": 1,
-            "setup.py": 1,
-            "README.md": 1,
-            "preproc\\convert_to_python3.py": 1.5,
-            "conala_baseline.sh": 1,
-            "eval\\metadata": 1.0,
-            "eval\\conala_eval.py": 2,
-            "preproc\\util.py": 1.5,
-            ".gitignore": 1,
-            "null": 1.0,
-            "config\\annot.yaml": 1,
-            "config\\annotmined.yaml": 1,
-            "eval\\bleu_score.py": 1,
-            "preproc\\canonicalize.py": 1,
-            "preproc\\extract_raw_data.py": 1,
-            "preproc\\json_to_seq2seq.py": 1,
-            "preproc\\seq2seq_output_to_code.py": 1,
-            "annot.yaml": 1,
-            "annotmined.yaml": 1.5,
-            "requirements.txt": 1
-        },
-        "lines_count": {
-            "added": {
-                "setup.cfg": 40,
-                "setup.py": 12,
-                "README.md": 29,
-                "preproc\\convert_to_python3.py": 47,
-                "conala_baseline.sh": 116,
-                "eval\\metadata": 3,
-                "eval\\conala_eval.py": 171,
-                "preproc\\util.py": 155,
-                ".gitignore": 1,
-                "null": 0,
-                "config\\annot.yaml": 103,
-                "config\\annotmined.yaml": 101,
-                "eval\\bleu_score.py": 107,
-                "preproc\\canonicalize.py": 72,
-                "preproc\\extract_raw_data.py": 81,
-                "preproc\\json_to_seq2seq.py": 24,
-                "preproc\\seq2seq_output_to_code.py": 24,
-                "annot.yaml": 105,
-                "annotmined.yaml": 103,
-                "requirements.txt": 2
-            },
-            "removed": {
-                "setup.cfg": 0,
-                "setup.py": 0,
-                "README.md": 4,
-                "preproc\\convert_to_python3.py": 2,
-                "conala_baseline.sh": 64,
-                "eval\\metadata": 1,
-                "eval\\conala_eval.py": 30,
-                "preproc\\util.py": 1,
-                ".gitignore": 0,
-                "null": 204,
-                "config\\annot.yaml": 0,
-                "config\\annotmined.yaml": 0,
-                "eval\\bleu_score.py": 0,
-                "preproc\\canonicalize.py": 0,
-                "preproc\\extract_raw_data.py": 0,
-                "preproc\\json_to_seq2seq.py": 0,
-                "preproc\\seq2seq_output_to_code.py": 0,
-                "annot.yaml": 2,
-                "annotmined.yaml": 2,
-                "requirements.txt": 0
-            }
-        },
-        "repository_name": "conala-baseline",
-        "repository_address": "..\\repositories\\conala-baseline"
-    }
-}
+            "stats": {
+                "bad_names": {
+                    "argument": 0,
+                    "attr": 0,
+                    "klass": 0,
+                    "class_attribute": 0,
+                    "class_const": 0,
+                    "const": 4,
+                    "inlinevar": 0,
+                    "function": 0,
+                    "method": 0,
+                    "module": 0,
+                    "variable": 0,
+                    "typevar": 0,
+                    "typealias": 0
+                },
+                "by_module": {
+                    "/home/s/Skola/exjobb/github_metric_extractor/.pylintrc": {
+                        "convention": 0,
+                        "error": 0,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 0,
+                        "statement": 0,
+                        "warning": 0
+                    },
+                    "Command line": {
+                        "convention": 0,
+                        "error": 0,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 0,
+                        "statement": 0,
+                        "warning": 0
+                    },
+                    "Command line or configuration file": {
+                        "convention": 0,
+                        "error": 0,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 0,
+                        "statement": 0,
+                        "warning": 0
+                    },
+                    "evaluate": {
+                        "convention": 0,
+                        "error": 1,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 0,
+                        "statement": 0,
+                        "warning": 0
+                    },
+                    "bleu_score": {
+                        "convention": 0,
+                        "error": 0,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 2,
+                        "statement": 45,
+                        "warning": 47
+                    },
+                    "util": {
+                        "convention": 14,
+                        "error": 1,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 1,
+                        "statement": 101,
+                        "warning": 11
+                    },
+                    "extract_raw_data": {
+                        "convention": 13,
+                        "error": 1,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 2,
+                        "statement": 59,
+                        "warning": 13
+                    },
+                    "canonicalize": {
+                        "convention": 7,
+                        "error": 1,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 2,
+                        "statement": 42,
+                        "warning": 9
+                    },
+                    "seq2seq_output_to_code": {
+                        "convention": 3,
+                        "error": 0,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 3,
+                        "statement": 17,
+                        "warning": 3
+                    },
+                    "convert_to_python3": {
+                        "convention": 7,
+                        "error": 0,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 0,
+                        "statement": 36,
+                        "warning": 26
+                    },
+                    "json_to_seq2seq": {
+                        "convention": 3,
+                        "error": 0,
+                        "fatal": 0,
+                        "info": 0,
+                        "refactor": 1,
+                        "statement": 13,
+                        "warning": 3
+                    }
+                },
+                "by_msg": {
+                    "syntax-error": 1,
+                    "bad-indentation": 81,
+                    "too-many-locals": 1,
+                    "too-many-branches": 1,
+                    "line-too-long": 4,
+                    "missing-module-docstring": 6,
+                    "import-error": 3,
+                    "missing-function-docstring": 13,
+                    "undefined-loop-variable": 1,
+                    "unused-variable": 10,
+                    "no-else-return": 1,
+                    "consider-using-enumerate": 1,
+                    "multiple-statements": 4,
+                    "wrong-import-order": 2,
+                    "unused-import": 4,
+                    "reimported": 1,
+                    "wildcard-import": 1,
+                    "consider-using-f-string": 9,
+                    "consider-using-with": 6,
+                    "unspecified-encoding": 9,
+                    "invalid-name": 4,
+                    "bare-except": 3,
+                    "self-assigning-variable": 1,
+                    "ungrouped-imports": 1,
+                    "unused-wildcard-import": 1,
+                    "use-dict-literal": 1,
+                    "too-many-nested-blocks": 1,
+                    "multiple-imports": 2,
+                    "trailing-newlines": 1
+                },
+                "code_type_count": {
+                    "code": 0,
+                    "comment": 0,
+                    "docstring": 0,
+                    "empty": 0,
+                    "total": 0
+                },
+                "convention": 47,
+                "dependencies": {
+                    "canonicalize": 
