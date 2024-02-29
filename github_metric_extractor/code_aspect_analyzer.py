@@ -7,6 +7,7 @@ import pprint
 import logging
 from tqdm import tqdm
 from git import Repo, Git
+import util
 
 
 #TODO TextReporter använder sig av set() för _modules
@@ -56,7 +57,7 @@ def analyze_repositories(repositories):
 def analyze_repository(repository_path):
     """Analyze a single repository"""
     result = {}
-    target_files = get_python_files_from_directory(repository_path)
+    target_files = util.get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
         logging.warning(f"No python files found in {repository_path}")
         return None
@@ -82,18 +83,6 @@ def analyze_repository(repository_path):
     return result
 
 
-def get_python_files_from_directory(directory):
-    """Get a list of Python files from a directory"""
-    python_files = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".py"):
-                logging.info(f"Found python file: {str(os.path.join(root, file))}")
-                python_files.append(str(os.path.join(root, file)))
-    return python_files
-
-
-#TODO sets är inte serializable i JSON, fixa på ett annat sätt
 def lint_message_extraction(messages) -> dict:
     """Extracts Pylint messages and returns them in a formatted dictionary"""
 
@@ -104,8 +93,6 @@ def lint_message_extraction(messages) -> dict:
         module = msg.module
         if module not in result:
             result[module] = {'total_messages': 0, 'categories': {}}
-
-        #TODO extremt nestad struktur - går det att göra den mer platt och mindre komplex?
 
         category = msg.category
         if category not in result[module]['categories']:
