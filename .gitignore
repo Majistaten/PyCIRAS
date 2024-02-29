@@ -10,3 +10,4 @@ repositories/*
 secrets.json
 .ipynb_checkpoints/
 *.out
+test*.json

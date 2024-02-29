@@ -5,6 +5,13 @@ import json
 import code_aspect_analyzer
 
 
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)  # Convert sets to lists
+        return json.JSONEncoder.default(self, obj)
+
+
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 

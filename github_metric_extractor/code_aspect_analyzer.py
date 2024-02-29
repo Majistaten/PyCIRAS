@@ -67,7 +67,7 @@ def analyze_repository(repository_path):
     run = Run(target_files, reporter=reporter, exit=False)
     stats = run.linter.stats
     if not isinstance(stats, dict):
-        stats_dict = {attr: getattr(stats, attr) for attr in dir(stats) if
+        stats_dict = {str(attr): str(getattr(stats, attr)) for attr in dir(stats) if
                       not attr.startswith('__') and not callable(getattr(stats, attr))}
     else:
         stats_dict = stats
