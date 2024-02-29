@@ -5,6 +5,30 @@ from datetime import datetime
 from collections.abc import MutableMapping
 
 
+def write_pydriller_metrics_to_csv(metrics: dict) -> None:
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    output_directory = Path(__file__).parent.parent / 'csv' / f'./{timestamp}'
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    csv_file_name = 'pydriller.csv'
+    csv_file_path = output_directory / csv_file_name
+
+
+
+    # rad = repository
+    # k/v pairs blir kolumner/celler
+
+    headers = metrics.keys() #TODO vad ska bli headers? Hur få in repositories som rader, resten som kolumner?
+
+    with open(csv_file_path, 'w', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=headers)
+
+    return
+
+    # Full path for the CSV file
+
+
 def flatten_pydriller_metrics(metrics: dict) -> dict:
 
     flat_metrics = metrics
