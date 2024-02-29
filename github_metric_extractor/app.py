@@ -8,6 +8,7 @@ import logging
 import json
 import code_aspect_analyzer
 import pandas as pd
+import csv_builder
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -46,19 +47,12 @@ def main():
     code_aspects = code_aspect_analyzer.analyze_repositories_commits(repo_commits)
 
     with open('./test_out.json', 'w') as file:
-        test = metrics
-        for key, value in test.items():
-            # test[key] = value if not isinstance(value, dict) else flatten_dict(value, sep="->")
-            test[key].pop("commits")
-            test[key] = flatten_dict(value, sep="->")
-        json.dump(test, file, indent=4)
+        flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
+        json.dump(flat_pydriller_metrics, file, indent=4)
 
     with open('./test_code_aspects.json', 'w') as file:
-        test = code_aspects
-        for key, value in test.items():
-            for k, v in value.items():
-                test[key][k] = v if not isinstance(v, dict) else flatten_dict(v, sep="->")
-        json.dump(test, file, indent=4, cls=CustomEncoder)
+        flat_pylint_metrics = csv_builder.flatten_pylint_metrics(metrics)
+        json.dump(flat_pylint_metrics, file, indent=4, cls=CustomEncoder)
 
 
 if __name__ == '__main__':
