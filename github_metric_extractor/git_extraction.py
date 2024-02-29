@@ -1,9 +1,7 @@
 import pathlib
 import logging
-import re
 from tqdm import tqdm
 from datetime import datetime
-from collections import ChainMap
 from pydriller import Repository
 from pydriller.metrics.process.change_set import ChangeSet
 from pydriller.metrics.process.code_churn import CodeChurn
@@ -11,27 +9,52 @@ from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.contributors_experience import ContributorsExperience
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
+import util
 
 
-def _get_repositories(repositories: list[str], clone_repo_to: str) -> dict[str, Repository]:
-    base_path = pathlib.Path(clone_repo_to).absolute()
-    base_path.mkdir(parents=True, exist_ok=True)
-    logging.debug('Fetching repositories.')
+def mine_pydriller_metrics(repositories: list[str], clone_repo_to=None) -> dict[str, dict[str, float]]:
+    """Get Pydriller metrics from a git repository stored in a dict"""
 
-    return {repo_address: _get_repository(repo_address, clone_repo_to) for repo_address in tqdm(repositories, desc="Cloning Repositories")}
+    # TODO: clean input, make sure there are no trailing and no /
+    metrics = {}
+    repos = _load_repositories(repositories, clone_repo_to)
+    since = datetime(2006, 10, 8, 17, 59, 0)
+    to = datetime(2024, 2, 6, 0, 0, 0)
+
+    for address, repo in repos.items():
+        repo_name = util.get_repo_name(address)
+        metrics[repo_name] = _extract_commit_metrics(repo)
+        metrics[repo_name].update(_extract_process_metrics(repo_path=clone_repo_to + '/' + repo_name, since=since, to=to))
+        metrics[repo_name]['repository_name'] = repo_name
+        metrics[repo_name]['repository_address'] = address
+
+    return metrics
 
 
-def _get_repository(repo_address: str, clone_repo_to: str) -> Repository:
-    repo_name = get_repo_name(repo_address)
-    repo_path = pathlib.Path(clone_repo_to + repo_name)
+def _load_repositories(repositories: list[str], repository_directory: str) -> dict[str, Repository]:
+    """Load repositories for further processing"""
+
+    repository_path = pathlib.Path(repository_directory).absolute()
+    repository_path.mkdir(parents=True, exist_ok=True)
+    logging.debug('Loading repositories.')
+
+    return {repo_url: _load_repository(repo_url, repository_directory) for repo_url in tqdm(repositories, desc="Loading Repositories")}
+
+
+def _load_repository(repo_url: str, repository_directory: str) -> Repository:
+    """Load repository stored locally, or clone and load if not present"""
+
+    repo_name = util.get_repo_name(repo_url)
+    repo_path = pathlib.Path(repository_directory + repo_name)
 
     if not repo_path.exists():
-        return Repository(repo_address, clone_repo_to=clone_repo_to)
+        return Repository(repo_url, clone_repo_to=repository_directory)
+
     return Repository(repo_path)
 
 
-def _get_metrics(repo: Repository) -> dict[str, float]:
-    """Extract various metrics from a repository."""
+def _extract_commit_metrics(repo: Repository) -> dict[str, float]:
+    """Extract Pydriller commit metrics from a repository."""
     metrics = {
         "total_commits": 0,
         "commits": [],
@@ -42,7 +65,7 @@ def _get_metrics(repo: Repository) -> dict[str, float]:
         "files_modified": 0,
     }
 
-    for commit in tqdm(repo.traverse_commits(), desc="Traversing Commits", ncols=100, colour="blue"):
+    for commit in tqdm(repo.traverse_commits(), desc="Traversing commits, extracting metrics", ncols=100, colour="blue"):
         metrics["total_commits"] += 1
         if not commit.author.name in metrics["developers"]:
             metrics["developers"].append(commit.author.name)
@@ -64,7 +87,13 @@ def _get_metrics(repo: Repository) -> dict[str, float]:
     return metrics
 
 
-def _extract_process_metrics(repo_path: str, from_commit: str = None, to_commit: str = None, since: datetime = None, to: datetime = None):
+def _extract_process_metrics(repo_path: str,
+                             from_commit: str = None,
+                             to_commit: str = None,
+                             since: datetime = None,
+                             to: datetime = None):
+    """Extract Pydriller Process metrics from a repository"""
+
     metrics = {
         'change_set_max': 0,
         'change_set_avg': 0,
@@ -85,64 +114,67 @@ def _extract_process_metrics(repo_path: str, from_commit: str = None, to_commit:
     return metrics
 
 
-def _lines_count_metrics(repo_path: str, from_commit: str = None, to_commit: str = None, since: datetime = None, to: datetime = None):
+def _lines_count_metrics(repo_path: str,
+                         from_commit: str = None,
+                         to_commit: str = None,
+                         since: datetime = None,
+                         to: datetime = None):
     lines_count_metric = LinesCount(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since, to=to)
     return lines_count_metric.count_added(), lines_count_metric.count_removed()
 
 
-def _hunk_count_metrics(repo_path: str, from_commit: str = None, to_commit: str = None, since: datetime = None, to: datetime = None):
+def _hunk_count_metrics(repo_path: str,
+                        from_commit: str = None,
+                        to_commit: str = None,
+                        since: datetime = None,
+                        to: datetime = None):
     hunks_count_metric = HunksCount(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since, to=to)
     return hunks_count_metric.count()
 
 
-def _contribution_experience_metrics(repo_path: str, from_commit: str = None, to_commit: str = None, since: datetime = None, to: datetime = None):
+def _contribution_experience_metrics(repo_path: str,
+                                     from_commit: str = None,
+                                     to_commit: str = None,
+                                     since: datetime = None,
+                                     to: datetime = None):
     contributors_experience_metric = ContributorsExperience(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since, to=to)
     return contributors_experience_metric.count()
 
 
-def _contribution_count_metrics(repo_path: str, from_commit: str = None, to_commit: str = None, since: datetime = None, to: datetime = None):
+def _contribution_count_metrics(repo_path: str,
+                                from_commit: str = None,
+                                to_commit: str = None,
+                                since: datetime = None,
+                                to: datetime = None):
     contributors_count_metric = ContributorsCount(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since, to=to)
     return contributors_count_metric.count(), contributors_count_metric.count_minor()
 
 
-def _code_churns_metrics(repo_path: str, from_commit: str = None, to_commit: str = None, since: datetime = None, to: datetime = None):
+def _code_churns_metrics(repo_path: str,
+                         from_commit: str = None,
+                         to_commit: str = None,
+                         since: datetime = None,
+                         to: datetime = None):
     code_churn_metric = CodeChurn(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since, to=to)
     metrics = {'total': code_churn_metric.count(), 'max': code_churn_metric.max(), 'avg': code_churn_metric.avg()}
     return metrics
 
 
-def _change_set_metrics(repo_path: str, from_commit: str = None, to_commit: str = None, since: datetime = None, to: datetime = None):
+def _change_set_metrics(repo_path: str,
+                        from_commit: str = None,
+                        to_commit: str = None,
+                        since: datetime = None,
+                        to: datetime = None):
     change_set_metric = ChangeSet(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since, to=to)
     return change_set_metric.max(), change_set_metric.avg()
 
 
-def process_repositories(repositories: list[str], clone_repo_to=None) -> dict[str, dict[str, float]]:
-    # TODO: clean input, make sure there are no trailing and no /
-    metrics = {}
-    repos = _get_repositories(repositories, clone_repo_to)
-    since = datetime(2006, 10, 8, 17, 59, 0)
-    to = datetime(2024, 2, 6, 0, 0, 0)
-
-    for address, repo in repos.items():
-        repo_name = get_repo_name(address)
-        metrics[repo_name] = _get_metrics(repo)
-        metrics[repo_name].update(_extract_process_metrics(repo_path=clone_repo_to + '/' + repo_name, since=since, to=to))
-        metrics[repo_name]['repository_name'] = repo_name
-        metrics[repo_name]['repository_address'] = address
-
-    return metrics
-
-
-def get_repo_name(repo: str):
-    repo_name = repo.split(r'/|\\')[-1].replace('.git', '')
-    return repo_name
-
-
 if __name__ == '__main__':
+    """Test script for extracting Pydriller metrics"""
     logging.basicConfig(level=logging.INFO)
     with open('../repos.txt', 'r') as repo_file:
         links = [line.strip() for line in repo_file.readlines()]
-        result = process_repositories(links, clone_repo_to="../repositories")
+        result = mine_pydriller_metrics(links, clone_repo_to="../repositories")
     
     print(result)
     with open('./test_out.txt', 'w') as file:

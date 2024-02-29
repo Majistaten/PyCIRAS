@@ -5,13 +5,16 @@ from pathlib import Path
 import logging
 import re
 from tqdm import tqdm
+import util
 
 
 class CloneProgress(RemoteProgress):
-    def __init__(self, repo_name='', ncols=None):
+    """Progressbar for the cloning process"""
+
+    def __init__(self, repo_name: str = '', n_cols: any = None):
         super().__init__()
         self.repo_name = repo_name
-        self.pbar = tqdm(desc=f'Cloning {repo_name}', ncols=ncols, colour="blue")
+        self.pbar = tqdm(desc=f'Cloning {repo_name}', ncols=n_cols, colour="blue")
 
     def update(self, op_code, cur_count, max_count=None, message=''):
         if max_count is not None:
@@ -23,38 +26,10 @@ class CloneProgress(RemoteProgress):
         self.pbar.close()
 
 
-def clone_repository(repo_url, destination_folder):
-    """
-    Clones a Git repository from a given URL to a given destination folder.
-    Args:
-        repo_url: The URL of the Git repository to clone.
-        destination_folder: The folder to clone the repository to.
-
-    Returns:
-        True if the repository was successfully cloned, False otherwise.
-    """
-    try:
-        repo_name = _get_repo_name(repo_url)
-        path = Path(destination_folder)
-        if not path.exists() or not path.is_dir():
-            logging.warning('Path (' + destination_folder + ') did not exist, creating path.')
-            path.mkdir(parents=True, exist_ok=True)
-
-        if (path / repo_name).exists():
-            logging.info('Repository ' + repo_name + ' already exists in ' + destination_folder + ', skipping...')
-            return str(path / repo_name)
-
-        logging.info('Cloning Git Repository ' + repo_name + ' from ' + repo_url + ' ...')
-        Repo.clone_from(repo_url, destination_folder + '/' + repo_name, progress=CloneProgress(repo_name, 100))
-
-        logging.info(repo_name + ' cloned to ' + destination_folder)
-        return destination_folder + '/' + repo_name
-    except Exception as ex:
-        logging.error('Something went wrong when cloning the repository!\n' + str(ex))
-        return None
-
-
-def download_repositories(repo_url_file=None, destination_folder='./repositories', repo_url_list=None):
+def download_repositories(
+        repo_url_file: str = None,
+        destination_folder: str = './repositories',
+        repo_url_list: list[str] = None) -> list[str] | bool:
     """
     Downloads a list of repositories from a file or a list of URLs.
     Args:
@@ -91,18 +66,50 @@ def download_repositories(repo_url_file=None, destination_folder='./repositories
         else:
             repository_paths.append(repository_path)
     logging.info('Finished downloading repositories.')
+
     return repository_paths
 
 
-def _sanitize_url(url: str):
+def _sanitize_url(url: str) -> str:
+    """Returns an url without whitespace"""
     return re.sub('[ \n\r\t]', '', url)
 
 
-def _get_repo_name(repo_url):
-    return repo_url.rstrip('/').split('/')[-1].replace('.git', '')
+def clone_repository(repo_url: str, destination_folder: str) -> str | None:
+    """
+    Clones a Git repository from a given URL to a given destination folder.
+    Args:
+        repo_url: The URL of the Git repository to clone.
+        destination_folder: The folder to clone the repository to.
+
+    Returns:
+        True if the repository was successfully cloned, False otherwise.
+    """
+    try:
+        repo_name = util.get_repo_name(repo_url)
+        path = Path(destination_folder)
+        if not path.exists() or not path.is_dir():
+            logging.warning('Path (' + destination_folder + ') did not exist, creating path.')
+            path.mkdir(parents=True, exist_ok=True)
+
+        if (path / repo_name).exists():
+            logging.info('Repository ' + repo_name + ' already exists in ' + destination_folder + ', skipping...')
+            return str(path / repo_name)
+
+        logging.info('Cloning Git Repository ' + repo_name + ' from ' + repo_url + ' ...')
+        Repo.clone_from(repo_url, destination_folder + '/' + repo_name, progress=CloneProgress(repo_name, 100))
+
+        logging.info(repo_name + ' cloned to ' + destination_folder)
+        return destination_folder + '/' + repo_name
+
+    except Exception as ex:
+        logging.error('Something went wrong when cloning the repository!\n' + str(ex))
+        return None
 
 
 if __name__ == '__main__':
+    """Test script for downloading a repository"""
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--repo-url')
@@ -115,4 +122,3 @@ if __name__ == '__main__':
             clone_repository(args.repo_url, args.destination_folder)
         if args.url_file is not None:
             download_repositories(repo_url_file=args.url_file, destination_folder=args.destination_folder)
-

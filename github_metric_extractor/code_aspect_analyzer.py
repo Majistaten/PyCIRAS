@@ -1,5 +1,6 @@
 from pylint.lint import Run
 from pylint.reporters.text import TextReporter
+from pylint.reporters.ureports.nodes import Section
 from pylint.message import Message
 from io import StringIO
 import os
@@ -10,22 +11,21 @@ from git import Repo, Git
 import util
 
 
-#TODO TextReporter använder sig av set() för _modules
-#TODO handle message har någon slags användning av sets, måste gå igenom och se hur vi kan hantera det
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
+
     def __init__(self, output=None):
         super().__init__(output=output)
-        self.messages = []
+        self.messages: list[Message] = []
 
-    def _display(self, layout):
+    def _display(self, layout: Section):
         pass
 
     def handle_message(self, msg: Message):
         self.messages.append(msg)
 
 
-def analyze_repositories_commits(repo_commits):
+def analyze_repositories_commits(repo_commits: dict[str, any]) -> dict[str, any]:
     """Analyze commits for multiple repositories"""
     results = {}
     for repository, commits in repo_commits.items():
@@ -34,7 +34,7 @@ def analyze_repositories_commits(repo_commits):
     return results
 
 
-def analyze_repository_commits(repository_path, commits):
+def analyze_repository_commits(repository_path: str, commits: any) -> dict[str, any]:
     """Analyze commits for a single repository"""
     results = {}
     repo = Repo(repository_path)
@@ -45,16 +45,7 @@ def analyze_repository_commits(repository_path, commits):
     return results
 
 
-def analyze_repositories(repositories):
-    """Analyze multiple repositories"""
-    results = {}
-    for repository in tqdm(repositories, desc="Analyzing repositories", ncols=100, colour="blue"):
-        logging.info(f"Analyzing repository {repository}")
-        results[repository] = analyze_repository(repository)
-    return results
-
-
-def analyze_repository(repository_path):
+def analyze_repository(repository_path: str) -> dict[str, any] | None:
     """Analyze a single repository"""
     result = {}
     target_files = util.get_python_files_from_directory(repository_path)
@@ -83,7 +74,7 @@ def analyze_repository(repository_path):
     return result
 
 
-def lint_message_extraction(messages) -> dict:
+def lint_message_extraction(messages: list[Message]) -> dict[str, any]:
     """Extracts Pylint messages and returns them in a formatted dictionary"""
 
     logging.info(f"Extracting messages from {len(messages)} messages")
@@ -100,7 +91,6 @@ def lint_message_extraction(messages) -> dict:
 
         msg_id = msg.msg_id
         if msg_id not in result[module]['categories'][category]['message_ids']:
-
             result[module]['categories'][category]['message_ids'][msg_id] = {
                 'count': 0,
                 'symbol': msg.symbol
@@ -113,6 +103,15 @@ def lint_message_extraction(messages) -> dict:
     logging.info(f"Extracted {len(result)} modules")
 
     return result
+
+
+def analyze_repositories(repositories):
+    """Analyze multiple repositories"""
+    results = {}
+    for repository in tqdm(repositories, desc="Analyzing repositories", ncols=100, colour="blue"):
+        logging.info(f"Analyzing repository {repository}")
+        results[repository] = analyze_repository(repository)
+    return results
 
 
 if __name__ == '__main__':
