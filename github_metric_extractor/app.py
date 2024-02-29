@@ -23,7 +23,7 @@ def main():
                                                                    destination_folder='../repositories')
     metrics = git_extraction.mine_pydriller_metrics(repository_paths, clone_repo_to="../repositories")
     repo_commits = {v["repository_address"]: v["commits"] for (_, v) in metrics.items()}
-    code_aspects = code_aspect_analyzer.analyze_repositories_commits(repo_commits)
+    code_aspects = code_aspect_analyzer.mine_pylint_metrics(repo_commits)
 
     with open('./test_out.json', 'w') as file:
         flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)

@@ -65,7 +65,10 @@ def _extract_commit_metrics(repo: Repository) -> dict[str, float]:
         "files_modified": 0,
     }
 
-    for commit in tqdm(repo.traverse_commits(), desc="Traversing commits, extracting metrics", ncols=100, colour="blue"):
+    for commit in tqdm(repo.traverse_commits(),
+                       desc="Traversing commits, extracting Pydriller commit metrics",
+                       ncols=100,
+                       colour="blue"):
         metrics["total_commits"] += 1
         if not commit.author.name in metrics["developers"]:
             metrics["developers"].append(commit.author.name)

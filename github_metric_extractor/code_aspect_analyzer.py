@@ -3,11 +3,9 @@ from pylint.reporters.text import TextReporter
 from pylint.reporters.ureports.nodes import Section
 from pylint.message import Message
 from io import StringIO
-import os
-import pprint
 import logging
 from tqdm import tqdm
-from git import Repo, Git
+from git import Repo
 import util
 
 
@@ -25,28 +23,32 @@ class LintReporter(TextReporter):
         self.messages.append(msg)
 
 
-def analyze_repositories_commits(repo_commits: dict[str, any]) -> dict[str, any]:
-    """Analyze commits for multiple repositories"""
-    results = {}
-    for repository, commits in repo_commits.items():
-        logging.info(f"Analyzing repository {repository}")
-        results[repository] = analyze_repository_commits(repository, commits)
-    return results
+def mine_pylint_metrics(repositories_with_commits: dict[str, any]) -> dict[str, any]:
+    """Get Pylint metrics from the commits of multiple git repositories"""
+    metrics = {}
+    for repository, commits in repositories_with_commits.items():
+        logging.info(f" repository {repository}")
+        metrics[repository] = _extract_pylint_metrics(repository, commits)
+    return metrics
 
 
-def analyze_repository_commits(repository_path: str, commits: any) -> dict[str, any]:
-    """Analyze commits for a single repository"""
-    results = {}
+def _extract_pylint_metrics(repository_path: str, commits: any) -> dict[str, any]:
+    """Extract Pylint metrics from a the commits of a single repository"""
+    metrics = {}
     repo = Repo(repository_path)
-    for commit in tqdm(commits, desc=f"Analyzing commits", postfix=repository_path, ncols=100, colour="blue"):
-        hash = commit["commit_hash"]
-        repo.git.checkout(hash)
-        results[hash] = analyze_repository(repository_path)
-    return results
+    for commit in tqdm(commits,
+                       desc=f"Traversing commits, extracting pylint metrics",
+                       postfix=repository_path,
+                       ncols=100,
+                       colour="blue"):
+        commit_hash = commit["commit_hash"]
+        repo.git.checkout(commit_hash)
+        metrics[commit_hash] = _run_pylint(repository_path)
+    return metrics
 
 
-def analyze_repository(repository_path: str) -> dict[str, any] | None:
-    """Analyze a single repository"""
+def _run_pylint(repository_path: str) -> dict[str, any] | None:
+    """Execute Pylint on a single repository, get the report in a dict"""
     result = {}
     target_files = util.get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
@@ -66,7 +68,7 @@ def analyze_repository(repository_path: str) -> dict[str, any] | None:
     else:
         stats_dict = stats
 
-    result['messages'] = lint_message_extraction(reporter.messages)
+    result['messages'] = _parse_pylint_messages(reporter.messages)
     result['stats'] = stats_dict
 
     logging.info(f"Analyzed {len(target_files)} files in {repository_path}")
@@ -74,8 +76,8 @@ def analyze_repository(repository_path: str) -> dict[str, any] | None:
     return result
 
 
-def lint_message_extraction(messages: list[Message]) -> dict[str, any]:
-    """Extracts Pylint messages and returns them in a formatted dictionary"""
+def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
+    """Parses Pylint Messages and returns them in a formatted dictionary using strings"""
 
     logging.info(f"Extracting messages from {len(messages)} messages")
 
@@ -105,25 +107,6 @@ def lint_message_extraction(messages: list[Message]) -> dict[str, any]:
     return result
 
 
-def analyze_repositories(repositories):
-    """Analyze multiple repositories"""
-    results = {}
-    for repository in tqdm(repositories, desc="Analyzing repositories", ncols=100, colour="blue"):
-        logging.info(f"Analyzing repository {repository}")
-        results[repository] = analyze_repository(repository)
-    return results
-
-
 if __name__ == '__main__':
     """"Test script for analyzing repositories"""
-
-    # result = analyze_repository("../analyze_files")
-    logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s')
-    repositories = [
-        os.path.join("../repositories", repo) for repo in os.listdir("../repositories")
-        if os.path.isdir(os.path.join("../repositories", repo))
-    ]
-
-    # result = analyze_repository("../repositories/astnn")
-    result = analyze_repositories(repositories)
-    pprint.pprint(result, width=300, indent=3)
+    pass
