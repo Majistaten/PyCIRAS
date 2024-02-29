@@ -58,7 +58,7 @@ def analyze_repository(repository_path):
     result = {}
     target_files = get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
-        logging.warning(f"No python files found in {repository_path}")
+        logging.info(f"No python files found in {repository_path}")
         return None
 
     out = StringIO()

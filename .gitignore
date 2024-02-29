@@ -12,3 +12,4 @@ secrets.json
 *.out
 test_*.json
 test_*.csv
+csv/*

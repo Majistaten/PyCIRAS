@@ -9,6 +9,7 @@ import json
 import code_aspect_analyzer
 import pandas as pd
 import csv_builder
+import pprint
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -37,6 +38,9 @@ def pandas_flatten_dict(d: MutableMapping, sep: str = '.', max_level=None) -> Mu
     return flat_dict
 
 
+
+
+
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
@@ -45,15 +49,16 @@ def main():
     metrics = git_extraction.process_repositories(repository_paths, clone_repo_to="../repositories")
     repo_commits = {v["repository_address"]: v["commits"] for (_, v) in metrics.items()}
     code_aspects = code_aspect_analyzer.analyze_repositories_commits(repo_commits)
+    flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
+    flat_pylint_metrics = csv_builder.flatten_pylint_metrics(code_aspects)
 
     with open('./test_out.json', 'w') as file:
-        flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
         json.dump(flat_pydriller_metrics, file, indent=4)
         csv_builder.write_pydriller_metrics_to_csv(flat_pydriller_metrics)
 
     with open('./test_code_aspects.json', 'w') as file:
-        flat_pylint_metrics = csv_builder.flatten_pylint_metrics(metrics)
         json.dump(flat_pylint_metrics, file, indent=4, cls=CustomEncoder)
+        csv_builder.write_pylint_metrics_to_csv(flat_pylint_metrics)
 
 
 if __name__ == '__main__':
