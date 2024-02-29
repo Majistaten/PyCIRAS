@@ -9,6 +9,8 @@ from tqdm import tqdm
 from git import Repo, Git
 
 
+#TODO TextReporter använder sig av set() för _modules
+#TODO handle message har någon slags användning av sets, måste gå igenom och se hur vi kan hantera det
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
     def __init__(self, output=None):
