@@ -25,14 +25,25 @@ def main():
     repo_commits = {v["repository_address"]: v["commits"] for (_, v) in metrics.items()}
     code_aspects = code_aspect_analyzer.mine_pylint_metrics(repo_commits)
 
+    # TODO: removes messages. Fix a better solution
+    for repo, value in code_aspects.items():
+        if value is None:
+            continue
+        for commit, v in value.items():
+            if v is None:
+                continue
+            v.pop("messages")
+
+    flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
+    flat_pylint_metrics = csv_builder.flatten_pylint_metrics(code_aspects)
+
     with open('./test_out.json', 'w') as file:
-        flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
         json.dump(flat_pydriller_metrics, file, indent=4)
         csv_builder.write_pydriller_metrics_to_csv(flat_pydriller_metrics)
 
     with open('./test_code_aspects.json', 'w') as file:
-        flat_pylint_metrics = csv_builder.flatten_pylint_metrics(metrics)
         json.dump(flat_pylint_metrics, file, indent=4, cls=CustomEncoder)
+        csv_builder.write_pylint_metrics_to_csv(flat_pylint_metrics)
 
 
 if __name__ == '__main__':

@@ -7,26 +7,15 @@ from collections.abc import MutableMapping
 
 def write_pydriller_metrics_to_csv(metrics: dict) -> None:
 
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     output_directory = Path(__file__).parent.parent / 'csv' / f'./{timestamp}'
     output_directory.mkdir(parents=True, exist_ok=True)
 
     csv_file_name = 'pydriller.csv'
     csv_file_path = output_directory / csv_file_name
-
-
-
-    # rad = repository
-    # k/v pairs blir kolumner/celler
-
-    headers = metrics.keys() #TODO vad ska bli headers? Hur få in repositories som rader, resten som kolumner?
-
-    with open(csv_file_path, 'w', newline='') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=headers)
+    write_to_csv(metrics, csv_file_path)
 
     return
-
-    # Full path for the CSV file
 
 
 def flatten_pydriller_metrics(metrics: dict) -> dict:
@@ -62,6 +51,44 @@ def flatten_dict(d: MutableMapping, parent_key: str = '', sep: str = '.') -> Mut
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def write_pylint_metrics_to_csv(metrics: MutableMapping):
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    output_directory = Path(__file__).parent.parent / 'csv' / f'./{timestamp}'
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    csv_file_name = 'pylint.csv'
+    csv_file_path = output_directory / csv_file_name
+    for key, value in metrics.items():
+        if value.values() is None:
+            continue
+        write_to_csv(value, csv_file_path)
+
+    return
+
+
+def write_to_csv(data: MutableMapping, filename: str | Path) -> None:
+    formatted_data = reformat_dict_to_list(data)
+    with open(filename, 'w', newline='') as csvfile:
+        field_names = set()
+        for section in formatted_data:
+            field_names.update([k for k in section.keys()])
+        writer = csv.DictWriter(csvfile, fieldnames=field_names)
+
+        writer.writeheader()
+        writer.writerows(formatted_data)
+
+
+def reformat_dict_to_list(dictionary: dict | MutableMapping) -> list:
+    """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
+    formatted_list = []
+    for key, value in dictionary.items():
+        if value is None:
+            continue
+        value["key"] = key
+        formatted_list.append(value)
+    return formatted_list
 
 
 def read_json_from_file(file_path):
