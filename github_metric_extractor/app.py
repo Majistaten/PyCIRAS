@@ -1,3 +1,6 @@
+from datetime import datetime
+import csv
+import itertools
 import repository_downloader
 import git_extraction
 import logging
@@ -9,7 +12,10 @@ class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)  # Convert sets to lists
-        return json.JSONEncoder.default(self, obj)
+        elif isinstance(obj, datetime):
+            return str(obj)
+        else:
+            return json.JSONEncoder.default(self, obj)
 
 
 def main():
@@ -26,7 +32,7 @@ def main():
 
     # TODO chrashar pga att sets inte är serializable i JSON
     with open('./code_aspects.json', 'w') as file:
-        json.dump(code_aspects, file, indent=4)
+        json.dump(code_aspects, file, indent=4, cls=CustomEncoder)
 
 
 if __name__ == '__main__':
