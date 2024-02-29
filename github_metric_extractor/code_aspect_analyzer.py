@@ -1,62 +1,56 @@
 from pylint.lint import Run
 from pylint.reporters.text import TextReporter
+from pylint.reporters.ureports.nodes import Section
 from pylint.message import Message
 from io import StringIO
-import os
-import pprint
 import logging
 from tqdm import tqdm
-from git import Repo, Git
+from git import Repo
+import util
 
 
-#TODO TextReporter använder sig av set() för _modules
-#TODO handle message har någon slags användning av sets, måste gå igenom och se hur vi kan hantera det
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
+
     def __init__(self, output=None):
         super().__init__(output=output)
-        self.messages = []
+        self.messages: list[Message] = []
 
-    def _display(self, layout):
+    def _display(self, layout: Section):
         pass
 
     def handle_message(self, msg: Message):
         self.messages.append(msg)
 
 
-def analyze_repositories_commits(repo_commits):
-    """Analyze commits for multiple repositories"""
-    results = {}
-    for repository, commits in repo_commits.items():
-        logging.info(f"Analyzing repository {repository}")
-        results[repository] = analyze_repository_commits(repository, commits)
-    return results
+def mine_pylint_metrics(repositories_with_commits: dict[str, any]) -> dict[str, any]:
+    """Get Pylint metrics from the commits of multiple git repositories"""
+    metrics = {}
+    for repository, commits in repositories_with_commits.items():
+        logging.info(f" repository {repository}")
+        metrics[repository] = _extract_pylint_metrics(repository, commits)
+    return metrics
 
 
-def analyze_repository_commits(repository_path, commits):
-    """Analyze commits for a single repository"""
-    results = {}
+def _extract_pylint_metrics(repository_path: str, commits: any) -> dict[str, any]:
+    """Extract Pylint metrics from a the commits of a single repository"""
+    metrics = {}
     repo = Repo(repository_path)
-    for commit in tqdm(commits, desc=f"Analyzing commits", postfix=repository_path, ncols=100, colour="blue"):
-        hash = commit["commit_hash"]
-        repo.git.checkout(hash)
-        results[hash] = analyze_repository(repository_path)
-    return results
+    for commit in tqdm(commits,
+                       desc=f"Traversing commits, extracting pylint metrics",
+                       postfix=repository_path,
+                       ncols=100,
+                       colour="blue"):
+        commit_hash = commit["commit_hash"]
+        repo.git.checkout(commit_hash)
+        metrics[commit_hash] = _run_pylint(repository_path)
+    return metrics
 
 
-def analyze_repositories(repositories):
-    """Analyze multiple repositories"""
-    results = {}
-    for repository in tqdm(repositories, desc="Analyzing repositories", ncols=100, colour="blue"):
-        logging.info(f"Analyzing repository {repository}")
-        results[repository] = analyze_repository(repository)
-    return results
-
-
-def analyze_repository(repository_path):
-    """Analyze a single repository"""
+def _run_pylint(repository_path: str) -> dict[str, any] | None:
+    """Execute Pylint on a single repository, get the report in a dict"""
     result = {}
-    target_files = get_python_files_from_directory(repository_path)
+    target_files = util.get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
         logging.info(f"No python files found in {repository_path}")
         return None
@@ -74,7 +68,7 @@ def analyze_repository(repository_path):
     else:
         stats_dict = stats
 
-    result['messages'] = lint_message_extraction(reporter.messages)
+    result['messages'] = _parse_pylint_messages(reporter.messages)
     result['stats'] = stats_dict
 
     logging.info(f"Analyzed {len(target_files)} files in {repository_path}")
@@ -82,20 +76,8 @@ def analyze_repository(repository_path):
     return result
 
 
-def get_python_files_from_directory(directory):
-    """Get a list of Python files from a directory"""
-    python_files = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".py"):
-                logging.info(f"Found python file: {str(os.path.join(root, file))}")
-                python_files.append(str(os.path.join(root, file)))
-    return python_files
-
-
-#TODO sets är inte serializable i JSON, fixa på ett annat sätt
-def lint_message_extraction(messages) -> dict:
-    """Extracts Pylint messages and returns them in a formatted dictionary"""
+def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
+    """Parses Pylint Messages and returns them in a formatted dictionary using strings"""
 
     logging.info(f"Extracting messages from {len(messages)} messages")
 
@@ -105,15 +87,12 @@ def lint_message_extraction(messages) -> dict:
         if module not in result:
             result[module] = {'total_messages': 0, 'categories': {}}
 
-        #TODO extremt nestad struktur - går det att göra den mer platt och mindre komplex?
-
         category = msg.category
         if category not in result[module]['categories']:
             result[module]['categories'][category] = {'total': 0, 'message_ids': {}}
 
         msg_id = msg.msg_id
         if msg_id not in result[module]['categories'][category]['message_ids']:
-
             result[module]['categories'][category]['message_ids'][msg_id] = {
                 'count': 0,
                 'symbol': msg.symbol
@@ -130,14 +109,4 @@ def lint_message_extraction(messages) -> dict:
 
 if __name__ == '__main__':
     """"Test script for analyzing repositories"""
-
-    # result = analyze_repository("../analyze_files")
-    logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s')
-    repositories = [
-        os.path.join("../repositories", repo) for repo in os.listdir("../repositories")
-        if os.path.isdir(os.path.join("../repositories", repo))
-    ]
-
-    # result = analyze_repository("../repositories/astnn")
-    result = analyze_repositories(repositories)
-    pprint.pprint(result, width=300, indent=3)
+    pass
