@@ -24,6 +24,16 @@ def main():
     metrics = git_extraction.mine_pydriller_metrics(repository_paths, clone_repo_to="../repositories")
     repo_commits = {v["repository_address"]: v["commits"] for (_, v) in metrics.items()}
     code_aspects = code_aspect_analyzer.mine_pylint_metrics(repo_commits)
+
+    # TODO: removes messages. Fix a better solution
+    for repo, value in code_aspects.items():
+        if value is None:
+            continue
+        for commit, v in value.items():
+            if v is None:
+                continue
+            v.pop("messages")
+
     flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
     flat_pylint_metrics = csv_builder.flatten_pylint_metrics(code_aspects)
 
