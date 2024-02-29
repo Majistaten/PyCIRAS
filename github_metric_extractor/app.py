@@ -56,7 +56,8 @@ def main():
     with open('./test_code_aspects.json', 'w') as file:
         test = code_aspects
         for key, value in test.items():
-            test[key] = value if not isinstance(value, dict) else flatten_dict(value, sep="->")
+            for k, v in value.items():
+                test[key][k] = v if not isinstance(v, dict) else flatten_dict(v, sep="->")
         json.dump(test, file, indent=4, cls=CustomEncoder)
 
 
