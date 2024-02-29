@@ -11,6 +11,7 @@ from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
 import util
 
+# TODO make a method that returns commit hash + date from a repository
 
 def mine_pydriller_metrics(repositories: list[str], clone_repo_to=None) -> dict[str, dict[str, float]]:
     """Get Pydriller metrics from a git repository stored in a dict"""
