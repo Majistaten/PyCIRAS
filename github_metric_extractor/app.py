@@ -20,7 +20,7 @@ class CustomEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
-def flatten_dict(d: MutableMapping, parent_key: str = '', sep: str ='.') -> MutableMapping:
+def flatten_dict(d: MutableMapping, parent_key: str = '', sep: str = '.') -> MutableMapping:
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + str(k) if parent_key else str(k)
@@ -29,6 +29,11 @@ def flatten_dict(d: MutableMapping, parent_key: str = '', sep: str ='.') -> Muta
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def pandas_flatten_dict(d: MutableMapping, sep: str = '.', max_level=None) -> MutableMapping:
+    [flat_dict] = pd.json_normalize(d, sep=sep, max_level=None).to_dict(orient='records')
+    return flat_dict
 
 
 def main():
