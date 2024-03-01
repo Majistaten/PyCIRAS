@@ -29,7 +29,7 @@ def mine_pylint_metrics(repositories_with_commits: dict[str, any]) -> dict[str, 
     """Get Pylint metrics from the commits of multiple git repositories"""
     metrics = {}
     for repository, commits in repositories_with_commits.items():
-        logging.info(f" repository {repository}")
+        logging.info(f"repository {repository}")
         metrics[repository] = _extract_pylint_metrics(repository, commits)
     return metrics
 
@@ -44,8 +44,11 @@ def _extract_pylint_metrics(repository_path: str, commits: any) -> dict[str, any
                        ncols=100,
                        colour="blue"):
         commit_hash = commit["commit_hash"]
+        date = commit["date"]
         repo.git.checkout(commit_hash)
         metrics[commit_hash] = _run_pylint(repository_path)
+        if metrics[commit_hash] is not None:
+            metrics[commit_hash]['date'] = date
     return metrics
 
 
@@ -70,8 +73,11 @@ def _run_pylint(repository_path: str) -> dict[str, any] | None:
     else:
         stats_dict = stats
 
+    repository_name = util.get_repo_name_from_path(repository_path)
     result['messages'] = _parse_pylint_messages(reporter.messages)
+    result['messages']['repository_name'] = repository_name
     result['stats'] = stats_dict
+    result['stats']['repository_name'] = repository_name
 
     logging.info(f"Analyzed {len(target_files)} files in {repository_path}")
 
