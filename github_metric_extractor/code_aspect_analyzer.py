@@ -44,8 +44,11 @@ def _extract_pylint_metrics(repository_path: str, commits: any) -> dict[str, any
                        ncols=100,
                        colour="blue"):
         commit_hash = commit["commit_hash"]
+        date = commit["date"]
         repo.git.checkout(commit_hash)
         metrics[commit_hash] = _run_pylint(repository_path)
+        if metrics[commit_hash] is not None:
+            metrics[commit_hash]['date'] = date
     return metrics
 
 

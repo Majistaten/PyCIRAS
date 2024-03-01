@@ -33,7 +33,7 @@ def flatten_pylint_metrics(metrics: dict) -> dict:
     flat_metrics = metrics
     for key, value in flat_metrics.items():
         for k, v in value.items():
-            flat_metrics[key][k] = v if not isinstance(v, dict) else flatten_dict(v, sep="->")
+            flat_metrics[key][k] = v if not isinstance(v, dict) else flatten_dict(v, sep=".")
 
     return flat_metrics
 

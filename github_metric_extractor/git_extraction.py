@@ -14,7 +14,6 @@ import util
 
 default_repository_path = '../repositories/'
 
-
 # TODO make a method that returns commit hash + date from a repository
 
 # TODO try Pydrillers built in CSV creation
