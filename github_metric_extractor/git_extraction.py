@@ -60,7 +60,7 @@ def _load_repositories(repositories: list[str], repository_directory: str = defa
     logging.debug('Loading repositories.')
 
     return {
-        repo_url: _load_repository(repo_url, repository_directory) for repo_url in tqdm(repositories, desc="Loading Repositories")}
+        repo_url: _load_repository(repo_url, repository_directory) for repo_url in tqdm(repositories, desc="Loading Repositories", ncols=150)}
 
 
 def _load_repository(repo_url: str, repository_directory: str = default_repository_path) -> Repository:
@@ -88,7 +88,7 @@ def _extract_commit_metrics(repo: Repository) -> dict[str, float]:
 
     for commit in tqdm(repo.traverse_commits(),
                        desc="Traversing commits, extracting Pydriller commit metrics",
-                       ncols=100,
+                       ncols=150,
                        colour="blue"):
         metrics["total_commits"] += 1
         if commit.author.name not in metrics["developers"]:

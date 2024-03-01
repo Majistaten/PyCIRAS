@@ -97,7 +97,7 @@ def clone_repository(repo_url: str, destination_folder: str) -> str | None:
             return str(path / repo_name)
 
         logging.info('Cloning Git Repository ' + repo_name + ' from ' + repo_url + ' ...')
-        Repo.clone_from(repo_url, destination_folder + '/' + repo_name, progress=CloneProgress(repo_name, 100))
+        Repo.clone_from(repo_url, destination_folder + '/' + repo_name, progress=CloneProgress(repo_name, 150))
 
         logging.info(repo_name + ' cloned to ' + destination_folder)
         return destination_folder + '/' + repo_name

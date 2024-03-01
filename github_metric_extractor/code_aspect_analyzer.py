@@ -40,8 +40,8 @@ def _extract_pylint_metrics(repository_path: str, commits: any) -> dict[str, any
     repo = Repo(repository_path)
     for commit in tqdm(commits,
                        desc=f"Traversing commits, extracting pylint metrics",
-                       postfix=repository_path,
-                       ncols=100,
+                       postfix=util.get_repo_name_from_path(repository_path),
+                       ncols=150,
                        colour="blue"):
         commit_hash = commit["commit_hash"]
         date = commit["date"]
