@@ -13,6 +13,8 @@ import util
 
 # TODO make a method that returns commit hash + date from a repository
 
+# TODO try Pydrillers built in CSV creation
+
 def mine_pydriller_metrics(repositories: list[str], clone_repo_to=None) -> dict[str, dict[str, float]]:
     """Get Pydriller metrics from a git repository stored in a dict"""
 
