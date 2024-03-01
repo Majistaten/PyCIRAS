@@ -18,6 +18,8 @@ class CustomEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
+# TODO skapa möjligheten att dra gång flera processer som analyserar samtidigt och skriver resultat efter varje analys
+
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
