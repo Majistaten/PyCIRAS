@@ -5,6 +5,8 @@ import json
 import code_aspect_analyzer
 import csv_builder
 
+repositories_path = '../repositories/'
+
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -20,12 +22,17 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     repository_paths = repository_downloader.download_repositories(repo_url_file='../repos.txt',
-                                                                   destination_folder='../repositories')
-    metrics = git_extraction.mine_pydriller_metrics(repository_paths, clone_repo_to="../repositories")
-    repo_commits = {v["repository_address"]: v["commits"] for (_, v) in metrics.items()}
+                                                                   destination_folder=repositories_path)
+    addr = []
+    with open("../repos.txt", 'r') as file:
+        for line in file:
+            addr.append(line)
+
+    metrics = git_extraction.mine_pydriller_metrics(addr, repository_directory=repositories_path)
+    repo_commits = git_extraction.get_commit_dates(repository_paths, repository_directory=repositories_path)
     code_aspects = code_aspect_analyzer.mine_pylint_metrics(repo_commits)
 
-    # TODO: removes messages. Fix a better solution
+    # TODO: removes messages - find a better solution
     for repo, value in code_aspects.items():
         if value is None:
             continue

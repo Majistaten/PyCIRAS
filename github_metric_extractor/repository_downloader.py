@@ -86,7 +86,7 @@ def clone_repository(repo_url: str, destination_folder: str) -> str | None:
         True if the repository was successfully cloned, False otherwise.
     """
     try:
-        repo_name = util.get_repo_name(repo_url)
+        repo_name = util.get_repo_name_from_url(repo_url)
         path = Path(destination_folder)
         if not path.exists() or not path.is_dir():
             logging.warning('Path (' + destination_folder + ') did not exist, creating path.')

@@ -13,6 +13,11 @@ def get_python_files_from_directory(directory: str) -> list[str]:
     return python_files
 
 
-def get_repo_name(repo_url: str) -> str:
+def get_repo_name_from_url(repo_url: str) -> str:
     """Returns the name of a repository from a git URL"""
-    return repo_url.rstrip('/').split('/')[-1].replace('.git', '')
+    return str(repo_url).rstrip('/').split('/')[-1].replace('.git', '').strip()
+
+
+def get_repo_name_from_path(path: str) -> str:
+    """Returns the name of a repository from a path"""
+    return str(path).replace('\\', '/').rstrip('/').split('/')[-1].strip()

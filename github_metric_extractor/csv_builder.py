@@ -1,6 +1,7 @@
 from pathlib import Path
 import csv
 import json
+import util
 from datetime import datetime
 from collections.abc import MutableMapping
 
@@ -22,8 +23,7 @@ def flatten_pydriller_metrics(metrics: dict) -> dict:
 
     flat_metrics = metrics
     for key, value in flat_metrics.items():
-        flat_metrics[key].pop("commits")
-        flat_metrics[key] = flatten_dict(value, sep="->")
+        flat_metrics[key] = flatten_dict(value, sep=".")
 
     return flat_metrics
 
@@ -58,9 +58,8 @@ def write_pylint_metrics_to_csv(metrics: MutableMapping):
     output_directory = Path(__file__).parent.parent / 'csv' / f'./{timestamp}'
     output_directory.mkdir(parents=True, exist_ok=True)
 
-    csv_file_name = 'pylint.csv'
-    csv_file_path = output_directory / csv_file_name
     for key, value in metrics.items():
+        csv_file_path = output_directory / f"pylint-{util.get_repo_name_from_path(key)}.csv"
         if value.values() is None:
             continue
         write_to_csv(value, csv_file_path)
@@ -75,7 +74,6 @@ def write_to_csv(data: MutableMapping, filename: str | Path) -> None:
         for section in formatted_data:
             field_names.update([k for k in section.keys()])
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
-
         writer.writeheader()
         writer.writerows(formatted_data)
 
