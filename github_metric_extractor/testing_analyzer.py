@@ -66,6 +66,7 @@ def find_evidence_of_unit_testing(repository_directory: str):
             evidence['general_imports'].append(file_path)
     return evidence
 
+
 if __name__ == '__main__':
     # repository_directory = "../repositories/amalfi-artifact"
     repository_directory = "../repositories/smartbugs"
