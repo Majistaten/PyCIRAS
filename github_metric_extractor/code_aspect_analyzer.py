@@ -8,6 +8,8 @@ from tqdm import tqdm
 from git import Repo
 import util
 
+# TODO kolla om vi ska enabla optional plugins för att maximera inhämtningen
+#  https://pylint.pycqa.org/en/latest/user_guide/checkers/extensions.html
 
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
