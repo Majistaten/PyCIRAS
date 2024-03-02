@@ -48,18 +48,16 @@ def main():
     flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
     flat_pylint_metrics = csv_builder.flatten_pylint_metrics(code_aspects)
 
-    # write json to file
+    # Create data directory for the analysis
     data_directory = data_writer.create_timestamped_data_directory()
-    data_writer.write_pydriller_metrics_to_json(flat_pydriller_metrics, data_directory)
-    data_writer.write_pylint_metrics_to_json(flat_pylint_metrics, data_directory)
 
-    # with open('github_metric_extractor/test_out.json', 'w') as file:
-    #     json.dump(flat_pydriller_metrics, file, indent=4)
-    #     csv_builder.write_pydriller_metrics_to_csv(flat_pydriller_metrics)
-    #
-    # with open('github_metric_extractor/test_code_aspects.json', 'w') as file:
-    #     json.dump(flat_pylint_metrics, file, indent=4, cls=CustomEncoder)
-    #     csv_builder.write_pylint_metrics_to_csv(flat_pylint_metrics)
+    # write json to file
+    data_writer.pydriller_data_json(flat_pydriller_metrics, data_directory)
+    data_writer.pylint_data_json(flat_pylint_metrics, data_directory)
+
+    # write csv to file
+    data_writer.pydriller_data_csv(flat_pydriller_metrics, data_directory)
+    data_writer.pylint_data_csv(flat_pylint_metrics, data_directory)
 
 
 if __name__ == '__main__':
