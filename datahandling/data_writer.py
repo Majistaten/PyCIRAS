@@ -5,6 +5,7 @@ import json
 from github_metric_extractor import util
 from datetime import datetime
 from collections.abc import MutableMapping
+import datahandling.data_converter as data_converter
 
 ROOT_PATH = Path(__file__).parent.parent
 
@@ -52,7 +53,7 @@ def pylint_data_csv(data: MutableMapping, path: Path):
 
 
 def write_to_csv(data: MutableMapping, path: Path) -> None:
-    formatted_data = reformat_dict_to_list(data)
+    formatted_data = data_converter.dict_to_list(data)
     with open(path, 'w', newline='') as file:
         field_names = set()
         for section in formatted_data:
@@ -60,15 +61,3 @@ def write_to_csv(data: MutableMapping, path: Path) -> None:
         writer = csv.DictWriter(file, fieldnames=field_names)
         writer.writeheader()
         writer.writerows(formatted_data)
-
-
-# TODO refactor to data formatter
-def reformat_dict_to_list(dictionary: dict | MutableMapping) -> list:
-    """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
-    formatted_list = []
-    for key, value in dictionary.items():
-        if value is None:
-            continue
-        value["key"] = key
-        formatted_list.append(value)
-    return formatted_list

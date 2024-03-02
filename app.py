@@ -5,7 +5,8 @@ from github_metric_extractor import csv_builder
 from github_metric_extractor import code_quality
 import json
 import config
-from datahandling import data_writer
+from datahandling import data_writer, data_converter
+
 
 # config.REPOSITORIES_FOLDER = 'repositories/'
 
@@ -25,15 +26,15 @@ class CustomEncoder(json.JSONEncoder):
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
-    repository_paths = repo_cloner.download_repositories(repo_url_file=config.REPOSITORY_URLS,
-                                                         destination_folder=config.REPOSITORIES_FOLDER)
+    repo_paths = repo_cloner.download_repositories(repo_url_file=config.REPOSITORY_URLS,
+                                                   destination_folder=config.REPOSITORIES_FOLDER)
     addr = []
     with open(config.REPOSITORY_URLS, 'r') as file:
         for line in file:
             addr.append(line)
 
     metrics = git_miner.mine_pydriller_metrics(addr, repository_directory=config.REPOSITORIES_FOLDER)
-    repo_commits = git_miner.get_commit_dates(repository_paths, repository_directory=config.REPOSITORIES_FOLDER)
+    repo_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
     code_aspects = code_quality.mine_pylint_metrics(repo_commits)
 
     # TODO: removes messages - find a better solution
@@ -45,19 +46,20 @@ def main():
                 continue
             v.pop("messages")
 
-    flat_pydriller_metrics = csv_builder.flatten_pydriller_metrics(metrics)
-    flat_pylint_metrics = csv_builder.flatten_pylint_metrics(code_aspects)
+    # Flatten the data
+    pydriller_data = data_converter.flatten_pydriller_data(metrics)
+    pylint_data = data_converter.flatten_pylint_data(code_aspects)
 
     # Create data directory for the analysis
     data_directory = data_writer.create_timestamped_data_directory()
 
     # write json to file
-    data_writer.pydriller_data_json(flat_pydriller_metrics, data_directory)
-    data_writer.pylint_data_json(flat_pylint_metrics, data_directory)
+    data_writer.pydriller_data_json(pydriller_data, data_directory)
+    data_writer.pylint_data_json(pylint_data, data_directory)
 
     # write csv to file
-    data_writer.pydriller_data_csv(flat_pydriller_metrics, data_directory)
-    data_writer.pylint_data_csv(flat_pylint_metrics, data_directory)
+    data_writer.pydriller_data_csv(pydriller_data, data_directory)
+    data_writer.pylint_data_csv(pylint_data, data_directory)
 
 
 if __name__ == '__main__':
