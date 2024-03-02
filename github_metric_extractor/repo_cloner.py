@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 import re
 from tqdm import tqdm
-import util
+from github_metric_extractor import util
 
 
 class CloneProgress(RemoteProgress):

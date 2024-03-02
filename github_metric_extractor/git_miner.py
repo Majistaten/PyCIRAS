@@ -10,7 +10,7 @@ from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.contributors_experience import ContributorsExperience
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
-import util
+from github_metric_extractor import util
 
 default_repository_path = '../repositories/'
 

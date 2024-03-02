@@ -13,3 +13,4 @@ secrets.json
 test_*.json
 test_*.csv
 csv/*
+out/

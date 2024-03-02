@@ -6,7 +6,7 @@ from io import StringIO
 import logging
 from tqdm import tqdm
 from git import Repo
-import util
+from github_metric_extractor import util
 
 # TODO kolla om vi ska enabla optional plugins för att maximera inhämtningen
 #  https://pylint.pycqa.org/en/latest/user_guide/checkers/extensions.html

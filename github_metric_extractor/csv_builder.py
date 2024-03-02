@@ -1,7 +1,7 @@
 from pathlib import Path
 import csv
 import json
-import util
+from github_metric_extractor import util
 from datetime import datetime
 from collections.abc import MutableMapping
 
