@@ -1,8 +1,8 @@
 from datetime import datetime
 import repository_downloader
-import git_extraction
+import git_miner
 import json
-import code_aspect_analyzer
+import code_quality
 import csv_builder
 
 repositories_path = '../repositories/'
@@ -30,9 +30,9 @@ def main():
         for line in file:
             addr.append(line)
 
-    metrics = git_extraction.mine_pydriller_metrics(addr, repository_directory=repositories_path)
-    repo_commits = git_extraction.get_commit_dates(repository_paths, repository_directory=repositories_path)
-    code_aspects = code_aspect_analyzer.mine_pylint_metrics(repo_commits)
+    metrics = git_miner.mine_pydriller_metrics(addr, repository_directory=repositories_path)
+    repo_commits = git_miner.get_commit_dates(repository_paths, repository_directory=repositories_path)
+    code_aspects = code_quality.mine_pylint_metrics(repo_commits)
 
     # TODO: removes messages - find a better solution
     for repo, value in code_aspects.items():
