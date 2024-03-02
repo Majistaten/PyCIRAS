@@ -1,5 +1,5 @@
 from datetime import datetime
-import repository_downloader
+import repo_cloner
 import git_miner
 import json
 import code_quality
@@ -23,8 +23,8 @@ class CustomEncoder(json.JSONEncoder):
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
-    repository_paths = repository_downloader.download_repositories(repo_url_file='../repos.txt',
-                                                                   destination_folder=repositories_path)
+    repository_paths = repo_cloner.download_repositories(repo_url_file='../repos.txt',
+                                                         destination_folder=repositories_path)
     addr = []
     with open("../repos.txt", 'r') as file:
         for line in file:
