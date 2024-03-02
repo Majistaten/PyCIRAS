@@ -11,7 +11,7 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     # Download repositories
-    repo_paths = repo_cloner.download_repositories(repo_url_file=config.REPOSITORY_URLS,
+    repo_paths = repo_cloner.download_repositories(repo_urls_path=config.REPOSITORY_URLS,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
     repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 

@@ -1,5 +1,3 @@
-import argparse
-
 from git import Repo, RemoteProgress
 from pathlib import Path
 import logging
@@ -27,26 +25,25 @@ class CloneProgress(RemoteProgress):
 
 
 def download_repositories(
-        repo_url_file: str = None,
-        destination_folder: str = './repositories',
+        destination_folder: str,
+        repo_urls_path: str = None,
         repo_url_list: list[str] = None) -> list[str] | bool:
     """
     Downloads a list of repositories from a file or a list of URLs.
     Args:
-        repo_url_file: Path to a file containing a list of repository URLs.
+        repo_urls_path: Path to a file containing a list of repository URLs.
         destination_folder: The folder to clone the repositories to.
         repo_url_list: A list of repository URLs.
 
     Returns:
         True if all repositories were successfully cloned, else False.
     """
-    repo_urls = []
     repository_paths = []
 
     if repo_url_list is not None:
         repo_urls = [_sanitize_url(url) for url in repo_url_list]
-    elif repo_url_file is not None:
-        url_file = Path(repo_url_file)
+    elif repo_urls_path is not None:
+        url_file = Path(repo_urls_path)
         if not url_file.is_file():
             logging.error('The provided repository URL file does not exist or is not a file.')
             return False
@@ -105,20 +102,3 @@ def clone_repository(repo_url: str, destination_folder: str) -> str | None:
     except Exception as ex:
         logging.error('Something went wrong when cloning the repository!\n' + str(ex))
         return None
-
-
-if __name__ == '__main__':
-    """Test script for downloading a repository"""
-
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--repo-url')
-    parser.add_argument('-d', '--destination-folder')
-    parser.add_argument('-f', '--url-file')
-    args = parser.parse_args()
-    logging.basicConfig(format='%(asctime)')
-    if args.destination_folder is not None:
-        if args.repo_url is not None:
-            clone_repository(args.repo_url, args.destination_folder)
-        if args.url_file is not None:
-            download_repositories(repo_url_file=args.url_file, destination_folder=args.destination_folder)

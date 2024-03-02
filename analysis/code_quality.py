@@ -114,8 +114,3 @@ def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
     logging.info(f"Extracted {len(result)} modules")
 
     return result
-
-
-if __name__ == '__main__':
-    """"Test script for analyzing repositories"""
-    pass

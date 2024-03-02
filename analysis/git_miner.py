@@ -12,17 +12,16 @@ from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
 from utility import util
 
-default_repository_path = '../repositories/'
 
 # TODO make a method that returns commit hash + date from a repository
 
 # TODO try Pydrillers built in CSV creation
 
 def mine_pydriller_metrics(repositories: list[str],
-                           repository_directory: str = default_repository_path,
+                           repository_directory: str,
                            since: datetime = datetime.now(),
                            to: datetime = datetime.now() - relativedelta(years=20)
-                           ) -> dict[str, dict[str, float]]:
+                           ) -> dict[str, dict[str, any]]:
     """Get Pydriller metrics from a git repository stored in a dict"""
 
     metrics = {}
@@ -38,9 +37,9 @@ def mine_pydriller_metrics(repositories: list[str],
     return metrics
 
 
-def get_commit_dates(repositories: list[str], repository_directory: str = default_repository_path) -> dict[str, any]:
+def get_commit_dates(repositories: list[str], repository_directory: str) -> dict[str, any]:
     """Extract commit hash and dates from a list of repositories"""
-    repos = _load_repositories(repositories)
+    repos = _load_repositories(repositories, repository_directory)
     commit_dates = {}
     for address, repo in repos.items():
         hash_dates = []
@@ -51,7 +50,7 @@ def get_commit_dates(repositories: list[str], repository_directory: str = defaul
     return commit_dates
 
 
-def _load_repositories(repositories: list[str], repository_directory: str = default_repository_path) -> (
+def _load_repositories(repositories: list[str], repository_directory: str) -> (
         dict[str, Repository]):
     """Load repositories for further processing"""
 
@@ -60,10 +59,11 @@ def _load_repositories(repositories: list[str], repository_directory: str = defa
     logging.debug('Loading repositories.')
 
     return {
-        repo_url: _load_repository(repo_url, repository_directory) for repo_url in tqdm(repositories, desc="Loading Repositories", ncols=150)}
+        repo_url: _load_repository(repo_url, repository_directory) for repo_url in
+        tqdm(repositories, desc="Loading Repositories", ncols=150)}
 
 
-def _load_repository(repo_url: str, repository_directory: str = default_repository_path) -> Repository:
+def _load_repository(repo_url: str, repository_directory: str) -> Repository:
     """Load repository stored locally, or clone and load if not present"""
 
     repo_name = util.get_repo_name_from_url(repo_url)
@@ -75,7 +75,7 @@ def _load_repository(repo_url: str, repository_directory: str = default_reposito
     return Repository(str(repo_path))
 
 
-def _extract_commit_metrics(repo: Repository) -> dict[str, float]:
+def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
     """Extract Pydriller commit metrics from a repository."""
     metrics = {
         "total_commits": 0,
@@ -113,27 +113,28 @@ def _extract_process_metrics(repo_path: str,
                              to: datetime = None):
     """Extract Pydriller Process metrics from a repository"""
 
-    metrics = {
-        'change_set_max': 0,
-        'change_set_avg': 0,
-        'code_churn': {},
-        'contributors_count': {'total': 0, 'minor': 0},
-        'contributors_experience': {},
-        'hunks_count': {},
-        'lines_count': {'added': 0, 'removed': 0}
+    lines_count_added, lines_count_removed = _lines_count_metrics(repo_path, from_commit, to_commit, since, to)
+    hunks_count = _hunk_count_metrics(repo_path, from_commit, to_commit, since, to)
+    contributors_experience = _contribution_experience_metrics(repo_path, from_commit, to_commit, since, to)
+    contributors_count_total, contributors_count_minor = _contribution_count_metrics(repo_path, from_commit, to_commit, since, to)
+    code_churn = _code_churns_metrics(repo_path, from_commit, to_commit, since, to)
+    change_set_max, change_set_avg = _change_set_metrics(repo_path, from_commit, to_commit, since, to)
+
+    return {
+        'lines_count': {
+            'added': lines_count_added,
+            'removed': lines_count_removed
+        },
+        'hunks_count': hunks_count,
+        'contributors_experience': contributors_experience,
+        'contributors_count': {
+            'total': contributors_count_total,
+            'minor': contributors_count_minor
+        },
+        'code_churn': code_churn,
+        'change_set_max': change_set_max,
+        'change_set_avg': change_set_avg
     }
-
-    metrics['lines_count']['added'], metrics['lines_count']['removed'] = _lines_count_metrics(repo_path, from_commit,
-                                                                                              to_commit, since, to)
-    metrics['hunks_count'] = _hunk_count_metrics(repo_path, from_commit, to_commit, since, to)
-    metrics['contributors_experience'] = _contribution_experience_metrics(repo_path, from_commit, to_commit, since, to)
-    metrics['contributors_count']['total'], metrics['contributors_count']['minor'] = _contribution_count_metrics(
-        repo_path, from_commit, to_commit, since, to)
-    metrics['code_churn'] = _code_churns_metrics(repo_path, from_commit, to_commit, since, to)
-    metrics['change_set_max'], metrics['change_set_avg'] = _change_set_metrics(repo_path, from_commit, to_commit, since,
-                                                                               to)
-
-    return metrics
 
 
 def _lines_count_metrics(repo_path: str,
@@ -195,19 +196,3 @@ def _change_set_metrics(repo_path: str,
     change_set_metric = ChangeSet(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since,
                                   to=to)
     return change_set_metric.max(), change_set_metric.avg()
-
-
-if __name__ == '__main__':
-    """Test script for extracting Pydriller metrics"""
-    logging.basicConfig(level=logging.INFO)
-    with open('../repos.txt', 'r') as repo_file:
-        links = [line.strip() for line in repo_file.readlines()]
-        result = mine_pydriller_metrics(links, repository_directory="../repositories")
-
-    print(result)
-    with open('./test_out.txt', 'w') as file:
-        for k, v in result.items():
-            file.write(f'\n------------------------------------------------------\n')
-            for key, value in v.items():
-                file.write(str(key))
-                file.write(' ----> ' + str(value) + '\n')

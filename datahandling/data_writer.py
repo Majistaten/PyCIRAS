@@ -10,6 +10,7 @@ ROOT_PATH = Path(__file__).parent.parent
 
 
 class CustomEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle sets and datetime objects."""
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)  # Convert sets to lists
@@ -20,6 +21,7 @@ class CustomEncoder(json.JSONEncoder):
 
 
 def create_timestamped_data_directory() -> Path:
+    """Creates a timestamped directory for the output data."""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M")
     output_directory = ROOT_PATH / config.OUTPUT_FOLDER / config.DATA_FOLDER / f'./{timestamp}'
     output_directory.mkdir(parents=True, exist_ok=True)
@@ -27,31 +29,35 @@ def create_timestamped_data_directory() -> Path:
 
 
 def pydriller_data_json(data: dict, path: Path):
+    """Writes Pydriller data to a JSON file."""
     output_path = path / 'pydriller_metrics.json'
     with open(str(output_path), 'w') as file:
         json.dump(data, file, indent=4)
 
 
 def pylint_data_json(data: dict, path: Path):
+    """Writes Pylint data to a JSON file."""
     output_path = path / 'pylint_metrics.json'
     with open(output_path, 'w') as file:
         json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
 def pydriller_data_csv(data: dict, path: Path):
-    write_to_csv(data, path / 'pydriller.csv')
+    """Writes Pydriller data to a CSV file."""
+    _write_to_csv(data, path / 'pydriller.csv')
 
 
-# TODO varför mutablemapping?
 def pylint_data_csv(data: MutableMapping, path: Path):
+    """Writes Pylint data to a CSV file."""
     for key, value in data.items():
         output_path = path / f"pylint-{util.get_repo_name_from_path(key)}.csv"
         if value.values() is None:
             continue
-        write_to_csv(value, output_path)
+        _write_to_csv(value, output_path)
 
 
-def write_to_csv(data: MutableMapping, path: Path) -> None:
+def _write_to_csv(data: MutableMapping, path: Path) -> None:
+    """Writes the data to a CSV file."""
     formatted_data = data_converter.dict_to_list(data)
     with open(path, 'w', newline='') as file:
         field_names = set()

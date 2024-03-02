@@ -5,6 +5,7 @@ matplotlib
 pandas
 pylint
 pytest
+python-dateutil
 python-dotenv
 pydriller
 rich

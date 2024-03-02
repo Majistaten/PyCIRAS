@@ -67,6 +67,7 @@ def find_evidence_of_unit_testing(repository_directory: str):
 
 
 if __name__ == '__main__':
+    """Example usage of the find_evidence_of_unit_testing function."""
     # repository_directory = "../repositories/amalfi-artifact"
     repository_directory = "../repositories/smartbugs"
     evidence = find_evidence_of_unit_testing(repository_directory)
