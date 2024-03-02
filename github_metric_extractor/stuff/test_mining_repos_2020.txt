@@ -1,4 +1,0 @@
-https://github.com/SoftSec-KAIST/Ankou
-https://github.com/hanada31/Fax
-https://github.com/NDStudyICSE2019/NDStudy
-https://github.com/mast-group/OpenVocabCodeNLM

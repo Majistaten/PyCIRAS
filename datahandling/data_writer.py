@@ -1,8 +1,7 @@
-import config
+from utility import config, util
 from pathlib import Path
 import csv
 import json
-from github_metric_extractor import util
 from datetime import datetime
 from collections.abc import MutableMapping
 import datahandling.data_converter as data_converter
@@ -21,7 +20,7 @@ class CustomEncoder(json.JSONEncoder):
 
 
 def create_timestamped_data_directory() -> Path:
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M")
     output_directory = ROOT_PATH / config.OUTPUT_FOLDER / config.DATA_FOLDER / f'./{timestamp}'
     output_directory.mkdir(parents=True, exist_ok=True)
     return output_directory

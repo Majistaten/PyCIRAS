@@ -1,54 +1,24 @@
-from datetime import datetime
-from github_metric_extractor import repo_cloner
-from github_metric_extractor import git_miner
-from github_metric_extractor import csv_builder
-from github_metric_extractor import code_quality
-import json
-import config
+from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
-
-
-# config.REPOSITORIES_FOLDER = 'repositories/'
-
-
-class CustomEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, set):
-            return list(obj)  # Convert sets to lists
-        elif isinstance(obj, datetime):
-            return str(obj)
-        else:
-            return json.JSONEncoder.default(self, obj)
+from utility import util, config
 
 
 # TODO skapa möjligheten att dra gång flera processer som analyserar samtidigt och skriver resultat efter varje analys
 
+# TODO skapa massa run metoder för användning från notebooks
+
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
+    # Download repositories
     repo_paths = repo_cloner.download_repositories(repo_url_file=config.REPOSITORY_URLS,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
-    addr = []
-    with open(config.REPOSITORY_URLS, 'r') as file:
-        for line in file:
-            addr.append(line)
+    repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
-    metrics = git_miner.mine_pydriller_metrics(addr, repository_directory=config.REPOSITORIES_FOLDER)
-    repo_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
-    code_aspects = code_quality.mine_pylint_metrics(repo_commits)
-
-    # TODO: removes messages - find a better solution
-    for repo, value in code_aspects.items():
-        if value is None:
-            continue
-        for commit, v in value.items():
-            if v is None:
-                continue
-            v.pop("messages")
-
-    # Flatten the data
-    pydriller_data = data_converter.flatten_pydriller_data(metrics)
-    pylint_data = data_converter.flatten_pylint_data(code_aspects)
+    # Mine data
+    pydriller_data = git_miner.mine_pydriller_metrics(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
+    repositories_with_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
+    pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
 
     # Create data directory for the analysis
     data_directory = data_writer.create_timestamped_data_directory()
@@ -56,6 +26,13 @@ def main():
     # write json to file
     data_writer.pydriller_data_json(pydriller_data, data_directory)
     data_writer.pylint_data_json(pylint_data, data_directory)
+
+    # Remove unwanted data for csv
+    pylint_data = data_converter.remove_pylint_messages(pylint_data)
+
+    # Flatten the data
+    pydriller_data = data_converter.flatten_pydriller_data(pydriller_data)
+    pylint_data = data_converter.flatten_pylint_data(pylint_data)
 
     # write csv to file
     data_writer.pydriller_data_csv(pydriller_data, data_directory)

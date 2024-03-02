@@ -32,6 +32,18 @@ def flatten_dict(d: MutableMapping, parent_key: str = '', sep: str = '.') -> Mut
     return dict(items)
 
 
+def remove_pylint_messages(data: dict) -> dict:
+    """Removes the messages from the pylint data"""
+    for repo, value in data.items():
+        if value is None:
+            continue
+        for commit, v in value.items():
+            if v is None:
+                continue
+            v.pop("messages")
+    return data
+
+
 def dict_to_list(dictionary: dict | MutableMapping) -> list:
     """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
     formatted_list = []
