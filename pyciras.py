@@ -7,6 +7,8 @@ from utility import util, config
 
 # TODO skapa massa run metoder för användning från notebooks
 
+# TODO allow passing the file with repository URLs to the method
+
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 

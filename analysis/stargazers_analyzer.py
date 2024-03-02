@@ -1,3 +1,3 @@
 
-# TODO implement extraction of github stars for projects
+# TODO implement in git_miner instead.
 
