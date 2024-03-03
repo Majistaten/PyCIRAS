@@ -31,14 +31,14 @@ def create_timestamped_data_directory() -> Path:
 def pydriller_data_json(data: dict, path: Path):
     """Writes Pydriller data to a JSON file."""
     output_path = path / 'pydriller_metrics.json'
-    with open(str(output_path), 'w') as file:
+    with open(str(output_path), 'a') as file:
         json.dump(data, file, indent=4)
 
 
 def pylint_data_json(data: dict, path: Path):
     """Writes Pylint data to a JSON file."""
     output_path = path / 'pylint_metrics.json'
-    with open(output_path, 'w') as file:
+    with open(output_path, 'a') as file:
         json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
@@ -59,7 +59,7 @@ def pylint_data_csv(data: MutableMapping, path: Path):
 def _write_to_csv(data: MutableMapping, path: Path) -> None:
     """Writes the data to a CSV file."""
     formatted_data = data_converter.dict_to_list(data)
-    with open(path, 'w', newline='') as file:
+    with open(path, 'a', newline='') as file:
         field_names = set()
         for section in formatted_data:
             field_names.update([k for k in section.keys()])

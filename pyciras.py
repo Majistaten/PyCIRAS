@@ -14,6 +14,7 @@ from utility import util, config
 
 # TODO allow passing the file with repository URLs to the method
 
+# TODO: Vid para körningar, ta bort onödiga headers från CSV och laga JSON
 # Create data directory for the analysis
 data_directory = data_writer.create_timestamped_data_directory()
 
@@ -29,12 +30,12 @@ def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: 
             execute_in_parallel(func=process_group, args_list=[([repo], remove_repos_after_completion) for repo in current_group], max_workers=group_size)
         else:
             process_group(current_group, use_subprocesses)
+    # TODO: clean up the mess you have made in out!
     return None
 
 
 def execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: int = 4):
     """Executes a function in parallel given a list of arguments."""
-    print(f"Executing {len(args_list)} blabla of {args_list}")
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(func, *args) for args in args_list]
         for future in concurrent.futures.as_completed(futures):
