@@ -2,6 +2,7 @@ import logging
 from tqdm import tqdm
 import time
 
+
 # Custom logging handler to work with tqdm
 class TqdmLoggingHandler(logging.Handler):
     def __init__(self, level=logging.NOTSET):
@@ -13,6 +14,7 @@ class TqdmLoggingHandler(logging.Handler):
             tqdm.write(msg)
         except Exception:
             self.handleError(record)
+
 
 # Custom formatter with color coding
 class CustomFormatter(logging.Formatter):
@@ -35,6 +37,7 @@ class CustomFormatter(logging.Formatter):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
+
 
 # Set up logger
 logger = logging.getLogger()

@@ -1,6 +1,8 @@
 import os
 import logging
 
+from utility import config
+
 
 def get_python_files_from_directory(directory: str) -> list[str]:
     """Get a list of string paths to Python files from a directory"""
@@ -28,5 +30,16 @@ def get_repository_urls_from_file(file_path: str) -> list[str]:
     urls = []
     with open(file_path, 'r') as file:
         for line in file:
-            urls.append(line.strip())
+            urls.append(sanitize_url(line))
     return urls
+
+
+def get_path_to_repo(repo_url: str) -> str:
+    name = get_repo_name_from_url(repo_url)
+    return config.REPOSITORIES_FOLDER + name
+
+
+def sanitize_url(url: str) -> str:
+    """Removes any non-printable characters and whitespace"""
+    return url.strip().removesuffix('/')
+

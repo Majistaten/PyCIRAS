@@ -1,3 +1,7 @@
+import concurrent.futures
+import shutil
+from typing import Callable
+
 from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
 from utility import util, config
@@ -9,16 +13,37 @@ from utility import util, config
 
 # TODO allow passing the file with repository URLs to the method
 
-def main():
-    """Test script for downloading repos, extracting metrics and printing to file"""
+def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False):
+    """Handles repositories in groups.
+    Downloads and analyzes the repositories one group at a time, stores the result and removes the repository when done.
+    """
+    for i in range(0, len(repo_urls), group_size):
+        current_group = repo_urls[i:i + group_size]
+        if use_subprocesses:
+            execute_in_parallel(process_group, [(current_group, use_subprocesses)], max_workers=1)
+        else:
+            process_group(current_group, use_subprocesses)
+    return None
 
-    # Download repositories
+
+def execute_in_parallel(func: Callable[[any], None], args_list: list[any], max_workers: int = 4):
+    """Executes a function in parallel given a list of arguments."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_arg = {executor.submit(func, arg): arg for arg in args_list}
+        for future in concurrent.futures.as_completed(future_to_arg):
+            try:
+                print(future.result())
+            except Exception as exc:
+                print(f'Exception caught: {exc}')
+
+
+def process_group(current_group: list[str], use_subprocesses: bool = False):
+    print(current_group)
     repo_paths = repo_cloner.download_repositories(repo_urls_path=config.REPOSITORY_URLS,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
-    repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
-
-    # Mine data
-    pydriller_data = git_miner.mine_pydriller_metrics(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
+    remove_repositories(current_group)
+    return
+    pydriller_data = git_miner.mine_pydriller_metrics(current_group, repository_directory=config.REPOSITORIES_FOLDER)
     repositories_with_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
     pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
 
@@ -39,6 +64,51 @@ def main():
     # write csv to file
     data_writer.pydriller_data_csv(pydriller_data, data_directory)
     data_writer.pylint_data_csv(pylint_data, data_directory)
+
+
+def remove_repositories(content: list[str]):
+    print(f'Removing {len(content)} repositories {content}')
+    for url in content:
+        path = util.get_path_to_repo(url)
+        if path.index(config.REPOSITORIES_FOLDER) > -1:
+            print(f'Found: {path}. \nRemoving.')
+            # shutil.rmtree(path, ignore_errors=False) WATCH OUT!
+        else:
+            print(f'THANK GOD I MADE THE CHECK! Duck: {path}')
+    pass
+
+
+def main():
+    """Test script for downloading repos, extracting metrics and printing to file"""
+
+    load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=2, use_subprocesses=False)
+    # repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+    # # Download repositories
+    # repo_paths = repo_cloner.download_repositories(repo_url_list=repo_urls,
+    #                                                destination_folder=config.REPOSITORIES_FOLDER)
+    #
+    # # Mine data
+    # pydriller_data = git_miner.mine_pydriller_metrics(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
+    # repositories_with_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
+    # pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
+    #
+    # # Create data directory for the analysis
+    # data_directory = data_writer.create_timestamped_data_directory()
+    #
+    # # write json to file
+    # data_writer.pydriller_data_json(pydriller_data, data_directory)
+    # data_writer.pylint_data_json(pylint_data, data_directory)
+    #
+    # # Remove unwanted data for csv
+    # pylint_data = data_converter.remove_pylint_messages(pylint_data)
+    #
+    # # Flatten the data
+    # pydriller_data = data_converter.flatten_pydriller_data(pydriller_data)
+    # pylint_data = data_converter.flatten_pylint_data(pylint_data)
+    #
+    # # write csv to file
+    # data_writer.pydriller_data_csv(pydriller_data, data_directory)
+    # data_writer.pylint_data_csv(pylint_data, data_directory)
 
 
 if __name__ == '__main__':

@@ -39,7 +39,7 @@ def download_repositories(
         True if all repositories were successfully cloned, else False.
     """
     repository_paths = []
-
+    # TODO: Remove sanitize and use get repo url form util
     if repo_url_list is not None:
         repo_urls = [_sanitize_url(url) for url in repo_url_list]
     elif repo_urls_path is not None:
@@ -69,7 +69,7 @@ def download_repositories(
 
 def _sanitize_url(url: str) -> str:
     """Returns an url without whitespace"""
-    return re.sub('[ \n\r\t]', '', url)
+    return re.sub('[ \n\r\t]', '', url).removesuffix('/')
 
 
 def clone_repository(repo_url: str, destination_folder: str) -> str | None:

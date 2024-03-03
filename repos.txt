@@ -1,1 +1,5 @@
 https://github.com/conala-corpus/conala-baseline
+https://github.com/XuelingZhang19/PAMDroid
+https://github.com/jun-zeng/Tailor
+https://github.com/CGCL-codes/MavenEcoSysResearch
+https://github.com/DJjjjhao/FIRA-ICSE
