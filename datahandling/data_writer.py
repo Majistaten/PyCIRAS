@@ -6,11 +6,13 @@ from datetime import datetime
 from collections.abc import MutableMapping
 import datahandling.data_converter as data_converter
 
+
 # ROOT_PATH = Path(__file__).parent.parent
 
 
 class CustomEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle sets and datetime objects."""
+
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)  # Convert sets to lists
@@ -31,18 +33,47 @@ def create_timestamped_data_directory() -> Path:
     return output_directory
 
 
+def write_json_data(data: dict, path: Path):
+    try:
+        with open(path, 'r') as file:
+            existing_data = json.load(file)
+    except FileNotFoundError:
+        existing_data = {}
+
+    existing_data.update(data)
+
+    with open(path, 'w') as file:
+        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
+
+
 def pydriller_data_json(data: dict, path: Path):
     """Writes Pydriller data to a JSON file."""
     output_path = path / 'pydriller_metrics.json'
-    with open(str(output_path), 'a') as file:
-        json.dump(data, file, indent=4)
+    try:
+        with open(output_path, 'r') as file:
+            existing_data = json.load(file)
+    except FileNotFoundError:
+        existing_data = {}
+
+    existing_data.update(data)
+
+    with open(output_path, 'w') as file:
+        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
 def pylint_data_json(data: dict, path: Path):
     """Writes Pylint data to a JSON file."""
     output_path = path / 'pylint_metrics.json'
-    with open(output_path, 'a') as file:
-        json.dump(data, file, indent=4, cls=CustomEncoder)
+    try:
+        with open(output_path, 'r') as file:
+            existing_data = json.load(file)
+    except FileNotFoundError:
+        existing_data = {}
+
+    existing_data.update(data)
+
+    with open(output_path, 'w') as file:
+        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
 def pydriller_data_csv(data: dict, path: Path):
@@ -62,8 +93,16 @@ def pylint_data_csv(data: MutableMapping, path: Path):
 def stargazers_data_json(data: dict, path: Path):
     """Writes stargazers data to a JSON file."""
     output_path = path / 'stargazers.json'
-    with open(str(output_path), 'a') as file:
-        json.dump(data, file, indent=4)
+    try:
+        with open(output_path, 'r') as file:
+            existing_data = json.load(file)
+    except FileNotFoundError:
+        existing_data = {}
+
+    existing_data.update(data)
+
+    with open(output_path, 'w') as file:
+        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
 def _write_to_csv(data: MutableMapping, path: Path) -> None:

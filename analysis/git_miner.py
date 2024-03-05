@@ -1,4 +1,3 @@
-import pathlib
 import logging
 from tqdm import tqdm
 from datetime import datetime
@@ -14,9 +13,7 @@ from utility import util, config
 from dotenv import load_dotenv
 import os
 import requests
-from datahandling import data_writer, data_converter
 from pathlib import Path
-import json
 
 
 # TODO make a method that returns commit hash + date from a repository

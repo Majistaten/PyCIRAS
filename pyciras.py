@@ -28,7 +28,7 @@ data_directory = data_writer.create_timestamped_data_directory()
 def run_stargazers_analysis():
     # TODO skriver bara JSON än så länge
     metrics = git_miner.mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
-    data_writer.stargazers_data_json(metrics, data_directory)
+    data_writer.write_json_data(metrics, data_directory / 'stargazers.json')
 
 
 def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False,
@@ -65,7 +65,9 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
 
     # write json to file
     data_writer.pydriller_data_json(pydriller_data, data_directory)
+    data_writer.write_json_data(pydriller_data, data_directory / 'pydriller_metrics.json')
     data_writer.pylint_data_json(pylint_data, data_directory)
+    data_writer.write_json_data(pydriller_data, data_directory / 'pylint_metrics.json')
 
     # Remove unwanted data for csv
     pylint_data = data_converter.remove_pylint_messages(pylint_data)
@@ -78,6 +80,8 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
     data_writer.pydriller_data_csv(pydriller_data, data_directory)
     data_writer.pylint_data_csv(pylint_data, data_directory)
 
+    run_stargazers_analysis()
+
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
     return "Finished"
@@ -87,36 +91,9 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=5,
-                   use_subprocesses=True, remove_repos_after_completion=True)
+                   use_subprocesses=False, remove_repos_after_completion=True)
 
     ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
-    # repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
-    # # Download repositories
-    # repo_paths = repo_cloner.download_repositories(repo_url_list=repo_urls,
-    #                                                destination_folder=config.REPOSITORIES_FOLDER)
-    #
-    # # Mine data
-    # pydriller_data = git_miner.mine_pydriller_metrics(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
-    # repositories_with_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
-    # pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
-    #
-    # # Create data directory for the analysis
-    # data_directory = data_writer.create_timestamped_data_directory()
-    #
-    # # write json to file
-    # data_writer.pydriller_data_json(pydriller_data, data_directory)
-    # data_writer.pylint_data_json(pylint_data, data_directory)
-    #
-    # # Remove unwanted data for csv
-    # pylint_data = data_converter.remove_pylint_messages(pylint_data)
-    #
-    # # Flatten the data
-    # pydriller_data = data_converter.flatten_pydriller_data(pydriller_data)
-    # pylint_data = data_converter.flatten_pylint_data(pylint_data)
-    #
-    # # write csv to file
-    # data_writer.pydriller_data_csv(pydriller_data, data_directory)
-    # data_writer.pylint_data_csv(pylint_data, data_directory)
 
 
 if __name__ == '__main__':

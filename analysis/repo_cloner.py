@@ -1,5 +1,3 @@
-import shutil
-
 import requests
 from git import Repo, RemoteProgress, rmtree
 from pathlib import Path
