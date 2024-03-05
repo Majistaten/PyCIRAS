@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 from typing import Callable
 from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
@@ -25,11 +26,23 @@ from utility import util, config, ntfyer
 data_directory = data_writer.create_timestamped_data_directory()
 
 
+
+
 def run_stargazers_analysis():
     # TODO skriver bara JSON än så länge
-    metrics = git_miner.mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
-    data_writer.stargazers_data_json(metrics, data_directory)
+    # TODO behöver repo namn i datan
+    stargazers_metrics = git_miner.mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
+    data_writer.stargazers_data_json(stargazers_metrics, data_directory)
 
+    # Clean the data
+    stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
+
+    # TODO remove
+    output_path = 'cleaned_stargazers.json'
+    with open(str(output_path), 'w') as file:
+        json.dump(stargazers_metrics, file, indent=4)
+
+    # TODO implement formatting and CSV writing
 
 def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False,
                    remove_repos_after_completion: bool = True):
