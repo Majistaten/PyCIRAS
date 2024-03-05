@@ -20,6 +20,43 @@ def flatten_pylint_data(metrics: dict) -> dict:
     return flat_metrics
 
 
+def flatten_stargazers_data(stargazers_metrics):
+    pass
+
+
+# TODO extrahera ut/ konvertera så man får en lista med dictionaries
+# där key är owner/repo och value är listan som finns i edges
+def clean_stargazers_data(stargazers_metrics):
+
+    # cleaned_metrics = stargazers_metrics
+    # for key in stargazers_metrics:
+    #     if key is None:
+    #         continue
+    #     repository_data = key.get("repository")
+    #     cleaned_metrics.append(repository_data)
+    #
+    # return cleaned_metrics
+
+    cleaned_metrics = []
+    for item in stargazers_metrics:
+        # Extract repository data
+        repository_data = item.get("data", {}).get("repository", {})
+        name = repository_data.get("name")
+        edges = repository_data.get("stargazers", {}).get("edges", [])
+
+        # Create a new dictionary with 'name' as key and 'edges' as its value
+        if name and edges:  # Ensure both name and edges are not empty
+            cleaned_metrics.append({name: edges})
+
+    return cleaned_metrics
+
+
+#TODO convert to get a format suitable to achieve:
+# Row: Datum Col: repository cell: stargazers
+def get_stargazers_over_time(stargazers_metrics):
+    pass
+
+
 def remove_pylint_messages(data: dict) -> dict:
     """Removes the messages from the pylint data"""
     for repo, value in data.items():
@@ -55,3 +92,4 @@ def dict_to_list(dictionary: dict | MutableMapping) -> list:
         value["key"] = key
         formatted_list.append(value)
     return formatted_list
+

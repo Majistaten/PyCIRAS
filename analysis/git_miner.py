@@ -47,6 +47,7 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
     load_dotenv()
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     metrics = []
+
     for url in tqdm(repo_urls,
                     desc="Querying GraphQL API for Stargazers data",
                     ncols=150):
@@ -67,6 +68,7 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
             }}"""
         }
         stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
+        stargazers_data["data"]["repository"]["name"] = repo_owner + "/" + repo_name
         metrics.append(stargazers_data)
 
         # TODO debug.warning om rate limit börjar bli för låg
