@@ -10,7 +10,13 @@ from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.contributors_experience import ContributorsExperience
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
-from utility import util
+from utility import util, config
+from dotenv import load_dotenv
+import os
+import requests
+from datahandling import data_writer, data_converter
+from pathlib import Path
+import json
 
 
 # TODO make a method that returns commit hash + date from a repository
@@ -22,7 +28,7 @@ def mine_pydriller_metrics(repositories: list[str],
                            since: datetime = datetime.now(),
                            to: datetime = datetime.now() - relativedelta(years=20)
                            ) -> dict[str, dict[str, any]]:
-    """Get Pydriller metrics from a git repository stored in a dict"""
+    """Get Pydriller metrics in a dict from a git repository"""
 
     metrics = {}
     repos = _load_repositories(repositories, repository_directory)
@@ -35,6 +41,58 @@ def mine_pydriller_metrics(repositories: list[str],
         metrics[repo_name]['repository_address'] = address
 
     return metrics
+
+
+# TODO implementera pagination vid behov för att få ut alla stargazers utan att slå i rate limit/size limit
+def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
+    """Get stargazers metrics in a dict from the GraphQL API of GitHub"""
+
+    load_dotenv()
+    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
+    metrics = []
+    for url in tqdm(repo_urls,
+                    desc="Querying GraphQL API for Stargazers data",
+                    ncols=150):
+        repo_owner = util.get_repo_owner_from_url(url)
+        repo_name = util.get_repo_name_from_url(url)
+        json_query = {
+            "query": f"""query {{
+                repository(owner: "{repo_owner}", name: "{repo_name}") {{
+                    stargazers(first: 100) {{
+                        edges {{
+                            starredAt
+                                node {{
+                                    login
+                                }}
+                        }}
+                    }}
+                }}
+            }}"""
+        }
+        stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
+        metrics.append(stargazers_data)
+
+        # TODO debug.warning om rate limit börjar bli för låg
+        # TODO skapa funktion som sköter rate limit checking
+        # rate_limiting_query = {
+        #     "query": """query {
+        #     rateLimit {
+        #         limit
+        #         cost
+        #         remaining
+        #         resetAt
+        #     }
+        #     }"""
+        # }
+        # rate_limit_info = requests.post(config.GRAPHQL_API, json=rate_limiting_query, headers=headers).json()
+        # print(rate_limit_info)
+
+    return metrics
+
+
+if __name__ == '__main__':
+    metrics = mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
+    data_writer.stargazers_data_json(metrics, Path.cwd())
 
 
 def get_commit_dates(repositories: list[str], repository_directory: str) -> dict[str, any]:
@@ -116,7 +174,8 @@ def _extract_process_metrics(repo_path: str,
     lines_count_added, lines_count_removed = _lines_count_metrics(repo_path, from_commit, to_commit, since, to)
     hunks_count = _hunk_count_metrics(repo_path, from_commit, to_commit, since, to)
     contributors_experience = _contribution_experience_metrics(repo_path, from_commit, to_commit, since, to)
-    contributors_count_total, contributors_count_minor = _contribution_count_metrics(repo_path, from_commit, to_commit, since, to)
+    contributors_count_total, contributors_count_minor = _contribution_count_metrics(repo_path, from_commit, to_commit,
+                                                                                     since, to)
     code_churn = _code_churns_metrics(repo_path, from_commit, to_commit, since, to)
     change_set_max, change_set_avg = _change_set_metrics(repo_path, from_commit, to_commit, since, to)
 
