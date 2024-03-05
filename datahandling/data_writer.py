@@ -64,5 +64,6 @@ def _write_to_csv(data: MutableMapping, path: Path) -> None:
         for section in formatted_data:
             field_names.update([k for k in section.keys()])
         writer = csv.DictWriter(file, fieldnames=field_names)
-        writer.writeheader()
+        if path.stat().st_size == 0:
+            writer.writeheader()
         writer.writerows(formatted_data)

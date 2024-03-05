@@ -30,7 +30,7 @@ def mine_pylint_metrics(repositories_with_commits: dict[str, any]) -> dict[str, 
     """Get Pylint metrics from the commits of multiple git repositories"""
     metrics = {}
     for repository, commits in repositories_with_commits.items():
-        logging.info(f"repository {repository}")
+        logging.info(f"Code quality: inspecting {repository}")
         metrics[repository] = _extract_pylint_metrics(repository, commits)
     return metrics
 

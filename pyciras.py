@@ -1,12 +1,10 @@
 import concurrent.futures
-import time
 from typing import Callable
-from git import rmtree
-
 from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
-from utility import util, config
+from utility import util, config, ntfyer
 
+# TODO: implement "do not remove" functionality for specified repos
 
 # TODO skapa möjligheten att dra gång flera processer som analyserar samtidigt och skriver resultat efter varje analys
 
@@ -31,7 +29,6 @@ def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: 
         else:
             process_group(current_group, use_subprocesses)
     # TODO: clean up the mess you have made in out!
-    return None
 
 
 def execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: int = 4):
@@ -71,20 +68,8 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
     data_writer.pylint_data_csv(pylint_data, data_directory)
 
     if remove_repo_on_complete:
-        remove_repositories(current_group)
+        repo_cloner.remove_repositories(current_group)
     return "Finished"
-
-
-def remove_repositories(content: list[str]):
-    print(f'Removing {len(content)} repositories {content}')
-    for url in content:
-        path = util.get_path_to_repo(url)
-        if path.index(config.REPOSITORIES_FOLDER) > -1:
-            print(f'Removing: {path}\n')
-            rmtree(path)
-        else:
-            print(f'Something went wrong with the path extraction for {url}, got path {path}')
-    pass
 
 
 def main():
@@ -92,6 +77,8 @@ def main():
 
     load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=5,
                    use_subprocesses=True, remove_repos_after_completion=True)
+
+    ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
     # repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
     # # Download repositories
     # repo_paths = repo_cloner.download_repositories(repo_url_list=repo_urls,
