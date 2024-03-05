@@ -16,6 +16,8 @@ class CustomEncoder(json.JSONEncoder):
             return list(obj)  # Convert sets to lists
         elif isinstance(obj, datetime):
             return str(obj)
+        elif isinstance(obj, Path):
+            return str(obj)
         else:
             return json.JSONEncoder.default(self, obj)
 
