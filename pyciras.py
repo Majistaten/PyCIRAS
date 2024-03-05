@@ -42,6 +42,7 @@ def run_stargazers_analysis():
 
     # TODO implement formatting and CSV writing
 
+
 def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False,
                    remove_repos_after_completion: bool = True):
     """Handles repositories in groups.
@@ -52,7 +53,7 @@ def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: 
         if use_subprocesses:
             execute_in_parallel(func=process_group, args_list=[([repo], remove_repos_after_completion) for repo in current_group], max_workers=group_size)
         else:
-            process_group(current_group, use_subprocesses)
+            process_group(current_group, remove_repos_after_completion)
     # TODO: clean up the mess you have made in out!
 
 
@@ -90,7 +91,6 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
     data_writer.pylint_data_csv(pylint_data, data_directory)
 
     # run_stargazers_analysis()
-
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
     return "Finished"
