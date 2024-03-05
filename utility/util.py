@@ -26,9 +26,11 @@ def get_repo_owner_from_url(repo_url: str) -> str:
     return str(repo_url).rstrip('/').split('/')[-2].strip()
 
 
-def get_repo_name_from_path(path: Path) -> str:
+def get_repo_name_from_path(path: str | Path) -> str:
     """Returns the name of a repository from a path"""
-    return path.name
+    if isinstance(path, Path):
+        return path.name
+    return path.replace('\\', '/').rstrip('/').split('/')[-1].strip()
 
 
 def get_repository_urls_from_file(file_path: Path) -> list[str]:

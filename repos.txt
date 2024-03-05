@@ -1,1 +1,3 @@
 https://github.com/conala-corpus/conala-baseline
+https://github.com/jun-zeng/Tailor
+https://github.com/sumonbis/Fairify

@@ -1,3 +1,5 @@
+import shutil
+
 import requests
 from git import Repo, RemoteProgress, rmtree
 from pathlib import Path
@@ -100,9 +102,9 @@ def remove_repositories(content: list[str]) -> None:
     logging.info(f'Removing {len(content)} repositories {content}')
     for url in content:
         path = util.get_path_to_repo(url)
-        # TODO: FIX THIS AGAIN!
-        logging.error(f'Removing: {path}\n')
-        # rmtree(path)
+        # TODO: Make sure that the path is not pointing to anything outside this repository
+        logging.info(f'Removing: {path}\n')
+        rmtree(path)
 
 
 # TODO: Alternatively move to util?
