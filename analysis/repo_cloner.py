@@ -97,6 +97,7 @@ def clone_repository(repo_url: str, destination_folder: Path) -> Path | None:
         return None
 
 
+# TODO fixa säkrare permissions på nåt sätt, typ vid nedladdning. Så den inte har root priviliges
 def remove_repositories(content: list[str]) -> None:
     """ Remove all repositories in the content list. """
     logging.info(f'Removing {len(content)} repositories {content}')
