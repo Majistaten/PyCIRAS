@@ -50,15 +50,12 @@ def execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(func, *args) for args in args_list]
         for future in concurrent.futures.as_completed(futures):
-            try:
-                print(future.result())
-            except Exception as e:
-                print(f'Exception caught here: {e}')
+            print(future.result())
 
 
 def process_group(current_group: list[str], remove_repo_on_complete: bool = True):
     print(current_group)
-    repo_paths = repo_cloner.download_repositories(repo_url_list=current_group,
+    repo_paths = repo_cloner.download_repositories(repo_urls_list=current_group,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
 
     # gather metric data

@@ -1,10 +1,11 @@
 import os
 import logging
+from pathlib import Path
 
 from utility import config
 
 
-def get_python_files_from_directory(directory: str) -> list[str]:
+def get_python_files_from_directory(directory: Path) -> list[str]:
     """Get a list of string paths to Python files from a directory"""
     python_files = []
     for root, dirs, files in os.walk(directory):
@@ -25,12 +26,12 @@ def get_repo_owner_from_url(repo_url: str) -> str:
     return str(repo_url).rstrip('/').split('/')[-2].strip()
 
 
-def get_repo_name_from_path(path: str) -> str:
+def get_repo_name_from_path(path: Path) -> str:
     """Returns the name of a repository from a path"""
-    return str(path).replace('\\', '/').rstrip('/').split('/')[-1].strip()
+    return path.name
 
 
-def get_repository_urls_from_file(file_path: str) -> list[str]:
+def get_repository_urls_from_file(file_path: Path) -> list[str]:
     """Get a list of repository URLs from a file"""
     urls = []
     with open(file_path, 'r') as file:
@@ -39,9 +40,9 @@ def get_repository_urls_from_file(file_path: str) -> list[str]:
     return urls
 
 
-def get_path_to_repo(repo_url: str) -> str:
+def get_path_to_repo(repo_url: str) -> Path:
     name = get_repo_name_from_url(repo_url)
-    return config.REPOSITORIES_FOLDER + name
+    return config.REPOSITORIES_FOLDER / name
 
 
 def sanitize_url(url: str) -> str:

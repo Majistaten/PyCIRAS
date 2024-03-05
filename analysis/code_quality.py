@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pylint.lint import Run
 from pylint.reporters.text import TextReporter
 from pylint.reporters.ureports.nodes import Section
@@ -31,11 +33,13 @@ def mine_pylint_metrics(repositories_with_commits: dict[str, any]) -> dict[str, 
     metrics = {}
     for repository, commits in repositories_with_commits.items():
         logging.info(f"Code quality: inspecting {repository}")
-        metrics[repository] = _extract_pylint_metrics(repository, commits)
+        # TODO: THIS IS THE PROBLEMATIC AREA
+        metrics[str(repository)] = _extract_pylint_metrics(Path(repository), commits)
+
     return metrics
 
 
-def _extract_pylint_metrics(repository_path: str, commits: any) -> dict[str, any]:
+def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, any]:
     """Extract Pylint metrics from a the commits of a single repository"""
     metrics = {}
     repo = Repo(repository_path)
@@ -53,7 +57,7 @@ def _extract_pylint_metrics(repository_path: str, commits: any) -> dict[str, any
     return metrics
 
 
-def _run_pylint(repository_path: str) -> dict[str, any] | None:
+def _run_pylint(repository_path: Path) -> dict[str, any] | None:
     """Execute Pylint on a single repository, get the report in a dict"""
     result = {}
     target_files = util.get_python_files_from_directory(repository_path)

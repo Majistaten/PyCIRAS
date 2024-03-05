@@ -24,7 +24,7 @@ import json
 # TODO try Pydrillers built in CSV creation
 
 def mine_pydriller_metrics(repositories: list[str],
-                           repository_directory: str,
+                           repository_directory: Path,
                            since: datetime = datetime.now(),
                            to: datetime = datetime.now() - relativedelta(years=20)
                            ) -> dict[str, dict[str, any]]:
@@ -36,7 +36,7 @@ def mine_pydriller_metrics(repositories: list[str],
         repo_name = util.get_repo_name_from_url(address)
         metrics[repo_name] = _extract_commit_metrics(repo)
         metrics[repo_name].update(
-            _extract_process_metrics(repo_path=repository_directory + '/' + repo_name, since=since, to=to))
+            _extract_process_metrics(repo_path=repository_directory / repo_name, since=since, to=to))
         metrics[repo_name]['repository_name'] = repo_name
         metrics[repo_name]['repository_address'] = address
 
@@ -90,12 +90,7 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
     return metrics
 
 
-if __name__ == '__main__':
-    metrics = mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
-    data_writer.stargazers_data_json(metrics, Path.cwd())
-
-
-def get_commit_dates(repositories: list[str], repository_directory: str) -> dict[str, any]:
+def get_commit_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
     """Extract commit hash and dates from a list of repositories"""
     repos = _load_repositories(repositories, repository_directory)
     commit_dates = {}
@@ -108,27 +103,27 @@ def get_commit_dates(repositories: list[str], repository_directory: str) -> dict
     return commit_dates
 
 
-def _load_repositories(repositories: list[str], repository_directory: str) -> (
+def _load_repositories(repositories: list[str], repository_directory: Path) -> (
         dict[str, Repository]):
     """Load repositories for further processing"""
 
-    repository_path = pathlib.Path(repository_directory).absolute()
+    repository_path = repository_directory
     repository_path.mkdir(parents=True, exist_ok=True)
     logging.debug('Loading repositories.')
 
     return {
-        repo_url: _load_repository(repo_url, repository_directory) for repo_url in
+        str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in
         tqdm(repositories, desc="Loading Repositories", ncols=150)}
 
 
-def _load_repository(repo_url: str, repository_directory: str) -> Repository:
+def _load_repository(repo_url: str, repository_directory: Path) -> Repository:
     """Load repository stored locally, or clone and load if not present"""
 
     repo_name = util.get_repo_name_from_url(repo_url)
-    repo_path = pathlib.Path(repository_directory + repo_name)
+    repo_path = repository_directory / repo_name
 
     if not repo_path.exists():
-        return Repository(repo_url, clone_repo_to=repository_directory)
+        return Repository(repo_url, clone_repo_to=str(repository_directory))
 
     return Repository(str(repo_path))
 
@@ -164,7 +159,7 @@ def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
     return metrics
 
 
-def _extract_process_metrics(repo_path: str,
+def _extract_process_metrics(repo_path: Path,
                              from_commit: str = None,
                              to_commit: str = None,
                              since: datetime = None,
@@ -196,62 +191,62 @@ def _extract_process_metrics(repo_path: str,
     }
 
 
-def _lines_count_metrics(repo_path: str,
+def _lines_count_metrics(repo_path: Path,
                          from_commit: str = None,
                          to_commit: str = None,
                          since: datetime = None,
                          to: datetime = None):
-    lines_count_metric = LinesCount(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since,
+    lines_count_metric = LinesCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
                                     to=to)
     return lines_count_metric.count_added(), lines_count_metric.count_removed()
 
 
-def _hunk_count_metrics(repo_path: str,
+def _hunk_count_metrics(repo_path: Path,
                         from_commit: str = None,
                         to_commit: str = None,
                         since: datetime = None,
                         to: datetime = None):
-    hunks_count_metric = HunksCount(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since,
+    hunks_count_metric = HunksCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
                                     to=to)
     return hunks_count_metric.count()
 
 
-def _contribution_experience_metrics(repo_path: str,
+def _contribution_experience_metrics(repo_path: Path,
                                      from_commit: str = None,
                                      to_commit: str = None,
                                      since: datetime = None,
                                      to: datetime = None):
-    contributors_experience_metric = ContributorsExperience(path_to_repo=repo_path, from_commit=from_commit,
+    contributors_experience_metric = ContributorsExperience(path_to_repo=str(repo_path), from_commit=from_commit,
                                                             to_commit=to_commit, since=since, to=to)
     return contributors_experience_metric.count()
 
 
-def _contribution_count_metrics(repo_path: str,
+def _contribution_count_metrics(repo_path: Path,
                                 from_commit: str = None,
                                 to_commit: str = None,
                                 since: datetime = None,
                                 to: datetime = None):
-    contributors_count_metric = ContributorsCount(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit,
+    contributors_count_metric = ContributorsCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit,
                                                   since=since, to=to)
     return contributors_count_metric.count(), contributors_count_metric.count_minor()
 
 
-def _code_churns_metrics(repo_path: str,
+def _code_churns_metrics(repo_path: Path,
                          from_commit: str = None,
                          to_commit: str = None,
                          since: datetime = None,
                          to: datetime = None):
-    code_churn_metric = CodeChurn(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since,
+    code_churn_metric = CodeChurn(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
                                   to=to)
     metrics = {'total': code_churn_metric.count(), 'max': code_churn_metric.max(), 'avg': code_churn_metric.avg()}
     return metrics
 
 
-def _change_set_metrics(repo_path: str,
+def _change_set_metrics(repo_path: Path,
                         from_commit: str = None,
                         to_commit: str = None,
                         since: datetime = None,
                         to: datetime = None):
-    change_set_metric = ChangeSet(path_to_repo=repo_path, from_commit=from_commit, to_commit=to_commit, since=since,
+    change_set_metric = ChangeSet(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
                                   to=to)
     return change_set_metric.max(), change_set_metric.avg()

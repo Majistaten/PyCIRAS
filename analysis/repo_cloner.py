@@ -27,28 +27,24 @@ class CloneProgress(RemoteProgress):
 
 
 def download_repositories(
-        destination_folder: str,
-        repo_url_file_path: str = None,
-        repo_url_list: list[str] = None) -> list[str] | bool:
+        destination_folder: Path,
+        repo_urls_file_path: Path = None,
+        repo_urls_list: list[str] = None) -> list[str] | bool:
     """
     Downloads a list of repositories from a file or a list of URLs.
     Args:
-        repo_url_file_path: Path to a file containing a list of repository URLs.
+        repo_urls_file_path: Path to a file containing a list of repository URLs.
         destination_folder: The folder to clone the repositories to.
-        repo_url_list: A list of repository URLs.
+        repo_urls_list: A list of repository URLs.
 
     Returns:
         True if all repositories were successfully cloned, else False.
     """
     repository_paths = []
-    if repo_url_list is not None:
-        repo_urls = repo_url_list
-    elif repo_url_file_path is not None:
-        url_file = Path(repo_url_file_path)
-        if not url_file.is_file():
-            logging.error('The provided repository URL file does not exist or is not a file.')
-            return False
-        repo_urls = util.get_repository_urls_from_file(repo_url_file_path)
+    if repo_urls_list is not None:
+        repo_urls = repo_urls_list
+    elif repo_urls_file_path.exists() and repo_urls_file_path.is_file():
+        repo_urls = util.get_repository_urls_from_file(repo_urls_file_path)
     else:
         logging.error('No repository source provided. Please provide either a file or a list of URLs.')
         return False
@@ -58,7 +54,7 @@ def download_repositories(
         logging.info(f'Downloading repository {i + 1} of {len(repo_urls)}...')
         repository_path = clone_repository(repo_url, destination_folder)
         if repository_path is None:
-            logging.error('Failed to download repository from ' + repo_url)
+            logging.error(f'Failed to download repository from {repo_url}')
         else:
             repository_paths.append(repository_path)
     logging.info('Finished downloading repositories.')
@@ -66,7 +62,7 @@ def download_repositories(
     return repository_paths
 
 
-def clone_repository(repo_url: str, destination_folder: str) -> str | None:
+def clone_repository(repo_url: str, destination_folder: Path) -> Path | None:
     """
     Clones a Git repository from a given URL to a given destination folder.
     Args:
@@ -78,22 +74,21 @@ def clone_repository(repo_url: str, destination_folder: str) -> str | None:
     """
     try:
         repo_name = util.get_repo_name_from_url(repo_url)
-        path = Path(destination_folder)
-        if not path.exists() or not path.is_dir():
-            logging.info('Path (' + destination_folder + ') did not exist, creating path.')
-            path.mkdir(parents=True, exist_ok=True)
-
-        if (path / repo_name).exists():
+        if not destination_folder.exists() or not destination_folder.is_dir():
+            logging.info(f'Path {destination_folder} did not exist, creating path.')
+            destination_folder.mkdir(parents=True, exist_ok=True)
+        repo_path = destination_folder / repo_name
+        if repo_path.exists():
             logging.info(f'Repository {repo_name} already exists in {destination_folder}, skipping...')
-            return str(path / repo_name)
+            return repo_path
         repo_size = get_github_repo_size(repo_url)
         logging.info(f'Cloning Git Repository {repo_name} of size {repo_size} from {repo_url} ...')
         Repo.clone_from(repo_url,
-                        destination_folder + '/' + repo_name,
+                        repo_path,
                         progress=CloneProgress(repo_name=repo_name, n_cols=150, repo_size=repo_size))
 
-        logging.info(repo_name + ' cloned to ' + destination_folder)
-        return destination_folder + '/' + repo_name
+        logging.info(f'Finished cloning {repo_path}')
+        return repo_path
 
     except Exception as ex:
         logging.error('Something went wrong when cloning the repository!\n' + str(ex))
@@ -105,11 +100,9 @@ def remove_repositories(content: list[str]) -> None:
     logging.info(f'Removing {len(content)} repositories {content}')
     for url in content:
         path = util.get_path_to_repo(url)
-        if path.index(config.REPOSITORIES_FOLDER) > -1:
-            logging.info(f'Removing: {path}\n')
-            rmtree(path)
-        else:
-            logging.error(f'Something went wrong with the path extraction of {url}, got path {path}')
+        # TODO: FIX THIS AGAIN!
+        logging.error(f'Removing: {path}\n')
+        # rmtree(path)
 
 
 # TODO: Alternatively move to util?
