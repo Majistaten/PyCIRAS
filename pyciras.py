@@ -7,6 +7,11 @@ from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
 from utility import util, config
 
+# TODO
+# 1. Fixa stargazers och unit_testing analysis
+# 2. Fixa massa runmetoder som motsvarar kraven vi satt i rapporten, att users ska kunna göra
+# 3. Snygga till output med färger och format, bygg in massa error handling
+# 4. Unit testing
 
 # TODO skapa möjligheten att dra gång flera processer som analyserar samtidigt och skriver resultat efter varje analys
 
@@ -15,8 +20,18 @@ from utility import util, config
 # TODO allow passing the file with repository URLs to the method
 
 # TODO: Vid para körningar, ta bort onödiga headers från CSV och laga JSON
+
+# TODO: Do not remove list, eller möjlighet att tagga repos som inte ska tas bort
+
 # Create data directory for the analysis
+# TODO problem med notebooks med detta - blir att denna körs en gång per notebook? eller är det bra?
 data_directory = data_writer.create_timestamped_data_directory()
+
+
+def run_stargazers_analysis():
+    # TODO skriver bara JSON än så länge
+    metrics = git_miner.mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
+    data_writer.stargazers_data_json(metrics, data_directory)
 
 
 def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False,

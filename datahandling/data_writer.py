@@ -6,7 +6,7 @@ from datetime import datetime
 from collections.abc import MutableMapping
 import datahandling.data_converter as data_converter
 
-ROOT_PATH = Path(__file__).parent.parent
+# ROOT_PATH = Path(__file__).parent.parent
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -23,7 +23,8 @@ class CustomEncoder(json.JSONEncoder):
 def create_timestamped_data_directory() -> Path:
     """Creates a timestamped directory for the output data."""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    output_directory = ROOT_PATH / config.OUTPUT_FOLDER / config.DATA_FOLDER / f'./{timestamp}'
+    # output_directory = ROOT_PATH / config.OUTPUT_FOLDER / config.DATA_FOLDER / f'./{timestamp}'
+    output_directory = config.DATA_FOLDER / f'./{timestamp}'
     output_directory.mkdir(parents=True, exist_ok=True)
     return output_directory
 
@@ -54,6 +55,13 @@ def pylint_data_csv(data: MutableMapping, path: Path):
         if value.values() is None:
             continue
         _write_to_csv(value, output_path)
+
+
+def stargazers_data_json(data: dict, path: Path):
+    """Writes stargazers data to a JSON file."""
+    output_path = path / 'stargazers.json'
+    with open(str(output_path), 'a') as file:
+        json.dump(data, file, indent=4)
 
 
 def _write_to_csv(data: MutableMapping, path: Path) -> None:

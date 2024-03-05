@@ -20,6 +20,11 @@ def get_repo_name_from_url(repo_url: str) -> str:
     return str(repo_url).rstrip('/').split('/')[-1].replace('.git', '').strip()
 
 
+def get_repo_owner_from_url(repo_url: str) -> str:
+    """Returns the owner of a repository from a git URL"""
+    return str(repo_url).rstrip('/').split('/')[-2].strip()
+
+
 def get_repo_name_from_path(path: str) -> str:
     """Returns the name of a repository from a path"""
     return str(path).replace('\\', '/').rstrip('/').split('/')[-1].strip()
