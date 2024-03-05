@@ -1,3 +1,5 @@
+import os
+
 import requests
 from git import Repo, RemoteProgress, rmtree
 from pathlib import Path
@@ -76,7 +78,7 @@ def clone_repository(repo_url: str, destination_folder: Path) -> Path | None:
         repo_name = util.get_repo_name_from_url(repo_url)
         if not destination_folder.exists() or not destination_folder.is_dir():
             logging.info(f'Path {destination_folder} did not exist, creating path.')
-            destination_folder.mkdir(parents=True, exist_ok=True)
+            destination_folder.mkdir(parents=True, exist_ok=True, mode=0o777)
         repo_path = destination_folder / repo_name
         if repo_path.exists():
             logging.info(f'Repository {repo_name} already exists in {destination_folder}, skipping...')
@@ -104,6 +106,8 @@ def remove_repositories(content: list[str]) -> None:
         # TODO: Make sure that the path is not pointing to anything outside this repository
         logging.info(f'Removing: {path}\n')
         rmtree(path)
+        if path.exists():
+            logging.error(f'Failed to remove {path}')
 
 
 # TODO: Alternatively move to util?

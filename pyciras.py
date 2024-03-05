@@ -36,9 +36,9 @@ def run_stargazers_analysis():
     stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
 
     # TODO remove
-    output_path = 'cleaned_stargazers.json'
-    with open(str(output_path), 'w') as file:
-        json.dump(stargazers_metrics, file, indent=4)
+    # output_path = 'cleaned_stargazers.json'
+    # with open(str(output_path), 'w') as file:
+    #     json.dump(stargazers_metrics, file, indent=4)
 
     # TODO implement formatting and CSV writing
 
@@ -76,7 +76,7 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
 
     # write json to file
     data_writer.write_json_data(pydriller_data, data_directory / 'pydriller_metrics.json')
-    data_writer.write_json_data(pydriller_data, data_directory / 'pylint_metrics.json')
+    data_writer.write_json_data(pylint_data, data_directory / 'pylint_metrics.json')
 
     # Remove unwanted data for csv
     pylint_data = data_converter.remove_pylint_messages(pylint_data)
@@ -89,7 +89,7 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
     data_writer.pydriller_data_csv(pydriller_data, data_directory)
     data_writer.pylint_data_csv(pylint_data, data_directory)
 
-    run_stargazers_analysis()
+    # run_stargazers_analysis()
 
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
@@ -99,7 +99,7 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
-    load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=5,
+    load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
                    use_subprocesses=False, remove_repos_after_completion=True)
 
     ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
