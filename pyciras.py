@@ -42,9 +42,7 @@ def run_stargazers_analysis():
 
     data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
 
-    # data_writer.write_csv_data(stargazers_metrics, data_directory / 'stargazers.csv')
-
-    # TODO implement formatting and CSV writing
+    data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
 
 
 def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False,

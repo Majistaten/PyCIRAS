@@ -91,6 +91,11 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
     return metrics
 
 
+def get_project_lifespan():
+    # TODO build this method
+    pass
+
+
 def get_commit_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
     """Extract commit hash and dates from a list of repositories"""
     repos = _load_repositories(repositories, repository_directory)
@@ -102,6 +107,8 @@ def get_commit_dates(repositories: list[str], repository_directory: Path) -> dic
         commit_dates[address] = hash_dates
 
     return commit_dates
+
+
 
 
 def _load_repositories(repositories: list[str], repository_directory: Path) -> (
