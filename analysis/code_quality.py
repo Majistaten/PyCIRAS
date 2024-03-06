@@ -33,7 +33,6 @@ def mine_pylint_metrics(repositories_with_commits: dict[str, any]) -> dict[str, 
     metrics = {}
     for repository, commits in repositories_with_commits.items():
         logging.info(f"Code quality: inspecting {repository}")
-        # TODO: THIS IS THE PROBLEMATIC AREA
         metrics[str(repository)] = _extract_pylint_metrics(Path(repository), commits)
 
     return metrics

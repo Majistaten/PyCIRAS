@@ -6,9 +6,9 @@ from datetime import datetime
 from collections.abc import MutableMapping
 import datahandling.data_converter as data_converter
 
+
 class CustomEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle sets and datetime objects."""
-
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)  # Convert sets to lists
