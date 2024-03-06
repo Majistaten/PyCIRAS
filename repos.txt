@@ -1,2 +1,1 @@
-https://github.com/conala-corpus/conala-baseline
-https://github.com/sumonbis/Fairify
+https://github.com/SamuelThand/TDD-Hangman

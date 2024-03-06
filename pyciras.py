@@ -12,27 +12,20 @@ from utility import util, config, ntfyer
 # 3. Snygga till output med färger och format, bygg in massa error handling
 # 4. Unit testing
 
-# TODO skapa möjligheten att dra gång flera processer som analyserar samtidigt och skriver resultat efter varje analys
 
 # TODO skapa massa run metoder för användning från notebooks
-
 # TODO allow passing the file with repository URLs to the method
-
 # TODO: Vid para körningar, ta bort onödiga headers från CSV och laga JSON
-
 # TODO: Do not remove list, eller möjlighet att tagga repos som inte ska tas bort
 
-# Create data directory for the analysis
-# TODO problem med notebooks med detta - blir att denna körs en gång per notebook? eller är det bra?
+# TODO problem med notebooks med detta - blir att denna körs en gång per notebook, sen måste man reloada kernel? eller är det bra?
 data_directory = data_writer.create_timestamped_data_directory()
-
 
 def run_stargazers_analysis(repo_urls: list[str] | None = None):
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
     stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
-
     data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers.json')
 
     # Clean the data
@@ -44,7 +37,6 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None):
     stargazers_over_time = data_converter.get_stargazers_over_time(stargazers_metrics)
 
     data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
-
     data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
 
 
@@ -126,7 +118,7 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
-                   use_subprocesses=False, remove_repos_after_completion=True)
+                   use_subprocesses=False, remove_repos_after_completion=False)
 
     # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
