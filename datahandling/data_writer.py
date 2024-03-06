@@ -6,10 +6,6 @@ from datetime import datetime
 from collections.abc import MutableMapping
 import datahandling.data_converter as data_converter
 
-
-# ROOT_PATH = Path(__file__).parent.parent
-
-
 class CustomEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle sets and datetime objects."""
 
@@ -34,6 +30,7 @@ def create_timestamped_data_directory() -> Path:
 
 
 def write_json_data(data: dict, path: Path):
+    """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
     try:
         with open(path, 'r') as file:
             existing_data = json.load(file)
@@ -46,6 +43,7 @@ def write_json_data(data: dict, path: Path):
         json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
+#TODO deprecated?
 def pydriller_data_json(data: dict, path: Path):
     """Writes Pydriller data to a JSON file."""
     output_path = path / 'pydriller_metrics.json'
@@ -61,9 +59,25 @@ def pydriller_data_json(data: dict, path: Path):
         json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
+#TODO deprecated?
 def pylint_data_json(data: dict, path: Path):
     """Writes Pylint data to a JSON file."""
     output_path = path / 'pylint_metrics.json'
+    try:
+        with open(output_path, 'r') as file:
+            existing_data = json.load(file)
+    except FileNotFoundError:
+        existing_data = {}
+
+    existing_data.update(data)
+
+    with open(output_path, 'w') as file:
+        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
+
+# TODO deprecated?
+def stargazers_data_json(data: dict, path: Path):
+    """Writes stargazers data to a JSON file."""
+    output_path = path / 'stargazers.json'
     try:
         with open(output_path, 'r') as file:
             existing_data = json.load(file)
@@ -88,21 +102,6 @@ def pylint_data_csv(data: MutableMapping, path: Path):
         if value.values() is None:
             continue
         _write_to_csv(value, output_path)
-
-
-def stargazers_data_json(data: dict, path: Path):
-    """Writes stargazers data to a JSON file."""
-    output_path = path / 'stargazers.json'
-    try:
-        with open(output_path, 'r') as file:
-            existing_data = json.load(file)
-    except FileNotFoundError:
-        existing_data = {}
-
-    existing_data.update(data)
-
-    with open(output_path, 'w') as file:
-        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
 def _write_to_csv(data: MutableMapping, path: Path) -> None:

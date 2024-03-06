@@ -41,12 +41,13 @@ def mine_pydriller_metrics(repositories: list[str],
 
 
 # TODO implementera pagination vid behov för att få ut alla stargazers utan att slå i rate limit/size limit
-def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
+# def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
+def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
     """Get stargazers metrics in a dict from the GraphQL API of GitHub"""
 
     load_dotenv()
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
-    metrics = []
+    metrics = {}
 
     for url in tqdm(repo_urls,
                     desc="Querying GraphQL API for Stargazers data",
@@ -55,21 +56,22 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
         repo_name = util.get_repo_name_from_url(url)
         json_query = {
             "query": f"""query {{
-                repository(owner: "{repo_owner}", name: "{repo_name}") {{
-                    stargazers(first: 100) {{
-                        edges {{
-                            starredAt
+                    repository(owner: "{repo_owner}", name: "{repo_name}") {{
+                        stargazers(first: 100) {{
+                            edges {{
+                                starredAt
                                 node {{
                                     login
                                 }}
+                            }}
                         }}
                     }}
-                }}
-            }}"""
+                }}"""
         }
         stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
-        stargazers_data["data"]["repository"]["name"] = repo_owner + "/" + repo_name
-        metrics.append(stargazers_data)
+        repo_key = f"{repo_owner}/{repo_name}"
+        stargazers_data["data"]["repository"]["name"] = repo_key
+        metrics[repo_key] = stargazers_data
 
         # TODO debug.warning om rate limit börjar bli för låg
         # TODO skapa funktion som sköter rate limit checking

@@ -1,5 +1,6 @@
 import concurrent.futures
 import json
+from pathlib import Path
 from typing import Callable
 from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
@@ -27,18 +28,14 @@ data_directory = data_writer.create_timestamped_data_directory()
 
 
 def run_stargazers_analysis():
-    # TODO skriver bara JSON än så länge
-    # TODO behöver repo namn i datan
     stargazers_metrics = git_miner.mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
+
     data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers.json')
 
     # Clean the data
     stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
 
-    # TODO remove
-    # output_path = 'cleaned_stargazers.json'
-    # with open(str(output_path), 'w') as file:
-    #     json.dump(stargazers_metrics, file, indent=4)
+    data_writer.write_json_data(stargazers_metrics, Path('cleaned-stargazers.json'))
 
     # TODO implement formatting and CSV writing
 
@@ -102,7 +99,7 @@ def main():
     load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
                    use_subprocesses=False, remove_repos_after_completion=True)
 
-    ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
+    # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
 
 if __name__ == '__main__':

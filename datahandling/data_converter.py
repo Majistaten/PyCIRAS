@@ -24,29 +24,22 @@ def flatten_stargazers_data(stargazers_metrics):
     pass
 
 
-# TODO extrahera ut/ konvertera så man får en lista med dictionaries
-# där key är owner/repo och value är listan som finns i edges
-def clean_stargazers_data(stargazers_metrics):
+def clean_stargazers_data(stargazers_metrics: dict) -> dict:
+    """Cleans the stargazers data to remove unnecessary data."""
+    # cleaned_metrics = []
+    # for item in stargazers_metrics:
+    #     repository_data = item.get("data", {}).get("repository", {})
+    #     name = repository_data.get("name")
+    #     edges = repository_data.get("stargazers", {}).get("edges", [])
+    #     if name and edges:  # Ensure both name and edges are not empty
+    #         cleaned_metrics.append({name: edges})
 
-    # cleaned_metrics = stargazers_metrics
-    # for key in stargazers_metrics:
-    #     if key is None:
-    #         continue
-    #     repository_data = key.get("repository")
-    #     cleaned_metrics.append(repository_data)
-    #
-    # return cleaned_metrics
-
-    cleaned_metrics = []
-    for item in stargazers_metrics:
-        # Extract repository data
+    cleaned_metrics = {}
+    for repo_key, item in stargazers_metrics.items():
         repository_data = item.get("data", {}).get("repository", {})
-        name = repository_data.get("name")
         edges = repository_data.get("stargazers", {}).get("edges", [])
-
-        # Create a new dictionary with 'name' as key and 'edges' as its value
-        if name and edges:  # Ensure both name and edges are not empty
-            cleaned_metrics.append({name: edges})
+        if edges:  # Ensure edges are not empty
+            cleaned_metrics[repo_key] = edges  # Assign cleaned edges directly to the repo_key in the cleaned dictionary
 
     return cleaned_metrics
 
