@@ -109,8 +109,6 @@ def get_commit_dates(repositories: list[str], repository_directory: Path) -> dic
     return commit_dates
 
 
-
-
 def _load_repositories(repositories: list[str], repository_directory: Path) -> (
         dict[str, Repository]):
     """Load repositories for further processing"""

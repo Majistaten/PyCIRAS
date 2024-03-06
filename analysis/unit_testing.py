@@ -1,10 +1,18 @@
+import pprint
+from pathlib import Path
+
 from utility import config, util
 import ast
-
 
 # TODO Verify that it works reliably for all mentioned frameworks
 
 # TODO Add functionality for traversing commits and create a structured results dictionary
+# For each commit:
+# amount of tests, per repo
+# amount of test files, per repo
+# amount of test methods, per repo
+# amount of files containing imports
+
 
 class TestFrameworkVisitor(ast.NodeVisitor):
     def __init__(self):
@@ -46,13 +54,14 @@ def analyze_file_for_tests(file_path):
         return TestFrameworkVisitor()  # Return an empty visitor if you want to keep processing other file
 
 
-def find_evidence_of_unit_testing(repository_directory: str):
+def find_evidence_of_unit_testing(repository_directory: Path):
     evidence = {
         'unittest': [],
         'pytest': [],
         'nose2': [],  # Add a section for nose2
         'general_imports': []
     }
+
     for file_path in util.get_python_files_from_directory(repository_directory):
         analysis = analyze_file_for_tests(file_path)
         if 'unittest' in analysis.imports:
@@ -64,17 +73,15 @@ def find_evidence_of_unit_testing(repository_directory: str):
         if analysis.unittest_classes or analysis.pytest_functions:
             evidence['general_imports'].append(file_path)
 
-
     return evidence
-
-
-
-
 
 
 if __name__ == '__main__':
     """Example usage of the find_evidence_of_unit_testing function."""
     # repository_directory = "../repositories/amalfi-artifact"
-    repository_directory = "../repositories/smartbugs"
+    repository_directory = config.REPOSITORIES_FOLDER / 'TDD-Hangman'
     evidence = find_evidence_of_unit_testing(repository_directory)
-    print(f"Found evidence of unit testing: {evidence}")
+
+    print(f"Found evidence of unit testing:")
+
+    pprint.pprint(evidence)
