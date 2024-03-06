@@ -25,21 +25,18 @@ def flatten_stargazers_data(stargazers_metrics):
 
 
 def clean_stargazers_data(stargazers_metrics: dict) -> dict:
-    """Cleans the stargazers data to remove unnecessary data."""
-    # cleaned_metrics = []
-    # for item in stargazers_metrics:
-    #     repository_data = item.get("data", {}).get("repository", {})
-    #     name = repository_data.get("name")
-    #     edges = repository_data.get("stargazers", {}).get("edges", [])
-    #     if name and edges:  # Ensure both name and edges are not empty
-    #         cleaned_metrics.append({name: edges})
-
+    """Cleans the stargazers data to only contain the starred users and the time they starred the repository."""
     cleaned_metrics = {}
     for repo_key, item in stargazers_metrics.items():
         repository_data = item.get("data", {}).get("repository", {})
         edges = repository_data.get("stargazers", {}).get("edges", [])
-        if edges:  # Ensure edges are not empty
-            cleaned_metrics[repo_key] = edges  # Assign cleaned edges directly to the repo_key in the cleaned dictionary
+        starred = {}
+        for edge in edges:
+            starred_at = edge.get("starredAt")
+            user = edge.get("node", {}).get("login")
+            starred[user] = starred_at
+
+        cleaned_metrics[repo_key] = starred
 
     return cleaned_metrics
 
