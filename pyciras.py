@@ -27,8 +27,11 @@ from utility import util, config, ntfyer
 data_directory = data_writer.create_timestamped_data_directory()
 
 
-def run_stargazers_analysis():
-    stargazers_metrics = git_miner.mine_stargazers_metrics(util.get_repository_urls_from_file(config.REPOSITORY_URLS))
+def run_stargazers_analysis(repo_urls: list[str] | None = None):
+    if repo_urls is None:
+        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+
+    stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
 
     data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers.json')
 
@@ -45,6 +48,50 @@ def run_stargazers_analysis():
     data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
 
 
+def run_code_quality_analysis(repo_urls: list[str] | None = None):
+    if repo_urls is None:
+        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+
+    repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
+                                                   destination_folder=config.REPOSITORIES_FOLDER)
+
+    # gather metric data
+    repositories_with_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
+    pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
+
+    # write json to file
+    data_writer.write_json_data(pylint_data, data_directory / 'pylint_metrics.json')
+
+    # Remove unwanted data for csv
+    pylint_data = data_converter.remove_pylint_messages(pylint_data)
+
+    # Flatten the data
+    pylint_data = data_converter.flatten_pylint_data(pylint_data)
+
+    # write csv to file
+    data_writer.pylint_data_csv(pylint_data, data_directory)
+
+
+def run_git_miner_analysis(repo_urls: list[str] | None = None):
+    if repo_urls is None:
+        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+
+    repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
+                                                   destination_folder=config.REPOSITORIES_FOLDER)
+
+    # gather metric data
+    pydriller_data = git_miner.mine_pydriller_metrics(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
+
+    # write json to file
+    data_writer.write_json_data(pydriller_data, data_directory / 'pydriller_metrics.json')
+
+    # Flatten the data
+    pydriller_data = data_converter.flatten_pydriller_data(pydriller_data)
+
+    # write csv to file
+    data_writer.pydriller_data_csv(pydriller_data, data_directory)
+
+
 def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False,
                    remove_repos_after_completion: bool = True):
     """Handles repositories in groups.
@@ -56,7 +103,6 @@ def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: 
             execute_in_parallel(func=process_group, args_list=[([repo], remove_repos_after_completion) for repo in current_group], max_workers=group_size)
         else:
             process_group(current_group, remove_repos_after_completion)
-    # TODO: clean up the mess you have made in out!
 
 
 def execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: int = 4):
@@ -68,31 +114,9 @@ def execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: 
 
 
 def process_group(current_group: list[str], remove_repo_on_complete: bool = True):
-    print(current_group)
-    repo_paths = repo_cloner.download_repositories(repo_urls_list=current_group,
-                                                   destination_folder=config.REPOSITORIES_FOLDER)
-
-    # gather metric data
-    pydriller_data = git_miner.mine_pydriller_metrics(current_group, repository_directory=config.REPOSITORIES_FOLDER)
-    repositories_with_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
-    pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
-
-    # write json to file
-    data_writer.write_json_data(pydriller_data, data_directory / 'pydriller_metrics.json')
-    data_writer.write_json_data(pylint_data, data_directory / 'pylint_metrics.json')
-
-    # Remove unwanted data for csv
-    pylint_data = data_converter.remove_pylint_messages(pylint_data)
-
-    # Flatten the data
-    pydriller_data = data_converter.flatten_pydriller_data(pydriller_data)
-    pylint_data = data_converter.flatten_pylint_data(pylint_data)
-
-    # write csv to file
-    data_writer.pydriller_data_csv(pydriller_data, data_directory)
-    data_writer.pylint_data_csv(pylint_data, data_directory)
-
-    # run_stargazers_analysis()
+    run_code_quality_analysis(current_group)
+    run_git_miner_analysis(current_group)
+    run_stargazers_analysis(current_group)
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
     return "Finished"
