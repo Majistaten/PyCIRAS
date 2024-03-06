@@ -45,9 +45,7 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None):
 
     data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
 
-    # data_writer.write_csv_data(stargazers_metrics, data_directory / 'stargazers.csv')
-
-    # TODO implement formatting and CSV writing
+    data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
 
 
 def run_code_quality_analysis(repo_urls: list[str] | None = None):

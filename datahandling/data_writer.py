@@ -43,53 +43,6 @@ def write_json_data(data: dict, path: Path):
         json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
-#TODO deprecated?
-def pydriller_data_json(data: dict, path: Path):
-    """Writes Pydriller data to a JSON file."""
-    output_path = path / 'pydriller_metrics.json'
-    try:
-        with open(output_path, 'r') as file:
-            existing_data = json.load(file)
-    except FileNotFoundError:
-        existing_data = {}
-
-    existing_data.update(data)
-
-    with open(output_path, 'w') as file:
-        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
-
-
-#TODO deprecated?
-def pylint_data_json(data: dict, path: Path):
-    """Writes Pylint data to a JSON file."""
-    output_path = path / 'pylint_metrics.json'
-    try:
-        with open(output_path, 'r') as file:
-            existing_data = json.load(file)
-    except FileNotFoundError:
-        existing_data = {}
-
-    existing_data.update(data)
-
-    with open(output_path, 'w') as file:
-        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
-
-# TODO deprecated?
-def stargazers_data_json(data: dict, path: Path):
-    """Writes stargazers data to a JSON file."""
-    output_path = path / 'stargazers.json'
-    try:
-        with open(output_path, 'r') as file:
-            existing_data = json.load(file)
-    except FileNotFoundError:
-        existing_data = {}
-
-    existing_data.update(data)
-
-    with open(output_path, 'w') as file:
-        json.dump(existing_data, file, indent=4, cls=CustomEncoder)
-
-
 def pydriller_data_csv(data: dict, path: Path):
     """Writes Pydriller data to a CSV file."""
     _write_to_csv(data, path / 'pydriller.csv')
@@ -102,6 +55,27 @@ def pylint_data_csv(data: MutableMapping, path: Path):
         if value.values() is None:
             continue
         _write_to_csv(value, output_path)
+
+
+def stargazers_data_csv(data: dict, path: Path) -> None:
+    """Writes stargazers over time to a CSV file."""
+
+    # Determine all unique repositories to establish the columns (other than the DATE column)
+    repos = set()
+    for day_data in data.values():
+        repos.update(day_data.keys())
+    repos = sorted(repos)  # Sort repositories for consistent column order
+
+    with open(path / 'stargazers.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write the header
+        writer.writerow(['DATE'] + repos)
+
+        # Write data for each date
+        for date, data in data.items():
+            print(date, data)
+            row = [date] + [data.get(repo, 0) for repo in repos]
+            writer.writerow(row)
 
 
 def _write_to_csv(data: MutableMapping, path: Path) -> None:
