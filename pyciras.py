@@ -6,38 +6,27 @@ from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
 from utility import util, config, ntfyer
 
-# TODO
-# 1. Fixa stargazers och unit_testing analysis
-# 2. Fixa massa runmetoder som motsvarar kraven vi satt i rapporten, att users ska kunna göra
-# 3. Snygga till output med färger och format, bygg in massa error handling
-# 4. Unit testing
-
-
-# TODO skapa massa run metoder för användning från notebooks
-# TODO allow passing the file with repository URLs to the method
-# TODO: Vid para körningar, ta bort onödiga headers från CSV och laga JSON
-# TODO: Do not remove list, eller möjlighet att tagga repos som inte ska tas bort
-
-# TODO problem med notebooks med detta - blir att denna körs en gång per notebook, sen måste man reloada kernel? eller är det bra?
 data_directory = data_writer.create_timestamped_data_directory()
 
-def run_stargazers_analysis(repo_urls: list[str] | None = None):
-    if repo_urls is None:
-        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+# TODO
+# 1. Bygg modulär logger som loggar med rätt färger beroende på nivå
+# 2. Bygg modulär progressbar med rich som körs som decorator på grejer om den är enabled
+# 3. Error handling i alla metoder med bra meddelanden
+# 4. Fixa modulär ntfyer
+# 5. Unit testing för projektkraven
+# 6. Skriv docs på allt, inklusive moduler, parametrar, typer, och README samt exempelnotebooks
+# 7. Fixa runmetoder som tar emot options för alla tänkta användningsområden
+# Användningsområden:
+# * Köra varje analystyp enskilt
+# * Köra hela analysen
+# * Köra analysen utan att spara repos
+# * Dela upp analysen och skrivningar i chunks
+#     * Köra analysen parallellt
+# * Optional logging (Flytta logging till config)/ progress bar
 
-    stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
-    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers.json')
 
-    # Clean the data
-    stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
-
-    data_writer.write_json_data(stargazers_metrics, data_directory / 'cleaned-stargazers.json')
-
-    # Extract stargazers over time
-    stargazers_over_time = data_converter.get_stargazers_over_time(stargazers_metrics)
-
-    data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
-    data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
+def run_full_analysis(repo_urls: list[str] | None = None):
+    pass
 
 
 def run_code_quality_analysis(repo_urls: list[str] | None = None):
@@ -64,7 +53,7 @@ def run_code_quality_analysis(repo_urls: list[str] | None = None):
     data_writer.pylint_data_csv(pylint_data, data_directory)
 
 
-def run_git_miner_analysis(repo_urls: list[str] | None = None):
+def run_pydriller_analysis(repo_urls: list[str] | None = None):
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
@@ -84,20 +73,50 @@ def run_git_miner_analysis(repo_urls: list[str] | None = None):
     data_writer.pydriller_data_csv(pydriller_data, data_directory)
 
 
-def load_balancing(repo_urls: list[str], group_size: int = 4, use_subprocesses: bool = False,
-                   remove_repos_after_completion: bool = True):
-    """Handles repositories in groups.
-    Downloads and analyzes the repositories one group at a time, stores the result and removes the repository when done.
-    """
+def run_stargazers_analysis(repo_urls: list[str] | None = None):
+    if repo_urls is None:
+        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+
+    stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
+    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers.json')
+
+    # Clean the data
+    stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
+
+    data_writer.write_json_data(stargazers_metrics, data_directory / 'cleaned-stargazers.json')
+
+    # Extract stargazers over time
+    stargazers_over_time = data_converter.get_stargazers_over_time(stargazers_metrics)
+
+    data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
+    data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
+
+
+def run_unit_testing_analysis():
+    pass
+
+
+def run_repo_cloner():
+    pass
+
+
+def _load_balancing(repo_urls: list[str],
+                    group_size: int = 4,
+                    use_subprocesses: bool = False,
+                    remove_repos_after_completion: bool = True):
+    """Handles repositories in groups. Downloads and analyzes the repositories one group at a time,
+     stores the result and removes the repository when done."""
     for i in range(0, len(repo_urls), group_size):
         current_group = repo_urls[i:i + group_size]
         if use_subprocesses:
-            execute_in_parallel(func=process_group, args_list=[([repo], remove_repos_after_completion) for repo in current_group], max_workers=group_size)
+            _execute_in_parallel(func=_process_group,
+                                 args_list=[([repo], remove_repos_after_completion) for repo in current_group],
+                                 max_workers=group_size)
         else:
-            process_group(current_group, remove_repos_after_completion)
+            _process_group(current_group, remove_repos_after_completion)
 
 
-def execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: int = 4):
+def _execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: int = 4):
     """Executes a function in parallel given a list of arguments."""
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(func, *args) for args in args_list]
@@ -105,9 +124,9 @@ def execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: 
             print(future.result())
 
 
-def process_group(current_group: list[str], remove_repo_on_complete: bool = True):
+def _process_group(current_group: list[str], remove_repo_on_complete: bool = True):
     run_code_quality_analysis(current_group)
-    run_git_miner_analysis(current_group)
+    run_pydriller_analysis(current_group)
     run_stargazers_analysis(current_group)
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
@@ -117,8 +136,8 @@ def process_group(current_group: list[str], remove_repo_on_complete: bool = True
 def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
-    load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
-                   use_subprocesses=False, remove_repos_after_completion=False)
+    _load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
+                    use_subprocesses=False, remove_repos_after_completion=False)
 
     # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
