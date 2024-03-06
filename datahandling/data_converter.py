@@ -1,4 +1,6 @@
+from collections import defaultdict
 from collections.abc import MutableMapping
+from datetime import datetime
 
 
 def flatten_pydriller_data(metrics: dict) -> dict:
@@ -40,11 +42,55 @@ def clean_stargazers_data(stargazers_metrics: dict) -> dict:
 
     return cleaned_metrics
 
+# TODO maybe needs a column with the date of first commit,
+#  to ensure we dont include a repo that didnt exist yet in a comparison
 
-#TODO convert to get a format suitable to achieve:
-# Row: Datum Col: repository cell: stargazers
-def get_stargazers_over_time(stargazers_metrics):
-    pass
+# Rows:
+# Col 1: Date, Col2: stars, Col3: Repo creation date
+
+def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
+    """Gets the stargazers over time for each repository."""
+    stars_over_time = defaultdict(dict)
+    for repo, stargazers in stargazers_metrics.items():
+        # Sort the stargazers by date
+        sorted_dates = sorted(stargazers.values(), key=lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ"))
+
+        star_count = 0
+        for date in sorted_dates:
+            star_count += 1
+
+            # Convert date to just a date without time for daily granularity
+            date_only = date.split("T")[0]
+
+            # If the date already exists in the dictionary, update the star count for this repo
+            if date_only in stars_over_time:
+                stars_over_time[date_only][repo] = star_count
+            else:
+                # For each new date, we need to ensure previous star counts are carried over for other repos
+                # This ensures the CSV will have all columns for all dates
+                for previous_date in stars_over_time:
+                    if repo not in stars_over_time[previous_date]:
+                        stars_over_time[previous_date][repo] = star_count - 1
+                stars_over_time[date_only][repo] = star_count
+
+    # Normalize data to ensure every date has an entry for every repository
+    all_dates = sorted(stars_over_time.keys())
+    all_repos = stargazers_metrics.keys()
+    for date in all_dates:
+        for repo in all_repos:
+            if repo not in stars_over_time[date]:
+
+                # Find the last known star count for this repo and carry it forward
+                previous_count = 0
+                for previous_date in sorted(stars_over_time.keys()):
+                    if previous_date >= date:
+                        break
+                    if repo in stars_over_time[previous_date]:
+                        previous_count = stars_over_time[previous_date][repo]
+
+                stars_over_time[date][repo] = previous_count
+
+    return stars_over_time
 
 
 def remove_pylint_messages(data: dict) -> dict:

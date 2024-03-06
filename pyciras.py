@@ -35,7 +35,14 @@ def run_stargazers_analysis():
     # Clean the data
     stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
 
-    data_writer.write_json_data(stargazers_metrics, Path('cleaned-stargazers.json'))
+    data_writer.write_json_data(stargazers_metrics, data_directory / 'cleaned-stargazers.json')
+
+    # Extract stargazers over time
+    stargazers_over_time = data_converter.get_stargazers_over_time(stargazers_metrics)
+
+    data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
+
+    # data_writer.write_csv_data(stargazers_metrics, data_directory / 'stargazers.csv')
 
     # TODO implement formatting and CSV writing
 
