@@ -6,9 +6,9 @@ from pylint.reporters.ureports.nodes import Section
 from pylint.message import Message
 from io import StringIO
 import logging
-from tqdm import tqdm
 from git import Repo
 from utility import util
+from utility.progress_bars import RichIterableProgressBar
 
 
 # TODO kolla om vi ska enabla optional plugins för att maximera inhämtningen
@@ -42,11 +42,9 @@ def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, an
     """Extract Pylint metrics from a the commits of a single repository"""
     metrics = {}
     repo = Repo(repository_path)
-    for commit in tqdm(commits,
-                       desc=f"Traversing commits, extracting pylint metrics",
-                       postfix=util.get_repo_name_from_path(repository_path),
-                       ncols=150,
-                       colour="blue"):
+    for commit in RichIterableProgressBar(commits,
+                                          description=f"Traversing commits, extracting pylint metrics",
+                                          postfix=util.get_repo_name_from_path(repository_path)):
         commit_hash = commit["commit_hash"]
         date = commit["date"]
         repo.git.checkout(commit_hash)

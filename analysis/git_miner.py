@@ -1,5 +1,4 @@
 import logging
-from tqdm import tqdm
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pydriller import Repository
@@ -14,6 +13,8 @@ from dotenv import load_dotenv
 import os
 import requests
 from pathlib import Path
+
+from utility.progress_bars import RichIterableProgressBar
 
 
 # TODO make a method that returns commit hash + date from a repository
@@ -49,9 +50,8 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     metrics = {}
 
-    for url in tqdm(repo_urls,
-                    desc="Querying GraphQL API for Stargazers data",
-                    ncols=150):
+    for url in RichIterableProgressBar(repo_urls,
+                                       description="Querying GraphQL API for Stargazers data"):
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url(url)
         json_query = {
@@ -119,7 +119,8 @@ def _load_repositories(repositories: list[str], repository_directory: Path) -> (
 
     return {
         str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in
-        tqdm(repositories, desc="Loading Repositories", ncols=150)}
+        RichIterableProgressBar(repositories,
+                                description="Loading Repositories")}
 
 
 def _load_repository(repo_url: str, repository_directory: Path) -> Repository:
@@ -145,10 +146,8 @@ def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    for commit in tqdm(repo.traverse_commits(),
-                       desc="Traversing commits, extracting Pydriller commit metrics",
-                       ncols=150,
-                       colour="blue"):
+    for commit in RichIterableProgressBar(repo.traverse_commits(),
+                                          description="Traversing commits, extracting Pydriller commit metrics"):
         metrics["total_commits"] += 1
         if commit.author.name not in metrics["developers"]:
             metrics["developers"].append(commit.author.name)

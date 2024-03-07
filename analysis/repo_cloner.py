@@ -1,37 +1,15 @@
-import os
-
 import requests
 from git import Repo, RemoteProgress, rmtree
 from pathlib import Path
 import logging
-from tqdm import tqdm
-from utility import util, config
-
-
-class CloneProgress(RemoteProgress):
-    """Progressbar for the cloning process"""
-
-    def __init__(self, repo_name: str = '', n_cols: any = None, repo_size: str = ''):
-        super().__init__()
-        self.pbar = tqdm(desc=f'Cloning {repo_name}{f"" if repo_size == "" else f" of size {repo_size}"}',
-                         ncols=n_cols,
-                         colour="blue",
-                         )
-
-    def update(self, op_code, cur_count, max_count=None, message=''):
-        if max_count is not None:
-            self.pbar.total = max_count
-        self.pbar.n = cur_count
-        self.pbar.refresh()
-
-    def close(self):
-        self.pbar.close()
+from utility import util
+from utility.progress_bars import CloneProgress
 
 
 def download_repositories(
         destination_folder: Path,
         repo_urls_file_path: Path = None,
-        repo_urls_list: list[str] = None) -> list[str] | bool:
+        repo_urls_list: list[str] = None) -> list[Path] | bool:
     """
     Downloads a list of repositories from a file or a list of URLs.
     Args:
@@ -54,7 +32,7 @@ def download_repositories(
     logging.info(f'Downloading {len(repo_urls)} repositories.')
     for i, repo_url in enumerate(repo_urls):
         logging.info(f'Downloading repository {i + 1} of {len(repo_urls)}...')
-        repository_path = clone_repository(repo_url, destination_folder)
+        repository_path = clone_repository(repo_url, destination_folder, postfix=f"({i + 1}/{len(repo_urls)})")
         if repository_path is None:
             logging.error(f'Failed to download repository from {repo_url}')
         else:
@@ -64,12 +42,13 @@ def download_repositories(
     return repository_paths
 
 
-def clone_repository(repo_url: str, destination_folder: Path) -> Path | None:
+def clone_repository(repo_url: str, destination_folder: Path, postfix: str = "") -> Path | None:
     """
     Clones a Git repository from a given URL to a given destination folder.
     Args:
         repo_url: The URL of the Git repository to clone.
         destination_folder: The folder to clone the repository to.
+        postfix: A postfix to add to the progress bar.
 
     Returns:
         True if the repository was successfully cloned, False otherwise.
@@ -87,7 +66,7 @@ def clone_repository(repo_url: str, destination_folder: Path) -> Path | None:
         logging.info(f'Cloning Git Repository {repo_name} of size {repo_size} from {repo_url} ...')
         Repo.clone_from(repo_url,
                         repo_path,
-                        progress=CloneProgress(repo_name=repo_name, n_cols=150, repo_size=repo_size))
+                        progress=CloneProgress(description=repo_name, postfix=postfix))
 
         logging.info(f'Finished cloning {repo_path}')
         return repo_path

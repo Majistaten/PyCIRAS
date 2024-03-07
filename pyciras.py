@@ -1,10 +1,11 @@
 import concurrent.futures
-import json
-from pathlib import Path
+import logging
+from rich.traceback import install
+from rich.logging import RichHandler
 from typing import Callable
 from analysis import code_quality, git_miner, repo_cloner
 from datahandling import data_writer, data_converter
-from utility import util, config, ntfyer
+from utility import util, config, ntfyer, progress_bars
 
 data_directory = data_writer.create_timestamped_data_directory()
 
@@ -121,15 +122,15 @@ def _execute_in_parallel(func: Callable[..., str], args_list: list, max_workers:
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(func, *args) for args in args_list]
         for future in concurrent.futures.as_completed(futures):
-            print(future.result())
+            future.result()
 
 
 def _process_group(current_group: list[str], remove_repo_on_complete: bool = True):
     run_code_quality_analysis(current_group)
     run_pydriller_analysis(current_group)
-    run_stargazers_analysis(current_group)
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
+    run_stargazers_analysis(current_group)
     return "Finished"
 
 
@@ -137,11 +138,11 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     _load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
-                    use_subprocesses=False, remove_repos_after_completion=False)
-
+                    use_subprocesses=False, remove_repos_after_completion=True)
     # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
 
 if __name__ == '__main__':
-    # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    install()
+    logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[RichHandler(rich_tracebacks=True)])
     main()
