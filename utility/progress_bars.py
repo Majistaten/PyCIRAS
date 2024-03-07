@@ -2,7 +2,6 @@ from git import RemoteProgress
 from rich import progress, console
 from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, ProgressColumn, TimeElapsedColumn, \
     SpinnerColumn, TaskProgressColumn
-from rich.live import Live
 
 CONSOLE = console.Console()
 
@@ -68,6 +67,7 @@ class RichIterableProgressBar:
         """Start the progress bar and return the iterator."""
         total_steps = len(self.iterable) if hasattr(self.iterable, '__len__') else None
         self.task = self.progress.add_task(f"[green]{self.description}...", total=total_steps)
+        self.progress.start()
         return self
 
     def __next__(self):
@@ -80,6 +80,8 @@ class RichIterableProgressBar:
             if self.completion_description:
                 self.progress.update(self.task, description=f"[green]{self.completion_description}",
                                      completed=self.progress.tasks[self.task].total)
+
+            self.progress.stop()
             raise
 
 
@@ -126,26 +128,26 @@ class CloneProgress(RemoteProgress):
         self.refresh_per_second = refresh_per_second
         self.disable = disable
         self.curr_op = None
-        self.progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[green]{task.description}"),
-            BarColumn(bar_width=self.bar_width),
+        self.progressbar = progress.Progress(
+            progress.SpinnerColumn(),
+            progress.TextColumn("[green]{task.description}"),
+            progress.BarColumn(bar_width=self.bar_width),
             RichProgressColumn(),
             TaskProgressColumn(),
             TimeRemainingColumn(),
             TimeElapsedColumn(),
-            TextColumn("{task.fields[message]}"),
+            progress.TextColumn("{task.fields[message]}"),
             TextColumn(f"[green]{self.postfix}" if self.postfix else ""),
             transient=self.transient,
             refresh_per_second=self.refresh_per_second,
             disable=self.disable,
             console=CONSOLE,
         )
-        self.progress.start()
+        self.progressbar.start()
         self.active_task = None
 
     def __del__(self) -> None:
-        self.progress.stop()
+        self.progressbar.stop()
 
     @classmethod
     def get_curr_op(cls, op_code: int) -> str:
@@ -162,20 +164,20 @@ class CloneProgress(RemoteProgress):
     ) -> None:
         if op_code & self.BEGIN:
             self.curr_op = self.get_curr_op(op_code)
-            self.active_task = self.progress.add_task(
+            self.active_task = self.progressbar.add_task(
                 description=f"[green]{self.curr_op} {self.description}",
                 total=max_count,
                 message=f"[blue]message",
             )
 
-        self.progress.update(
+        self.progressbar.update(
             task_id=self.active_task,
             completed=cur_count,
             message=f"[blue]{message}",
         )
 
         if op_code & self.END:
-            self.progress.update(
+            self.progressbar.update(
                 task_id=self.active_task,
                 message=f"[bright_black]{message}",
             )
