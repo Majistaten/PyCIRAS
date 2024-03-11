@@ -50,8 +50,9 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     metrics = {}
 
-    for url in RichIterableProgressBar(repo_urls,
-                                       description="Querying GraphQL API for Stargazers data"):
+    for url in RichIterableProgressBar(
+            repo_urls,
+            description="Querying GraphQL API for Stargazers data"):
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url(url)
         json_query = {

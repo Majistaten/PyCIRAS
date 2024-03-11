@@ -3,7 +3,7 @@ import logging
 from rich.traceback import install
 from rich.logging import RichHandler
 from typing import Callable
-from analysis import code_quality, git_miner, repo_cloner
+from analysis import code_quality, git_miner, repo_cloner, unit_testing
 from datahandling import data_writer, data_converter
 from utility import util, config, ntfyer, progress_bars
 
@@ -12,6 +12,7 @@ data_directory = data_writer.create_timestamped_data_directory()
 # TODO
 # 1. Bygg modulär logger som loggar med rätt färger beroende på nivå
 # 2. Bygg modulär progressbar med rich som körs som decorator på grejer om den är enabled
+    # Lägg till progressbar på ALLT
 # 3. Error handling i alla metoder med bra meddelanden
 # 4. Fixa modulär ntfyer
 # 5. Unit testing för projektkraven
@@ -24,6 +25,7 @@ data_directory = data_writer.create_timestamped_data_directory()
 # * Dela upp analysen och skrivningar i chunks
 #     * Köra analysen parallellt
 # * Optional logging (Flytta logging till config)/ progress bar
+# 8. Fixa till datan så att repo namn är consistent "owner/repo"
 
 
 def run_full_analysis(repo_urls: list[str] | None = None):
@@ -93,7 +95,13 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None):
     data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
 
 
-def run_unit_testing_analysis():
+def run_unit_testing_analysis(repo_urls: list[str] | None = None):
+    if repo_urls is None:
+        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+
+    unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repo_urls)
+
+
     pass
 
 
@@ -138,7 +146,7 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     _load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
-                    use_subprocesses=False, remove_repos_after_completion=True)
+                    use_subprocesses=True, remove_repos_after_completion=True)
     # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
 

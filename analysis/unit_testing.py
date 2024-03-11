@@ -14,6 +14,19 @@ import ast
 # amount of files containing imports
 
 
+def mine_unit_testing_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
+
+    # For each repo
+    # For each commit:
+    # amount of test cases, per repo
+    # amount of test files, per repo
+    # amount of test methods, per repo
+    # amount of files containing imports
+    # test to code ratio
+
+    pass
+
+
 class TestFrameworkVisitor(ast.NodeVisitor):
     def __init__(self):
         self.imports = []

@@ -66,14 +66,13 @@ def stargazers_data_csv(data: dict, path: Path) -> None:
         repos.update(day_data.keys())
     repos = sorted(repos)  # Sort repositories for consistent column order
 
-    with open(path / 'stargazers.csv', mode='w', newline='') as file:
+    with open(path / 'stargazers-over-time.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
         # Write the header
         writer.writerow(['DATE'] + repos)
 
         # Write data for each date
         for date, data in data.items():
-            print(date, data)
             row = [date] + [data.get(repo, 0) for repo in repos]
             writer.writerow(row)
 
