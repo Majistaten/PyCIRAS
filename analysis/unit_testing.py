@@ -3,6 +3,7 @@ from analysis import git_miner
 from pathlib import Path
 from utility import config, util
 import ast
+import logging
 
 
 # TODO Verify that it works reliably for all mentioned frameworks
@@ -45,12 +46,16 @@ def mine_unit_testing_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
 
     metrics = {}
 
-    repos_with_hashes_and_dates = git_miner.get_repo_urls_with_commit_hashes_and_dates(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
-    for repo, commits in repos_with_hashes_and_dates.items():
+    repo_urls_with_hashes_and_dates = git_miner.get_repo_urls_with_commit_hashes_and_dates(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
+    for repo_url, commits in repo_urls_with_hashes_and_dates.items():
+        logging.info(f"Unit Testing: inspecting {repo_url}")
+
+
+
         pass
            #  find eve...
 
-    pprint.pprint(repos_with_hashes_and_dates)
+    pprint.pprint(repo_urls_with_hashes_and_dates)
 
     print("Mining unit testing metrics for repo: ", repo_urls)
 

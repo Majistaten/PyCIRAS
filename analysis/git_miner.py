@@ -30,13 +30,13 @@ def mine_pydriller_metrics(repositories: list[str],
 
     metrics = {}
     repos = _load_repositories(repositories, repository_directory)
-    for address, repo in repos.items():
-        repo_name = util.get_repo_name_from_url(address)
+    for repo_url, repo in repos.items():
+        repo_name = util.get_repo_name_from_url(repo_url)
         metrics[repo_name] = _extract_commit_metrics(repo)
         metrics[repo_name].update(
             _extract_process_metrics(repo_path=repository_directory / repo_name, since=since, to=to))
         metrics[repo_name]['repository_name'] = repo_name
-        metrics[repo_name]['repository_address'] = address
+        metrics[repo_name]['repository_address'] = repo_url
 
     return metrics
 
@@ -97,6 +97,7 @@ def get_project_lifespan():
     pass
 
 
+# TODO denna returnerar en absolute path istället för URL
 def get_repo_urls_with_commit_hashes_and_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
     """Get a dictionary of repo urls with their commit hashes and dates of these commits from a list of repository
     paths """
@@ -114,7 +115,6 @@ def get_repo_urls_with_commit_hashes_and_dates(repositories: list[str], reposito
 def _load_repositories(repositories: list[str], repository_directory: Path) -> (
         dict[str, Repository]):
     """Load repositories for further processing"""
-
     repository_path = repository_directory
     repository_path.mkdir(parents=True, exist_ok=True)
     logging.debug('Loading repositories.')

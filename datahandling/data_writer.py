@@ -29,6 +29,19 @@ def create_timestamped_data_directory() -> Path:
     return output_directory
 
 
+#TODO fixa ett steg innan som fixar till pylint keys, pydriller keys så de är i samma format
+# samma format i
+# pydriller-raw.json -> key
+# pydriller-flat.json -> key
+# pydriller.csv -> repository_name
+# pylint-<repo_name>.csv
+# stargazers-raw.json
+# stargazers-cleaned.json
+# stargazers-over-time.json
+# stargazers-over-time.csv
+# unit-testing-raw.json
+# unit-testing-xxx.json
+
 def write_json_data(data: dict, path: Path):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
     try:
@@ -45,7 +58,7 @@ def write_json_data(data: dict, path: Path):
 
 def pydriller_data_csv(data: dict, path: Path):
     """Writes Pydriller data to a CSV file."""
-    _write_to_csv(data, path / 'pydriller.csv')
+    _write_to_csv(data, path / 'pydriller-flat.csv')
 
 
 def pylint_data_csv(data: MutableMapping, path: Path):

@@ -22,10 +22,6 @@ def flatten_pylint_data(metrics: dict) -> dict:
     return flat_metrics
 
 
-def flatten_stargazers_data(stargazers_metrics):
-    pass
-
-
 def clean_stargazers_data(stargazers_metrics: dict) -> dict:
     """Cleans the stargazers data to only contain the starred users and the time they starred the repository."""
     cleaned_metrics = {}
