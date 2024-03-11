@@ -3,8 +3,6 @@ from rich import progress, console
 from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, ProgressColumn, TimeElapsedColumn, \
     SpinnerColumn, TaskProgressColumn
 
-CONSOLE = console.Console()
-
 
 class RichProgressColumn(ProgressColumn):
     """ A custom column to display as 'current/total'."""
@@ -58,7 +56,7 @@ class RichIterableProgressBar:
             transient=self.transient,
             refresh_per_second=self.refresh_per_second,
             disable=self.disable,
-            console=CONSOLE,
+            console=console.Console(),
         )
         self.task = None
         self.iterable_iterator = iter(self.iterable)
@@ -138,10 +136,10 @@ class CloneProgress(RemoteProgress):
             TimeElapsedColumn(),
             progress.TextColumn("{task.fields[message]}"),
             TextColumn(f"[green]{self.postfix}" if self.postfix else ""),
+            console=console.Console(),
             transient=self.transient,
             refresh_per_second=self.refresh_per_second,
             disable=self.disable,
-            console=CONSOLE,
         )
         self.progressbar.start()
         self.active_task = None

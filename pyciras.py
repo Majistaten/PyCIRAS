@@ -134,6 +134,7 @@ def _load_balancing(repo_urls: list[str],
                                  max_workers=group_size)
         else:
             _process_group(current_group, remove_repos_after_completion)
+    run_stargazers_analysis(repo_urls)
 
 
 def _execute_in_parallel(func: Callable[..., str], args_list: list, max_workers: int = 4):
@@ -149,9 +150,6 @@ def _process_group(current_group: list[str], remove_repo_on_complete: bool = Tru
     run_pydriller_analysis(current_group)
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
-
-    # TODO CSV writing does not work when running in this method, fixa CSV metoden med append funktionalitet
-    run_stargazers_analysis(current_group)
     return "Finished"
 
 
@@ -159,7 +157,7 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     _load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
-                    use_subprocesses=False, remove_repos_after_completion=False)
+                    use_subprocesses=False, remove_repos_after_completion=True)
     # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
 
