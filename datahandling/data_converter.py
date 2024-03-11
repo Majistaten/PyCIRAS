@@ -42,11 +42,6 @@ def clean_stargazers_data(stargazers_metrics: dict) -> dict:
 
     return cleaned_metrics
 
-# TODO maybe needs a column with the date of first commit,
-#  to ensure we dont include a repo that didnt exist yet in a comparison
-
-# Rows:
-# Col 1: Date, Col2: stars, Col3: Repo creation date
 
 def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
     """Gets the stargazers over time for each repository."""
@@ -91,6 +86,16 @@ def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
                 stars_over_time[date][repo] = previous_count
 
     return stars_over_time
+
+
+def get_test_blablabla():
+    # TODO
+    # aggregate needed data
+    #      # amount of test classes, per repo
+    #     # amount of test functions, per repo
+    #     # amount of files containing test imports
+    #     # test to code ratio
+    pass
 
 
 def remove_pylint_messages(data: dict) -> dict:

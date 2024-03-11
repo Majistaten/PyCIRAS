@@ -97,15 +97,16 @@ def get_project_lifespan():
     pass
 
 
-def get_commit_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
-    """Extract commit hash and dates from a list of repositories"""
+def get_repo_urls_with_commit_hashes_and_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
+    """Get a dictionary of repo urls with their commit hashes and dates of these commits from a list of repository
+    paths """
     repos = _load_repositories(repositories, repository_directory)
     commit_dates = {}
-    for address, repo in repos.items():
+    for repo_url, repo in repos.items():
         hash_dates = []
         for commit in repo.traverse_commits():
             hash_dates.append({'commit_hash': commit.hash, 'date': commit.committer_date})
-        commit_dates[address] = hash_dates
+        commit_dates[repo_url] = hash_dates
 
     return commit_dates
 

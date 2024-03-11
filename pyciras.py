@@ -28,6 +28,7 @@ data_directory = data_writer.create_timestamped_data_directory()
 # 8. Fixa till datan så att repo namn är consistent "owner/repo"
 
 
+
 def run_full_analysis(repo_urls: list[str] | None = None):
     pass
 
@@ -40,7 +41,7 @@ def run_code_quality_analysis(repo_urls: list[str] | None = None):
                                                    destination_folder=config.REPOSITORIES_FOLDER)
 
     # gather metric data
-    repositories_with_commits = git_miner.get_commit_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
+    repositories_with_commits = git_miner.get_repo_urls_with_commit_hashes_and_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
     pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
 
     # write json to file
@@ -102,7 +103,7 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None):
     unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repo_urls)
 
 
-    pass
+
 
 
 def run_repo_cloner():
@@ -146,7 +147,7 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     _load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
-                    use_subprocesses=True, remove_repos_after_completion=True)
+                    use_subprocesses=False, remove_repos_after_completion=False)
     # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
 

@@ -28,12 +28,12 @@ class LintReporter(TextReporter):
         self.messages.append(msg)
 
 
-def mine_pylint_metrics(repositories_with_commits: dict[str, any]) -> dict[str, any]:
+def mine_pylint_metrics(repo_urls_with_commits: dict[str, any]) -> dict[str, any]:
     """Get Pylint metrics from the commits of multiple git repositories"""
     metrics = {}
-    for repository, commits in repositories_with_commits.items():
-        logging.info(f"Code quality: inspecting {repository}")
-        metrics[str(repository)] = _extract_pylint_metrics(Path(repository), commits)
+    for repo_url, commits in repo_urls_with_commits.items():
+        logging.info(f"Code quality: inspecting {repo_url}")
+        metrics[str(repo_url)] = _extract_pylint_metrics(Path(repo_url), commits)
 
     return metrics
 
