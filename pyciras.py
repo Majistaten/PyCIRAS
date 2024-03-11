@@ -41,11 +41,11 @@ def run_code_quality_analysis(repo_urls: list[str] | None = None):
                                                    destination_folder=config.REPOSITORIES_FOLDER)
 
     # gather metric data
-    repositories_with_commits = git_miner.get_repo_urls_with_commit_hashes_and_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
+    repositories_with_commits = git_miner.get_repo_paths_with_commit_hashes_and_dates(repo_paths, repository_directory=config.REPOSITORIES_FOLDER)
     pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
 
     # write json to file
-    data_writer.write_json_data(pylint_data, data_directory / 'pylint_metrics.json')
+    data_writer.write_json_data(pylint_data, data_directory / 'pylint-raw.json')
 
     # Remove unwanted data for csv
     pylint_data = data_converter.remove_pylint_messages(pylint_data)

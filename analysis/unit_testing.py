@@ -46,7 +46,7 @@ def mine_unit_testing_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
 
     metrics = {}
 
-    repo_urls_with_hashes_and_dates = git_miner.get_repo_urls_with_commit_hashes_and_dates(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
+    repo_urls_with_hashes_and_dates = git_miner.get_repo_paths_with_commit_hashes_and_dates(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
     for repo_url, commits in repo_urls_with_hashes_and_dates.items():
         logging.info(f"Unit Testing: inspecting {repo_url}")
 
