@@ -70,6 +70,8 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
                 }}"""
         }
         stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
+        if "message" in stargazers_data and stargazers_data["message"] == "Bad credentials":
+            raise ValueError(stargazers_data)
         repo_key = f"{repo_owner}/{repo_name}"
         stargazers_data["data"]["repository"]["name"] = repo_key
         metrics[repo_key] = stargazers_data
