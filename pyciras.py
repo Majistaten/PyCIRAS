@@ -104,9 +104,15 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None):
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
-    unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repo_urls)
+    repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
+                                                   destination_folder=config.REPOSITORIES_FOLDER)
 
+    repositories_with_commits = git_miner.get_repo_paths_with_commit_hashes_and_dates(repo_paths,
+                                                                                      repository_directory=config.REPOSITORIES_FOLDER)
 
+    unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repositories_with_commits)
+
+    data_writer.write_json_data(unit_testing_metrics, data_directory / 'unit-testing-raw.json')
 
 
 

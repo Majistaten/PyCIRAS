@@ -40,6 +40,11 @@ def get_repository_urls_from_file(file_path: Path) -> list[str]:
     return urls
 
 
+def get_file_relative_path_from_absolute_path(absolute_path: str) -> str:
+    """Returns the relative path of a file from an absolute path"""
+    return absolute_path.replace(str(config.REPOSITORIES_FOLDER), '').lstrip('/').strip()
+
+
 def get_path_to_repo(repo_url: str) -> Path:
     name = get_repo_name_from_url(repo_url)
     return config.REPOSITORIES_FOLDER / name
@@ -48,4 +53,3 @@ def get_path_to_repo(repo_url: str) -> Path:
 def sanitize_url(url: str) -> str:
     """Removes any non-printable characters and whitespace"""
     return url.strip().removesuffix('/')
-

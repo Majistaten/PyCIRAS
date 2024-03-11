@@ -1,18 +1,18 @@
 import pprint
+
+from git import Repo
+
 from analysis import git_miner
 from pathlib import Path
 from utility import config, util
 import ast
 import logging
-
-
-# TODO Verify that it works reliably for all mentioned frameworks
+from utility.progress_bars import RichIterableProgressBar
 
 # TODO
 # Skapa en dictionary
 # {
 #   'repository-xyz': {
-#       commits: {
 #          'fh7a872j0087he': { # commit hash
 #              'thing.py': { # filnamn
 #                  'imports': [
@@ -32,57 +32,13 @@ import logging
 #                  ]
 #              },
 #              'thing2.py': {}
+#              'test-to-code-ratio': 0.5
 #          },
 #         'fh7a872j0087he2': {}
 #       },
-#       test-to-code-ratio: 0.5
 #   },
 #   'repository-abc': {}
 # }
-
-# För varje repo, loopa igenom alla commits, för varje commit, loopa igenom alla filer,
-# kör analyze_file_for_tests och spara resultaten i dictionaryn, returnera den
-def mine_unit_testing_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
-
-    metrics = {}
-
-    repo_urls_with_hashes_and_dates = git_miner.get_repo_paths_with_commit_hashes_and_dates(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
-    for repo_url, commits in repo_urls_with_hashes_and_dates.items():
-        logging.info(f"Unit Testing: inspecting {repo_url}")
-
-
-
-        pass
-           #  find eve...
-
-    pprint.pprint(repo_urls_with_hashes_and_dates)
-
-    print("Mining unit testing metrics for repo: ", repo_urls)
-
-
-#TODO rename
-def find_evidence_of_unit_testing(repository_directory: Path):
-    evidence = {
-        'unittest': [],
-        'pytest': [],
-        'nose2': [],  # Add a section for nose2
-        'general_imports': []
-    }
-
-    for file_path in util.get_python_files_from_directory(repository_directory):
-        analysis = analyze_file_for_tests(file_path)
-        if 'unittest' in analysis.imports:
-            evidence['unittest'].append(file_path)
-        if 'pytest' in analysis.imports:
-            evidence['pytest'].append(file_path)
-        if 'nose2' in analysis.imports:
-            evidence['nose2'].append(file_path)
-        if analysis.unittest_classes or analysis.pytest_functions:
-            evidence['general_imports'].append(file_path)
-
-    return evidence
-
-
 
 # Vad den gör just nu
 # Itererar över alla filer i ett repo dir
@@ -91,13 +47,11 @@ def find_evidence_of_unit_testing(repository_directory: Path):
 # visitorn samlar alla imports i lista,
 # Visitorn kollar klassdefinitioner och sparar klassnamn om det är en unittest.TestCase
 # Visitorn kollar funktioner och sparar funktionnamn om det börjar med test_
-
-# TODO visitorklassen
+# TODO
 # Lagra bara imports som är från unittest, pytest, nose2 - se till att det är heltäckande
 # Kolla klassdefinitioner om det är en unittest.TestCase, nose 2 eller pytest equivalent
 # Kolla funktiondefinitioner om det är någon form av testmetod som börjar med test_ - se till att det är heltäckande för alla frameworks
-#
-# Test 2 code ratio?
+# TODO Verify that it works reliably for all mentioned frameworks
 class TestFrameworkVisitor(ast.NodeVisitor):
     def __init__(self):
 
@@ -129,30 +83,64 @@ class TestFrameworkVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def mine_unit_testing_metrics(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
+    """Get unit-testing metrics from the commits of multiple git repositories"""
+    metrics = {}
+    for repo_path, commits in repo_paths_with_commits.items():
+        logging.info(f"Unit Testing: inspecting {repo_path}")
+        metrics[util.get_repo_name_from_url(repo_path)] = _extract_unit_testing_metrics(Path(repo_path), commits)
+
+    return metrics
+
+
+def _extract_unit_testing_metrics(repository_path: Path, commits: any) -> dict[str, any]:
+    """Extract unit-testing metrics from a the commits of a single repository"""
+    metrics = {}
+    repo = Repo(repository_path)
+    for commit in RichIterableProgressBar(commits,
+                                          description=f"Traversing commits, extracting unit-testing metrics",
+                                          postfix=util.get_repo_name_from_path(str(repository_path))):
+        commit_hash = commit["commit_hash"]
+        date = commit["date"]
+        repo.git.checkout(commit_hash)
+        metrics[commit_hash] = _run_ast_analysis(repository_path)
+        if metrics[commit_hash] is not None:
+            metrics[commit_hash]['date'] = date
+
+    return metrics
+
+
 # TODO
-# Eventuellt nollställa visitorn istället för att instansiera en ny för varje fil
-def analyze_file_for_tests(file_path):
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-            tree = ast.parse(content)
-            visitor = TestFrameworkVisitor()
-            visitor.visit(tree)
-            return visitor
-    except SyntaxError as e:
-        print(f"Syntax error in file {file_path}: {e}")
-        return TestFrameworkVisitor()  # Return an empty visitor if you want to keep processing other file
+# Kolla upp om test-to code är en gångbar metric akademiskt, om inte, alternativ?
+def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
+    """Run the AST analysis on the files in the repository"""
+    target_file_paths = util.get_python_files_from_directory(repository_path)
+    if target_file_paths is None or len(target_file_paths) == 0:
+        logging.info(f"No python files found in {repository_path}")
+        return None
 
+    result = {}
+    visitor = TestFrameworkVisitor()
+    for path in target_file_paths:
 
+        visitor.imports = []
+        visitor.unittest_classes = []
+        visitor.pytest_functions = []
 
+        try:
+            with open(path, 'r', encoding='utf-8') as file:
+                tree = ast.parse(file.read())
+                relative_path = util.get_file_reqlative_path_from_absolute_path(path)
+                visitor.visit(tree)
 
+                result[relative_path] = {}
+                result[relative_path]['imports'] = visitor.imports
+                result[relative_path]['classes'] = visitor.unittest_classes
+                result[relative_path]['functions'] = visitor.pytest_functions
 
-if __name__ == '__main__':
-    """Example usage of the find_evidence_of_unit_testing function."""
-    # repository_directory = "../repositories/amalfi-artifact"
-    repository_directory = config.REPOSITORIES_FOLDER / 'TDD-Hangman'
-    evidence = find_evidence_of_unit_testing(repository_directory)
+        except SyntaxError as e:
+            logging.error(f"Syntax error when executing AST analysis in file {relative_path}: {e}")
+            continue
 
-    print(f"Found evidence of unit testing:")
+    return result
 
-    pprint.pprint(evidence)
