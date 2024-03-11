@@ -147,7 +147,7 @@ def main():
     """Test script for downloading repos, extracting metrics and printing to file"""
 
     _load_balancing(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS), group_size=3,
-                    use_subprocesses=False, remove_repos_after_completion=False)
+                    use_subprocesses=False, remove_repos_after_completion=True)
     # ntfyer.ntfy(data="Execution is complete.", title="Pyciras")
 
 
