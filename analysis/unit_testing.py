@@ -130,7 +130,7 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
         try:
             with open(path, 'r', encoding='utf-8') as file:
                 tree = ast.parse(file.read())
-                relative_path = util.get_file_reqlative_path_from_absolute_path(path)
+                relative_path = util.get_file_relative_path_from_absolute_path(path)
                 visitor.visit(tree)
 
                 result[relative_path] = {}
