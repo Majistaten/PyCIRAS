@@ -5,7 +5,7 @@ from rich.logging import RichHandler
 from typing import Callable
 from analysis import code_quality, git_miner, repo_cloner, unit_testing
 from datahandling import data_writer, data_converter
-from utility import util, config
+from utility import util, config, ntfyer, progress_bars
 
 data_directory = data_writer.create_timestamped_data_directory()
 
@@ -80,12 +80,8 @@ def run_pydriller_analysis(repo_urls: list[str] | None = None):
 def run_stargazers_analysis(repo_urls: list[str] | None = None):
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
-    try:
-        stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
-    except ValueError as e:
-        logging.error(f"The github API key is invalid: {e}")
-        return
 
+    stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
     data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-raw.json')
 
     # Clean the data
@@ -105,9 +101,6 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None):
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
     unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repo_urls)
-
-
-
 
 
 def run_repo_cloner():

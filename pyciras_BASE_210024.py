@@ -5,7 +5,7 @@ from rich.logging import RichHandler
 from typing import Callable
 from analysis import code_quality, git_miner, repo_cloner, unit_testing
 from datahandling import data_writer, data_converter
-from utility import util, config
+from utility import util, config, ntfyer, progress_bars
 
 data_directory = data_writer.create_timestamped_data_directory()
 
@@ -68,7 +68,7 @@ def run_pydriller_analysis(repo_urls: list[str] | None = None):
     pydriller_data = git_miner.mine_pydriller_metrics(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
 
     # write json to file
-    data_writer.write_json_data(pydriller_data, data_directory / 'pydriller-raw.json')
+    data_writer.write_json_data(pydriller_data, data_directory / 'pydriller_metrics.json')
 
     # Flatten the data
     pydriller_data = data_converter.flatten_pydriller_data(pydriller_data)
@@ -80,18 +80,14 @@ def run_pydriller_analysis(repo_urls: list[str] | None = None):
 def run_stargazers_analysis(repo_urls: list[str] | None = None):
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
-    try:
-        stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
-    except ValueError as e:
-        logging.error(f"The github API key is invalid: {e}")
-        return
 
-    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-raw.json')
+    stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
+    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers.json')
 
     # Clean the data
     stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
 
-    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-cleaned.json')
+    data_writer.write_json_data(stargazers_metrics, data_directory / 'cleaned-stargazers.json')
 
     # Extract stargazers over time
     stargazers_over_time = data_converter.get_stargazers_over_time(stargazers_metrics)
@@ -143,8 +139,6 @@ def _process_group(current_group: list[str], remove_repo_on_complete: bool = Tru
     run_pydriller_analysis(current_group)
     if remove_repo_on_complete:
         repo_cloner.remove_repositories(current_group)
-
-    # TODO CSV writing does not work when running in this method, fixa CSV metoden med append funktionalitet
     run_stargazers_analysis(current_group)
     return "Finished"
 

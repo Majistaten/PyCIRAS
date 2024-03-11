@@ -28,7 +28,6 @@ data_directory = data_writer.create_timestamped_data_directory()
 # 8. Fixa till datan så att repo namn är consistent "owner/repo"
 
 
-
 def run_full_analysis(repo_urls: list[str] | None = None):
     pass
 
@@ -86,7 +85,12 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None):
         logging.error(f"The github API key is invalid: {e}")
         return
 
+<<<<<<< HEAD
+    stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
     data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-raw.json')
+=======
+    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers.json')
+>>>>>>> 99fb2501aa96fc4ca32c46b40acc5291bf4bdb1a
 
     # Clean the data
     stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
@@ -105,9 +109,6 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None):
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
     unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repo_urls)
-
-
-
 
 
 def run_repo_cloner():
