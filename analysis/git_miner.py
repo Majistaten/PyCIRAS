@@ -30,13 +30,13 @@ def mine_pydriller_metrics(repositories: list[str],
 
     metrics = {}
     repos = _load_repositories(repositories, repository_directory)
-    for address, repo in repos.items():
-        repo_name = util.get_repo_name_from_url(address)
+    for repo_url, repo in repos.items():
+        repo_name = util.get_repo_name_from_url(repo_url)
         metrics[repo_name] = _extract_commit_metrics(repo)
         metrics[repo_name].update(
             _extract_process_metrics(repo_path=repository_directory / repo_name, since=since, to=to))
         metrics[repo_name]['repository_name'] = repo_name
-        metrics[repo_name]['repository_address'] = address
+        metrics[repo_name]['repository_address'] = repo_url
 
     return metrics
 
@@ -70,11 +70,12 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
                 }}"""
         }
         stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
+
         if "message" in stargazers_data and stargazers_data["message"] == "Bad credentials":
             raise ValueError(stargazers_data)
-        repo_key = f"{repo_owner}/{repo_name}"
-        stargazers_data["data"]["repository"]["name"] = repo_key
-        metrics[repo_key] = stargazers_data
+
+        stargazers_data["data"]["repository"]["name"] = repo_name
+        metrics[repo_name] = stargazers_data
 
         # TODO debug.warning om rate limit börjar bli för låg
         # TODO skapa funktion som sköter rate limit checking
@@ -99,16 +100,16 @@ def get_project_lifespan():
     pass
 
 
-def get_repo_urls_with_commit_hashes_and_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
+def get_repo_paths_with_commit_hashes_and_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
     """Get a dictionary of repo urls with their commit hashes and dates of these commits from a list of repository
     paths """
     repos = _load_repositories(repositories, repository_directory)
     commit_dates = {}
-    for repo_url, repo in repos.items():
+    for repo_path, repo in repos.items():
         hash_dates = []
         for commit in repo.traverse_commits():
             hash_dates.append({'commit_hash': commit.hash, 'date': commit.committer_date})
-        commit_dates[repo_url] = hash_dates
+        commit_dates[repo_path] = hash_dates
 
     return commit_dates
 
@@ -116,7 +117,6 @@ def get_repo_urls_with_commit_hashes_and_dates(repositories: list[str], reposito
 def _load_repositories(repositories: list[str], repository_directory: Path) -> (
         dict[str, Repository]):
     """Load repositories for further processing"""
-
     repository_path = repository_directory
     repository_path.mkdir(parents=True, exist_ok=True)
     logging.debug('Loading repositories.')

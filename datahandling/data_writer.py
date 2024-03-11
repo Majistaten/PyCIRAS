@@ -45,7 +45,7 @@ def write_json_data(data: dict, path: Path):
 
 def pydriller_data_csv(data: dict, path: Path):
     """Writes Pydriller data to a CSV file."""
-    _write_to_csv(data, path / 'pydriller.csv')
+    _write_to_csv(data, path / 'pydriller-flat.csv')
 
 
 def pylint_data_csv(data: MutableMapping, path: Path):
