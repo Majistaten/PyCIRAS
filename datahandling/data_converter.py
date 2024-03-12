@@ -57,11 +57,6 @@ def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
             if date_only in stars_over_time:
                 stars_over_time[date_only][repo] = star_count
             else:
-                # For each new date, we need to ensure previous star counts are carried over for other repos
-                # This ensures the CSV will have all columns for all dates
-                for previous_date in stars_over_time:
-                    if repo not in stars_over_time[previous_date]:
-                        stars_over_time[previous_date][repo] = star_count - 1
                 stars_over_time[date_only][repo] = star_count
 
     # Normalize data to ensure every date has an entry for every repository
@@ -120,13 +115,14 @@ def _flatten_dict(d: MutableMapping, parent_key: str = '', sep: str = '.') -> Mu
     return dict(items)
 
 
-def dict_to_list(dictionary: dict | MutableMapping) -> list:
+def dict_to_list(dictionary: dict | MutableMapping, insert_key_as: str | None = None) -> list:
     """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
     formatted_list = []
     for key, value in dictionary.items():
         if value is None:
             continue
-        value["key"] = key
+        if insert_key_as is not None:
+            value[insert_key_as] = key
         formatted_list.append(value)
     return formatted_list
 

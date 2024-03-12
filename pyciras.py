@@ -83,7 +83,10 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None):
     try:
         stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
     except ValueError as e:
-        logging.error(f"The github API key is invalid: {e}")
+        logging.error(e)
+        return
+    except Exception as e:
+        logging.error(f"Something unexpected happened: {e}")
         return
 
     data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-raw.json')

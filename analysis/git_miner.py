@@ -70,9 +70,11 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
                 }}"""
         }
         stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
-
         if "message" in stargazers_data and stargazers_data["message"] == "Bad credentials":
-            raise ValueError(stargazers_data)
+            raise ValueError(f"The github API key may be invalid: {stargazers_data['message']}")
+        elif "errors" in stargazers_data:
+            logging.error(stargazers_data["errors"][0]["message"])
+            continue
 
         stargazers_data["data"]["repository"]["name"] = repo_name
         metrics[repo_name] = stargazers_data

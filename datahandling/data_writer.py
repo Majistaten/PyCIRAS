@@ -45,7 +45,7 @@ def write_json_data(data: dict, path: Path):
 
 def pydriller_data_csv(data: dict, path: Path):
     """Writes Pydriller data to a CSV file."""
-    _write_to_csv(data, path / 'pydriller-flat.csv')
+    _write_to_csv(data, path / 'pydriller-flat.csv', None)
 
 
 def pylint_data_csv(data: MutableMapping, path: Path):
@@ -54,7 +54,7 @@ def pylint_data_csv(data: MutableMapping, path: Path):
         output_path = path / f"pylint-{util.get_repo_name_from_path(key)}.csv"
         if value.values() is None:
             continue
-        _write_to_csv(value, output_path)
+        _write_to_csv(value, output_path, insert_key_as="commit_hash")
 
 
 def stargazers_data_csv(data: dict, path: Path) -> None:
@@ -77,9 +77,9 @@ def stargazers_data_csv(data: dict, path: Path) -> None:
             writer.writerow(row)
 
 
-def _write_to_csv(data: MutableMapping, path: Path) -> None:
+def _write_to_csv(data: MutableMapping, path: Path, insert_key_as: str | None) -> None:
     """Writes the data to a CSV file."""
-    formatted_data = data_converter.dict_to_list(data)
+    formatted_data = data_converter.dict_to_list(data, insert_key_as)
     with open(path, 'a', newline='') as file:
         field_names = set()
         for section in formatted_data:
