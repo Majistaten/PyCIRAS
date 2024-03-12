@@ -7,7 +7,7 @@ from pylint.message import Message
 from io import StringIO
 import logging
 from git import Repo
-from utility import util
+from utility import util, config
 from utility.progress_bars import RichIterableProgressBar
 
 
@@ -44,7 +44,8 @@ def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, an
     repo = Repo(repository_path)
     for commit in RichIterableProgressBar(commits,
                                           description=f"Traversing commits, extracting pylint metrics",
-                                          postfix=util.get_repo_name_from_path(str(repository_path))):
+                                          postfix=util.get_repo_name_from_path(str(repository_path)),
+                                          disable=config.DISABLE_PROGRESS_BARS):
         commit_hash = commit["commit_hash"]
         date = commit["date"]
         repo.git.checkout(commit_hash)

@@ -1,18 +1,17 @@
 import concurrent.futures
 import logging
 from rich.traceback import install
-from rich.logging import RichHandler
 from typing import Callable
 from analysis import code_quality, git_miner, repo_cloner, unit_testing
 from datahandling import data_writer, data_converter
-from utility import util, config
+from utility import util, config, logger_setup
 
+install()
 data_directory = data_writer.create_timestamped_data_directory()
+logger = logger_setup.get_logger("pyciras_logger")
 
 # TODO
 # 1. Bygg modulär logger som loggar med rätt färger beroende på nivå
-# 2. Bygg modulär progressbar med rich som körs som decorator på grejer om den är enabled
-    # Lägg till progressbar på ALLT
 # 3. Error handling i alla metoder med bra meddelanden
 # 4. Fixa modulär ntfyer
 # 5. Unit testing för projektkraven
@@ -83,7 +82,10 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None):
     try:
         stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
     except ValueError as e:
-        logging.error(f"The github API key is invalid: {e}")
+        logging.error(e)
+        return
+    except Exception as e:
+        logging.error(f"Something unexpected happened: {e}")
         return
 
     data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-raw.json')
@@ -162,6 +164,4 @@ def main():
 
 
 if __name__ == '__main__':
-    install()
-    logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[RichHandler(rich_tracebacks=True)])
     main()

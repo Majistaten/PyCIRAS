@@ -52,7 +52,8 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
 
     for url in RichIterableProgressBar(
             repo_urls,
-            description="Querying GraphQL API for Stargazers data"):
+            description="Querying GraphQL API for Stargazers data",
+            disable=config.DISABLE_PROGRESS_BARS):
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url(url)
         json_query = {
@@ -70,9 +71,11 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
                 }}"""
         }
         stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
-
         if "message" in stargazers_data and stargazers_data["message"] == "Bad credentials":
-            raise ValueError(stargazers_data)
+            raise ValueError(f"The github API key may be invalid: {stargazers_data['message']}")
+        elif "errors" in stargazers_data:
+            logging.error(stargazers_data["errors"][0]["message"])
+            continue
 
         stargazers_data["data"]["repository"]["name"] = repo_name
         metrics[repo_name] = stargazers_data
@@ -131,7 +134,8 @@ def _load_repositories(repositories: list[str], repository_directory: Path) -> (
     return {
         str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in
         RichIterableProgressBar(repositories,
-                                description="Loading Repositories")}
+                                description="Loading Repositories",
+                                disable=config.DISABLE_PROGRESS_BARS)}
 
 
 def _load_repository(repo_url: str, repository_directory: Path) -> Repository:
@@ -158,7 +162,8 @@ def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
     }
 
     for commit in RichIterableProgressBar(repo.traverse_commits(),
-                                          description="Traversing commits, extracting Pydriller commit metrics"):
+                                          description="Traversing commits, extracting Pydriller commit metrics",
+                                          disable=config.DISABLE_PROGRESS_BARS):
         metrics["total_commits"] += 1
         if commit.author.name not in metrics["developers"]:
             metrics["developers"].append(commit.author.name)
