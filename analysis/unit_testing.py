@@ -6,50 +6,62 @@ import logging
 from utility.progress_bars import RichIterableProgressBar
 
 
-# TODO Refine to more accurately detect testing as it looks in all different framework
-# 1. Detects functions "test_" that are unittest, but stores in pytest-functions
-# 2. Mer relevant att ta test-2-code ratio för ett helt repo per commit?
-class TestFrameworkVisitor(ast.NodeVisitor):
+# TODO function defenitions are common for unittest and pytest, not specifically pytest
+class StatementVisitor(ast.NodeVisitor):
     def __init__(self):
         self.known_test_modules = ['unittest', 'pytest', 'nose2']
-        self.test_imports = []
-        self.unittest_classes = []
-        self.pytest_functions = []
-        self.test_lines = 0
-        # self.code_lines = 0
-        self.file_line_count = 0  # TODO must be Total lines in the file being analyzed, excluding comments, whitespace and docstrings
+        self.test_statements = 0
+        self.production_statements = 0
+        self.in_test_context = False
 
     def visit_Import(self, node):
-        for alias in node.names:
-            if alias.name in self.known_test_modules:
-                self.test_imports.append(alias.name)
-        self.generic_visit(node)
-
-    def visit_ImportFrom(self, node):
-        if node.module and node.module.split('.')[0] in self.known_test_modules:
-            self.test_imports.append(node.module)
+        if any(alias.name in self.known_test_modules for alias in node.names):
+            self.test_statements += 1
+        elif not self.in_test_context:
+            self.production_statements += 1
         self.generic_visit(node)
 
     def visit_ClassDef(self, node):
-        if any(base.id == 'TestCase' for base in node.bases if isinstance(base, ast.Name)):
-            self.unittest_classes.append(node.name)
-            # Consider class definitions as part of test code
-            self.test_lines += len(node.body)
+        original_in_test_context = self.in_test_context
+        if "TestCase" in [base.id for base in node.bases if isinstance(base, ast.Name)]:
+            self.in_test_context = True
+            self.test_statements += 1
         else:
-            pass
-            # Consider other classes as part of code
-            # self.code_lines += len(node.body)
+            if not self.in_test_context:
+                self.production_statements += 1
         self.generic_visit(node)
+        self.in_test_context = original_in_test_context
 
     def visit_FunctionDef(self, node):
+        original_in_test_context = self.in_test_context
         if node.name.startswith('test_'):
-            self.pytest_functions.append(node.name)
-            # Consider test functions as part of test code
-            self.test_lines += len(node.body)
+            self.in_test_context = True
+            self.test_statements += 1
         else:
-            pass
-            # Consider other functions as part of code
-            # self.code_lines += len(node.body)
+            if not self.in_test_context:
+                self.production_statements += 1
+        self.generic_visit(node)
+        self.in_test_context = original_in_test_context
+
+    def visit_Assign(self, node):
+        if self.in_test_context:
+            self.test_statements += 1
+        else:
+            self.production_statements += 1
+        self.generic_visit(node)
+
+    def visit_Call(self, node):
+        if self.in_test_context:
+            self.test_statements += 1
+        else:
+            self.production_statements += 1
+        self.generic_visit(node)
+
+    def visit_Expr(self, node):
+        if self.in_test_context:
+            self.test_statements += 1
+        else:
+            self.production_statements += 1
         self.generic_visit(node)
 
 
@@ -92,47 +104,42 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
         'test-to-code-ratio': 0
     }
 
-    total_code_lines = 0
-    total_test_code_lines = 0
-    visitor = TestFrameworkVisitor()
+    total_production_statements = 0
+    total_test_statements = 0
+    visitor = StatementVisitor()
     for path in target_file_paths:
-
         visitor.test_imports = []
         visitor.unittest_classes = []
         visitor.pytest_functions = []
-        visitor.test_lines = 0
-        visitor.code_lines = 0
+        visitor.test_statements = 0
+        visitor.production_statements = 0
         try:
             with open(path, 'r', encoding='utf-8') as file:
-
-                file_content = file.read()
-
-                # TODO This is a simplified approach; need more sophisticated parsing
-                file_line_count = sum(1 for line in file_content.split('\n') if line.strip() and not line.strip().startswith('#'))
-                visitor.file_line_count = file_line_count
-
-                tree = ast.parse(file_content)
+                tree = ast.parse(file.read())
                 relative_path = util.get_file_relative_path_from_absolute_path(path)
                 visitor.visit(tree)
 
                 result['files'][relative_path] = {
                     'imports': visitor.test_imports,
                     'unittest_classes': visitor.unittest_classes,
-                    'pytest_functions': visitor.pytest_functions
+                    'pytest_functions': visitor.pytest_functions,
+                    'production_statements': visitor.production_statements,
+                    'test_statements': visitor.test_statements
                 }
 
-                total_test_code_lines += visitor.test_lines
-                total_code_lines += file_line_count - visitor.test_lines  # Assuming all non-test lines are code lines
+                total_test_statements += visitor.test_statements
+                total_production_statements += visitor.production_statements
 
+        # TODO wierd progressbar/error when this happens
         except SyntaxError as e:
             logging.error(f"Syntax error when executing AST analysis in file {relative_path}: {e}")
             continue
 
     # Calculate and add the repository-wide test-to-code ratio
-    if total_code_lines > 0:  # Avoid division by zero
-        result['test-to-code-ratio'] = total_test_code_lines / total_code_lines
+    total_statements = total_test_statements + total_production_statements
+    if total_statements > 0:  # Avoid division by zero
+        result['test-to-code-ratio'] = total_test_statements / total_statements
     else:
-        result['test-to-code-ratio'] = float('inf') if total_test_code_lines > 0 else 0
+        result['test-to-code-ratio'] = 1.0 if total_test_statements > 0 else 0
 
     return result
-
