@@ -95,8 +95,15 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
     return metrics
 
 
-def get_project_lifespan():
+# "TDD-Hangman": {
+#         "first-commit": "2021-09-01",
+#         "last-commit": "2021-09-01",
+#         "publish-date": "2021-09-01"
+#  },
+def get_repository_lifespan():
+    """"Get the first commit, last commit and publish date of a project"""
     # TODO build this method
+
     pass
 
 
@@ -205,7 +212,8 @@ def _lines_count_metrics(repo_path: Path,
                          to_commit: str = None,
                          since: datetime = None,
                          to: datetime = None):
-    lines_count_metric = LinesCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
+    lines_count_metric = LinesCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit,
+                                    since=since,
                                     to=to)
     return lines_count_metric.count_added(), lines_count_metric.count_removed()
 
@@ -215,7 +223,8 @@ def _hunk_count_metrics(repo_path: Path,
                         to_commit: str = None,
                         since: datetime = None,
                         to: datetime = None):
-    hunks_count_metric = HunksCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
+    hunks_count_metric = HunksCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit,
+                                    since=since,
                                     to=to)
     return hunks_count_metric.count()
 
@@ -235,7 +244,8 @@ def _contribution_count_metrics(repo_path: Path,
                                 to_commit: str = None,
                                 since: datetime = None,
                                 to: datetime = None):
-    contributors_count_metric = ContributorsCount(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit,
+    contributors_count_metric = ContributorsCount(path_to_repo=str(repo_path), from_commit=from_commit,
+                                                  to_commit=to_commit,
                                                   since=since, to=to)
     return contributors_count_metric.count(), contributors_count_metric.count_minor()
 
@@ -245,7 +255,8 @@ def _code_churns_metrics(repo_path: Path,
                          to_commit: str = None,
                          since: datetime = None,
                          to: datetime = None):
-    code_churn_metric = CodeChurn(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
+    code_churn_metric = CodeChurn(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit,
+                                  since=since,
                                   to=to)
     metrics = {'total': code_churn_metric.count(), 'max': code_churn_metric.max(), 'avg': code_churn_metric.avg()}
     return metrics
@@ -256,6 +267,7 @@ def _change_set_metrics(repo_path: Path,
                         to_commit: str = None,
                         since: datetime = None,
                         to: datetime = None):
-    change_set_metric = ChangeSet(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit, since=since,
+    change_set_metric = ChangeSet(path_to_repo=str(repo_path), from_commit=from_commit, to_commit=to_commit,
+                                  since=since,
                                   to=to)
     return change_set_metric.max(), change_set_metric.avg()
