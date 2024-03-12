@@ -1,85 +1,55 @@
-import pprint
-
 from git import Repo
-
-from analysis import git_miner
 from pathlib import Path
-from utility import config, util
+from utility import util
 import ast
 import logging
 from utility.progress_bars import RichIterableProgressBar
 
-# TODO
-# Skapa en dictionary
-# {
-#   'repository-xyz': {
-#          'fh7a872j0087he': { # commit hash
-#              'thing.py': { # filnamn
-#                  'imports': [
-#                      'import unittest', # importrader
-#                      'import pytest',
-#                      '...'
-#                  ],
-#                   'classes': [
-#                      'TestThing', # klassrader
-#                      'TestThing2',
-#                      '...'
-#                  ],
-#                   'functions': [
-#                      'test_thing', # funktionsrader
-#                      'test_thing2',
-#                      '...'
-#                  ]
-#              },
-#              'thing2.py': {}
-#              'test-to-code-ratio': 0.5
-#          },
-#         'fh7a872j0087he2': {}
-#       },
-#   },
-#   'repository-abc': {}
-# }
 
-# Vad den gör just nu
-# Itererar över alla filer i ett repo dir
-# För varje fil:
-# visitar filen med en visitor
-# visitorn samlar alla imports i lista,
-# Visitorn kollar klassdefinitioner och sparar klassnamn om det är en unittest.TestCase
-# Visitorn kollar funktioner och sparar funktionnamn om det börjar med test_
-# TODO
-# Lagra bara imports som är från unittest, pytest, nose2 - se till att det är heltäckande
-# Kolla klassdefinitioner om det är en unittest.TestCase, nose 2 eller pytest equivalent
-# Kolla funktiondefinitioner om det är någon form av testmetod som börjar med test_ - se till att det är heltäckande för alla frameworks
-# TODO Verify that it works reliably for all mentioned frameworks
+# TODO Refine to more accurately detect testing as it looks in all different framework
+# 1. Detects functions "test_" that are unittest, but stores in pytest-functions
+# 2. Mer relevant att ta test-2-code ratio för ett helt repo per commit?
 class TestFrameworkVisitor(ast.NodeVisitor):
     def __init__(self):
-
-        self.imports = []
-
+        self.known_test_modules = ['unittest', 'pytest', 'nose2']
+        self.test_imports = []
         self.unittest_classes = []
-
         self.pytest_functions = []
+        self.test_lines = 0
+        # self.code_lines = 0
+        self.file_line_count = 0  # TODO must be Total lines in the file being analyzed, excluding comments, whitespace and docstrings
 
-    # TODO skillnad på import och importfrom?
     def visit_Import(self, node):
         for alias in node.names:
-            self.imports.append(alias.name)
+            if alias.name in self.known_test_modules:
+                self.test_imports.append(alias.name)
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node):
-        if node.module:
-            self.imports.append(node.module)
+        if node.module and node.module.split('.')[0] in self.known_test_modules:
+            self.test_imports.append(node.module)
         self.generic_visit(node)
 
     def visit_ClassDef(self, node):
         if any(base.id == 'TestCase' for base in node.bases if isinstance(base, ast.Name)):
             self.unittest_classes.append(node.name)
+            # Consider class definitions as part of test code
+            self.test_lines += len(node.body)
+        else:
+            pass
+            # Consider other classes as part of code
+            # self.code_lines += len(node.body)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
         if node.name.startswith('test_'):
             self.pytest_functions.append(node.name)
+            # Consider test functions as part of test code
+            self.test_lines += len(node.body)
+        else:
+            pass
+            # Consider other functions as part of code
+            # self.code_lines += len(node.body)
         self.generic_visit(node)
 
 
@@ -110,8 +80,6 @@ def _extract_unit_testing_metrics(repository_path: Path, commits: any) -> dict[s
     return metrics
 
 
-# TODO
-# Kolla upp om test-to code är en gångbar metric akademiskt, om inte, alternativ?
 def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
     """Run the AST analysis on the files in the repository"""
     target_file_paths = util.get_python_files_from_directory(repository_path)
@@ -119,28 +87,52 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
         logging.info(f"No python files found in {repository_path}")
         return None
 
-    result = {}
+    result = {
+        'files': {},
+        'test-to-code-ratio': 0
+    }
+
+    total_code_lines = 0
+    total_test_code_lines = 0
     visitor = TestFrameworkVisitor()
     for path in target_file_paths:
 
-        visitor.imports = []
+        visitor.test_imports = []
         visitor.unittest_classes = []
         visitor.pytest_functions = []
-
+        visitor.test_lines = 0
+        visitor.code_lines = 0
         try:
             with open(path, 'r', encoding='utf-8') as file:
-                tree = ast.parse(file.read())
+
+                file_content = file.read()
+
+                # TODO This is a simplified approach; need more sophisticated parsing
+                file_line_count = sum(1 for line in file_content.split('\n') if line.strip() and not line.strip().startswith('#'))
+                visitor.file_line_count = file_line_count
+
+                tree = ast.parse(file_content)
                 relative_path = util.get_file_relative_path_from_absolute_path(path)
                 visitor.visit(tree)
 
-                result[relative_path] = {}
-                result[relative_path]['imports'] = visitor.imports
-                result[relative_path]['classes'] = visitor.unittest_classes
-                result[relative_path]['functions'] = visitor.pytest_functions
+                result['files'][relative_path] = {
+                    'imports': visitor.test_imports,
+                    'unittest_classes': visitor.unittest_classes,
+                    'pytest_functions': visitor.pytest_functions
+                }
+
+                total_test_code_lines += visitor.test_lines
+                total_code_lines += file_line_count - visitor.test_lines  # Assuming all non-test lines are code lines
 
         except SyntaxError as e:
             logging.error(f"Syntax error when executing AST analysis in file {relative_path}: {e}")
             continue
+
+    # Calculate and add the repository-wide test-to-code ratio
+    if total_code_lines > 0:  # Avoid division by zero
+        result['test-to-code-ratio'] = total_test_code_lines / total_code_lines
+    else:
+        result['test-to-code-ratio'] = float('inf') if total_test_code_lines > 0 else 0
 
     return result
 
