@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 # Determine the root directory of the project. Assuming `utility` is at the root.
 ROOT_DIR: Path = Path(__file__).parent.parent.resolve()
@@ -8,4 +9,8 @@ DATA_FOLDER: Path = OUTPUT_FOLDER / 'data'
 REPOSITORY_URLS: Path = ROOT_DIR / 'repos.txt'
 REPOSITORIES_FOLDER: Path = OUTPUT_FOLDER / 'repositories'
 GRAPHQL_API: str = 'https://api.github.com/graphql'
+LOGGING_FOLDER: Path = OUTPUT_FOLDER / 'logs'
 DISABLE_PROGRESS_BARS: bool = True
+VERBOSE_LOGGING_LEVEL: int = logging.INFO
+FILE_LOGGING_LEVEL: int = logging.DEBUG
+

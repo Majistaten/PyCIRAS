@@ -23,7 +23,6 @@ class CustomEncoder(json.JSONEncoder):
 def create_timestamped_data_directory() -> Path:
     """Creates a timestamped directory for the output data."""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    # output_directory = ROOT_PATH / config.OUTPUT_FOLDER / config.DATA_FOLDER / f'./{timestamp}'
     output_directory = config.DATA_FOLDER / f'./{timestamp}'
     output_directory.mkdir(parents=True, exist_ok=True)
     return output_directory

@@ -76,13 +76,11 @@ def clone_repository(repo_url: str, destination_folder: Path, postfix: str = "")
         return None
 
 
-# TODO fixa säkrare permissions på nåt sätt, typ vid nedladdning. Så den inte har root priviliges
 def remove_repositories(content: list[str]) -> None:
     """ Remove all repositories in the content list. """
     logging.info(f'Removing {len(content)} repositories {content}')
     for url in content:
         path = util.get_path_to_repo(url)
-        # TODO: Make sure that the path is not pointing to anything outside this repository
         logging.info(f'Removing: {path}\n')
         rmtree(path)
         if path.exists():
@@ -98,22 +96,9 @@ def get_github_repo_size(url: str) -> str:
     if response.status_code == 200:
         repo_data = response.json()
         size_in_kb = repo_data['size']
-        formatted_size = format_size(size_in_kb)
-        logging.info(f"The repository size is: {formatted_size}")
+        formatted_size = util.format_size(size_in_kb)
         return formatted_size
     else:
         logging.warning(f"Failed to fetch repository data. Status code: {response.status_code}")
         return ""
-
-
-def format_size(size_in_kb: int) -> str:
-    """Convert size from KB to MB or GB if large enough."""
-    if size_in_kb < 1024:
-        return f"{size_in_kb} KB"
-    elif size_in_kb < 1024 * 1024:
-        size_in_mb = size_in_kb / 1024
-        return f"{size_in_mb:.2f} MB"
-    else:
-        size_in_gb = size_in_kb / (1024 * 1024)
-        return f"{size_in_gb:.2f} GB"
 
