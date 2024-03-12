@@ -2,7 +2,7 @@ import requests
 from git import Repo, RemoteProgress, rmtree
 from pathlib import Path
 import logging
-from utility import util
+from utility import util, config
 from utility.progress_bars import CloneProgress
 
 
@@ -66,7 +66,7 @@ def clone_repository(repo_url: str, destination_folder: Path, postfix: str = "")
         logging.info(f'Cloning Git Repository {repo_name} of size {repo_size} from {repo_url} ...')
         Repo.clone_from(repo_url,
                         repo_path,
-                        progress=CloneProgress(description=repo_name, postfix=postfix))
+                        progress=CloneProgress(description=repo_name, postfix=postfix, disable=config.DISABLE_PROGRESS_BARS))
 
         logging.info(f'Finished cloning {repo_path}')
         return repo_path
