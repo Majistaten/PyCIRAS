@@ -7,6 +7,7 @@ from utility.progress_bars import RichIterableProgressBar
 
 
 # TODO function defenitions are common for unittest and pytest, not specifically pytest
+# TODO lagrar inte imports, klasser och funktioner
 class StatementVisitor(ast.NodeVisitor):
     def __init__(self):
         self.known_test_modules = ['unittest', 'pytest', 'nose2']

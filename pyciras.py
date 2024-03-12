@@ -106,6 +106,7 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None):
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
+    # TODO laddar ner på nytt? varför?
     repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
 
@@ -116,7 +117,22 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None):
 
     data_writer.write_json_data(unit_testing_metrics, data_directory / 'unit-testing-raw.json')
 
+    # TODO Extract - vad?
+    test_to_code_ratio_over_time = data_converter.get_test_to_code_ratio_over_time(unit_testing_metrics)
 
+    data_writer.write_json_data(test_to_code_ratio_over_time, data_directory / 'test-to-code-ratio-over-time.json')
+
+
+    # Liknande som stargazers,
+    # {
+    #     "2022-03-15": {
+    #         "amalfi-artifact": 0.54, #Test-to code ratio
+    #         "data_driven_infer": 0,
+    #         "Distance-Based_Data": 0,
+    #         "TDD-Hangman": 1.0
+    #     },
+
+    # Skriv till JSON och CSV
 
 def run_repo_cloner():
     pass
