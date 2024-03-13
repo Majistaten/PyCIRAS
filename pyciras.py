@@ -27,9 +27,19 @@ logger = logger_setup.get_logger("pyciras_logger")
 # 8. Fixa till datan så att repo namn är consistent "owner/repo"
 
 
+def run_full_analysis(repo_urls: list[str] | None = None,
+                      chunk_size: int = 3,
+                      parallelism: bool = False,
+                      remove_repos_after_completion: bool = True):
+    """Run the full analysis pipeline on the specified repositories"""
 
-def run_full_analysis(repo_urls: list[str] | None = None):
-    pass
+    _load_balancing(repo_urls,
+                    chunk_size,
+                    parallelism,
+                    remove_repos_after_completion)
+
+#     TODO notification when its finished running, with totalt time and errors
+#     TODO implement NTFY for errors with the analysis
 
 
 def run_code_quality_analysis(repo_urls: list[str] | None = None):
