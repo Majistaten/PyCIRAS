@@ -11,7 +11,6 @@ data_directory = data_writer.create_timestamped_data_directory()
 logger = logger_setup.get_logger("pyciras_logger")
 
 # TODO
-# 1. Bygg modulär logger som loggar med rätt färger beroende på nivå
 # 3. Error handling i alla metoder med bra meddelanden
 # 4. Fixa modulär ntfyer
 # 5. Unit testing för projektkraven
@@ -100,6 +99,7 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None):
 
     data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
     data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
+    return stargazers_metrics
 
 
 def run_unit_testing_analysis(repo_urls: list[str] | None = None):
