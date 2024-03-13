@@ -17,10 +17,6 @@ from pathlib import Path
 from utility.progress_bars import RichIterableProgressBar
 
 
-# TODO make a method that returns commit hash + date from a repository
-
-# TODO try Pydrillers built in CSV creation
-
 def mine_pydriller_metrics(repositories: list[str],
                            repository_directory: Path,
                            since: datetime = datetime.now(),

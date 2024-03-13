@@ -10,20 +10,9 @@ install()
 data_directory = data_writer.create_timestamped_data_directory()
 logger = logger_setup.get_logger("pyciras_logger")
 
-
-# TODO
-# 3. Error handling i alla metoder med bra meddelanden
-# 4. Fixa modulär ntfyer
-# 5. Unit testing för projektkraven
-# 6. Skriv docs på allt, inklusive moduler, parametrar, typer, och README samt exempelnotebooks
-# 7. Fixa runmetoder som tar emot options för alla tänkta användningsområden
-# Användningsområden:
-# * Köra analysen utan att spara repos
-# * Dela upp analysen och skrivningar i chunks
-#     * Köra analysen parallellt
-# * Optional logging (Flytta logging till config)/ progress bar
-# 8. Fixa till datan så att repo namn är consistent "owner/repo"
-
+# TODO Error handling i alla metoder med bra meddelanden
+# TODO BASIC Unit testing för projektkraven
+# TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
 
 def run_analysis(repo_urls: list[str] | None = None,
                  chunk_size: int = 3,
@@ -55,6 +44,7 @@ def run_analysis(repo_urls: list[str] | None = None,
 
 
 #     TODO notification when its finished running, with totalt time and errors
+
 #     TODO implement NTFY for errors with the analysis
 
 
@@ -137,7 +127,6 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None) -> dict[str, a
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
-    # TODO laddar ner på nytt? varför?
     repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
 
@@ -148,12 +137,12 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None) -> dict[str, a
 
     data_writer.write_json_data(unit_testing_metrics, data_directory / 'unit-testing-raw.json')
 
-    # TODO Extract - vad?
     test_to_code_ratio_over_time = data_converter.get_test_to_code_ratio_over_time(unit_testing_metrics)
 
     data_writer.write_json_data(test_to_code_ratio_over_time, data_directory / 'test-to-code-ratio-over-time.json')
 
     return unit_testing_metrics
+    # TODO unit-testing to CSV
 
     # Liknande som stargazers,
     # {

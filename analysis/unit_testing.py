@@ -85,6 +85,7 @@ def _extract_unit_testing_metrics(repository_path: Path, commits: any) -> dict[s
                                           postfix=util.get_repo_name_from_path(str(repository_path)),
                                           disable=config.DISABLE_PROGRESS_BARS):
         commit_hash = commit["commit_hash"]
+
         date = commit["date"]
         repo.git.checkout(commit_hash)
         metrics[commit_hash] = _run_ast_analysis(repository_path)
@@ -132,7 +133,6 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
                 total_test_statements += visitor.test_statements
                 total_production_statements += visitor.production_statements
 
-        # TODO wierd progressbar/error when this happens
         except SyntaxError as e:
             logging.error(f"Syntax error when executing AST analysis in file {relative_path}: {e}")
             continue
