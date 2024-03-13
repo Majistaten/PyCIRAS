@@ -68,7 +68,7 @@ def stargazers_data_csv(data: dict, path: Path) -> None:
     with open(path / 'stargazers-over-time.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
         # Write the header
-        writer.writerow(['DATE'] + repos)
+        writer.writerow(['date'] + repos)
 
         # Write data for each date
         for date, data in data.items():
