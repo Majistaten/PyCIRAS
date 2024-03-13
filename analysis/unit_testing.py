@@ -1,6 +1,6 @@
 from git import Repo
 from pathlib import Path
-from utility import util
+from utility import util, config
 import ast
 import logging
 from utility.progress_bars import RichIterableProgressBar
@@ -82,7 +82,8 @@ def _extract_unit_testing_metrics(repository_path: Path, commits: any) -> dict[s
     repo = Repo(repository_path)
     for commit in RichIterableProgressBar(commits,
                                           description=f"Traversing commits, extracting unit-testing metrics",
-                                          postfix=util.get_repo_name_from_path(str(repository_path))):
+                                          postfix=util.get_repo_name_from_path(str(repository_path)),
+                                          disable=config.DISABLE_PROGRESS_BARS):
         commit_hash = commit["commit_hash"]
         date = commit["date"]
         repo.git.checkout(commit_hash)
