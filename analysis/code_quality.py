@@ -10,10 +10,6 @@ from git import Repo
 from utility import util, config
 from utility.progress_bars import RichIterableProgressBar
 
-
-# TODO kolla om vi ska enabla optional plugins för att maximera inhämtningen
-#  https://pylint.pycqa.org/en/latest/user_guide/checkers/extensions.html
-
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
 
@@ -47,6 +43,7 @@ def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, an
                                           postfix=util.get_repo_name_from_path(str(repository_path)),
                                           disable=config.DISABLE_PROGRESS_BARS):
         commit_hash = commit["commit_hash"]
+
         date = commit["date"]
         repo.git.checkout(commit_hash)
         metrics[commit_hash] = _run_pylint(repository_path)
