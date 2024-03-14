@@ -46,7 +46,6 @@ def run_analysis(repo_urls: list[str] | None = None,
 
 
 #     TODO notification when its finished running, with totalt time and errors
-
 #     TODO implement NTFY for errors with the analysis
 
 
@@ -70,6 +69,8 @@ def run_code_quality_analysis(repo_urls: list[str] | None = None) -> dict[str, a
 
     # Flatten the data
     pylint_data_filtered_flat = data_converter.flatten_pylint_data(pylint_data_filtered)
+
+    data_writer.write_json_data(pylint_data_filtered_flat, data_directory / 'pylint-raw-flat.json')
 
     # write csv to file
     data_writer.pylint_data_csv(pylint_data_filtered_flat, data_directory)
@@ -133,31 +134,25 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None) -> dict[str, a
                                                    destination_folder=config.REPOSITORIES_FOLDER)
 
     repositories_with_commits = git_miner.get_repo_paths_with_commit_hashes_and_dates(repo_paths,
-                                                                                      repository_directory=config.REPOSITORIES_FOLDER)
+                                                                                      repository_directory=
+                                                                                      config.REPOSITORIES_FOLDER)
 
+    # gather metric data
     unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repositories_with_commits)
 
+    # write json to file
     data_writer.write_json_data(unit_testing_metrics, data_directory / 'unit-testing-raw.json')
 
+    # Extract test to code ratio over time
     test_to_code_ratio_over_time = data_converter.get_test_to_code_ratio_over_time(unit_testing_metrics)
 
+    # write json to file
     data_writer.write_json_data(test_to_code_ratio_over_time, data_directory / 'test-to-code-ratio-over-time.json')
 
-
+    # write csv to file
+    data_writer.unit_testing_data_csv(test_to_code_ratio_over_time, data_directory)
 
     return unit_testing_metrics
-    # TODO unit-testing to CSV
-
-    # Liknande som stargazers,
-    # {
-    #     "2022-03-15": {
-    #         "amalfi-artifact": 0.54, #Test-to code ratio
-    #         "data_driven_infer": 0,
-    #         "Distance-Based_Data": 0,
-    #         "TDD-Hangman": 1.0
-    #     },
-
-    # Skriv till JSON och CSV
 
 
 def run_repo_cloner():

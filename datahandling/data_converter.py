@@ -39,6 +39,7 @@ def clean_stargazers_data(stargazers_metrics: dict) -> dict:
     return cleaned_metrics
 
 
+#TODO använd lifetime-api call för att filtrera bort värden där det inte var publicerat, ersätt med NaN
 def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
     """Gets the stargazers over time for each repository."""
     stars_over_time = defaultdict(dict)
