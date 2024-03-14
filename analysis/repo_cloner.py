@@ -91,8 +91,8 @@ def remove_repositories(content: list[str]) -> None:
 
 
 def get_github_repo_size(url: str) -> str:
-    user = url.split('/')[-2]
-    repo = url.split('/')[-1]
+    user = util.get_repo_owner_from_url(url)
+    repo = util.get_repo_name_from_url(url)
     api_url = f"https://api.github.com/repos/{user}/{repo}"
     response = requests.get(api_url)
     if response.status_code == 200:
@@ -101,6 +101,6 @@ def get_github_repo_size(url: str) -> str:
         formatted_size = util.format_size(size_in_kb)
         return formatted_size
     else:
-        logging.warning(f"Failed to fetch repository data. Status code: {response.status_code}")
+        logging.warning(f"Failed to fetch repository data from {api_url}. Status code: {response.status_code}")
         return ""
 

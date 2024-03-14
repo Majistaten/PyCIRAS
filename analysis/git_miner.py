@@ -111,7 +111,7 @@ def check_stargazers_ratelimit() -> tuple[int, datetime]:
         }
         }"""
     }
-    rate_limit_info = requests.post('https://api.github.com/graphql', json=rate_limiting_query, headers=headers).json()
+    rate_limit_info = requests.post(config.GRAPHQL_API, json=rate_limiting_query, headers=headers).json()
     remaining = int(rate_limit_info['data']['rateLimit']['remaining'])
     reset_at_str = rate_limit_info['data']['rateLimit']['resetAt']
     reset_at = datetime.fromisoformat(reset_at_str.replace('Z', '')).replace(tzinfo=timezone.utc)
@@ -122,21 +122,63 @@ def check_stargazers_ratelimit() -> tuple[int, datetime]:
 def send_low_rate_limit_message(remaining: int, reset_at: datetime):
     message = f"The github api rate limit is getting low. You have {remaining} requests left and it will reset {reset_at.date()} {reset_at.time()}"
     title = "GitHub API rate limit"
-    if config.ENABLE_NTFYER:
-        ntfyer.ntfy(message, title)
+    ntfyer.ntfy(message, title)
     logging.error(message)
 
 
-def get_repository_lifespan():
-    """"Get the first commit, last commit and publish date of a project"""
-    # TODO build this method
-    # "TDD-Hangman": {
-    #         "first-commit": "2021-09-01",
-    #         "last-commit": "2021-09-01",
-    #         "publish-date": "2021-09-01"
-    #  },
+def get_repository_lifespan(repo_url: str) -> dict[str, any]:
+    """Get the first commit, last commit, and publish date of a project."""
+    parts = repo_url.split("/")
+    owner, repo = parts[-2], parts[-1]
 
-    pass
+    query = """
+    query {
+      repository(owner: "%s", name: "%s") {
+        createdAt
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history(first: 1) {
+                edges {
+                  node {
+                    committedDate
+                  }
+                }
+              }
+              history(last: 1) {
+                edges {
+                  node {
+                    committedDate
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    """ % (owner, repo)
+
+    headers = {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"}
+    response = requests.post(config.GRAPHQL_API, json=query, headers=headers)
+
+    if response.status_code == 200:
+        data = response.json()['data']['repository']
+        first_commit_date = data['defaultBranchRef']['target']['history']['edges'][0]['node']['committedDate']
+        last_commit_date = data['defaultBranchRef']['target']['history']['edges'][-1]['node']['committedDate']
+        publish_date = data['createdAt']
+
+        result = {
+            repo: {
+                "first-commit": first_commit_date,
+                "last-commit": last_commit_date,
+                "publish-date": publish_date,
+            }
+        }
+        return result
+    else:
+        logging.warning(f"Failed to fetch repository data. Status code: {response.status_code}")
+        return {}
 
 
 def get_repo_paths_with_commit_hashes_and_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
