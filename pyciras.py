@@ -14,6 +14,7 @@ logger = logger_setup.get_logger("pyciras_logger")
 # TODO BASIC Unit testing för projektkraven
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
 
+
 def run_analysis(repo_urls: list[str] | None = None,
                  chunk_size: int = 3,
                  parallelism: bool = False,
@@ -208,6 +209,6 @@ if __name__ == '__main__':
                  parallelism=False,
                  remove_repos_after_completion=True,
                  analyse_stargazers=True,
-                 analyze_unit_testing=False,
-                 analyze_repositories=False,
-                 analyze_code_quality=False)
+                 analyze_unit_testing=True,
+                 analyze_repositories=True,
+                 analyze_code_quality=True)
