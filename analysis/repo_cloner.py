@@ -81,10 +81,13 @@ def remove_repositories(content: list[str]) -> None:
     logging.info(f'Removing {len(content)} repositories {content}')
     for url in content:
         path = util.get_path_to_repo(url)
-        logging.info(f'Removing: {path}\n')
-        rmtree(path)
         if path.exists():
-            logging.error(f'Failed to remove {path}')
+            logging.info(f'Removing: {path}\n')
+            rmtree(path)
+            if path.exists():
+                logging.error(f'Failed to remove {path}')
+        else:
+            logging.info(f'Could not find repository path. Will not try to remove non-existing repositories.')
 
 
 # TODO: Alternatively move to util?

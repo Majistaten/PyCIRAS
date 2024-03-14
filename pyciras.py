@@ -168,7 +168,7 @@ def _load_balancing(repo_urls: list[str],
                     analyze_stargazers: bool = True):
     """Handles repositories in groups. Downloads and analyzes the repositories one group at a time,
      stores the result and removes the repository when done."""
-    if analysis_methods is None or len(analysis_methods) == 0:
+    if analyze_stargazers is False and (analysis_methods is None or len(analysis_methods) == 0):
         raise ValueError('At least one analysis method must be selected!')
     for i in range(0, len(repo_urls), chunk_size):
         logging.info(f"Analyzing repositories {i}-{i + chunk_size}")
@@ -208,6 +208,6 @@ if __name__ == '__main__':
                  parallelism=False,
                  remove_repos_after_completion=True,
                  analyse_stargazers=True,
-                 analyze_unit_testing=True,
-                 analyze_repositories=True,
-                 analyze_code_quality=True)
+                 analyze_unit_testing=False,
+                 analyze_repositories=False,
+                 analyze_code_quality=False)
