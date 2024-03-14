@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from collections.abc import MutableMapping
 import datahandling.data_converter as data_converter
+from rich.pretty import pprint
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -47,6 +48,10 @@ def pydriller_data_csv(data: dict, path: Path):
     _write_to_csv(data, path / 'pydriller-flat.csv', None)
 
 
+# TODO refine, fix with headers and sort by dates first column
+# TODO replace null values with NaN
+# TODO column 1 date, col 2 global note..
+# TODO moduler,filer etc som inte fanns vid en tidpunkt får ett nullvärde för den aktuella metric
 def pylint_data_csv(data: MutableMapping, path: Path):
     """Writes Pylint data to a CSV file."""
     for key, value in data.items():
@@ -54,6 +59,19 @@ def pylint_data_csv(data: MutableMapping, path: Path):
         if value.values() is None:
             continue
         _write_to_csv(value, output_path, insert_key_as="commit_hash")
+
+
+def _write_to_csv(data: MutableMapping, path: Path, insert_key_as: str | None) -> None:
+    """Writes the data to a CSV file."""
+    formatted_data = data_converter.dict_to_list(data, insert_key_as)
+    with open(path, 'a', newline='') as file:
+        field_names = set()
+        for section in formatted_data:
+            field_names.update([k for k in section.keys()])
+        writer = csv.DictWriter(file, fieldnames=field_names)
+        if path.stat().st_size == 0:
+            writer.writeheader()
+        writer.writerows(formatted_data)
 
 
 def stargazers_data_csv(data: dict, path: Path) -> None:
@@ -76,14 +94,37 @@ def stargazers_data_csv(data: dict, path: Path) -> None:
             writer.writerow(row)
 
 
-def _write_to_csv(data: MutableMapping, path: Path, insert_key_as: str | None) -> None:
-    """Writes the data to a CSV file."""
-    formatted_data = data_converter.dict_to_list(data, insert_key_as)
-    with open(path, 'a', newline='') as file:
-        field_names = set()
-        for section in formatted_data:
-            field_names.update([k for k in section.keys()])
-        writer = csv.DictWriter(file, fieldnames=field_names)
-        if path.stat().st_size == 0:
-            writer.writeheader()
-        writer.writerows(formatted_data)
+def unit_testing_data_csv(data: dict, path: Path) -> None:
+    """Writes unit testing data to a CSV file."""
+
+    # Initialize containers for dates and repositories
+    dates = set()
+    repos = set()
+
+    # Collect all unique dates and repositories
+    for repo, timestamps in data.items():
+        repos.add(repo)
+        for timestamp in timestamps:
+            dates.add(timestamp)
+
+    # Sort the collected dates and repositories
+    sorted_dates = sorted(dates)
+    sorted_repos = sorted(repos)
+
+    with open(path / 'test-to-code-ratio-over-time.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+
+        # Write the header
+        writer.writerow(['date'] + list(sorted_repos))
+
+        # Write data for each date
+        for date in sorted_dates:
+            row = [date]
+            for repo in sorted_repos:
+                # Get the test-to-code ratio for the repo at the current date, if available
+                ratio = data.get(repo, {}).get(date, {}).get('test-to-code-ratio', 'NaN')
+                row.append(ratio)
+            writer.writerow(row)
+
+    return None
+

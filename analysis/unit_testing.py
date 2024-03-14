@@ -123,7 +123,7 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
 
     result = {
         'files': {},
-        'test-to-code-ratio': 0
+        'test-to-code-ratio': 0.0
     }
 
     total_production_statements = 0
