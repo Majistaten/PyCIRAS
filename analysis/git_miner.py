@@ -38,8 +38,6 @@ def mine_pydriller_metrics(repositories: list[str],
     return metrics
 
 
-# TODO implementera pagination vid behov för att få ut alla stargazers utan att slå i rate limit/size limit
-# def mine_stargazers_metrics(repo_urls: list[str]) -> list[dict[any]]:
 def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
     """Get stargazers metrics in a dict from the GraphQL API of GitHub"""
 

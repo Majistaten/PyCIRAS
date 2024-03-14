@@ -46,7 +46,6 @@ def run_analysis(repo_urls: list[str] | None = None,
 
 
 #     TODO notification when its finished running, with totalt time and errors
-
 #     TODO implement NTFY for errors with the analysis
 
 

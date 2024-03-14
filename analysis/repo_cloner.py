@@ -90,7 +90,6 @@ def remove_repositories(content: list[str]) -> None:
             logging.info(f'Could not find repository path. Will not try to remove non-existing repositories.')
 
 
-# TODO: Alternatively move to util?
 def get_github_repo_size(url: str) -> str:
     user = url.split('/')[-2]
     repo = url.split('/')[-1]
