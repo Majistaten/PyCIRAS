@@ -14,6 +14,8 @@ logger = logger_setup.get_logger("pyciras_logger")
 # TODO Error handling i alla metoder med bra meddelanden
 # TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
+# TODO gör så att raw data skrivs till /out/data/repo/raw och processad data till /out/data/repo/processed
+# TODO nån info.txt i varje datamapp om vilken config som användes när den kördes
 
 
 def run_analysis(repo_urls: list[str] | None = None,
@@ -64,16 +66,21 @@ def run_code_quality_analysis(repo_urls: list[str] | None = None) -> dict[str, a
     # write json to file
     data_writer.write_json_data(pylint_data, data_directory / 'pylint-raw.json')
 
-    # Remove unwanted data for csv
+    # Remove unwanted pylint messages
     pylint_data_filtered = data_converter.remove_pylint_messages(pylint_data)
 
     # Flatten the data
     pylint_data_filtered_flat = data_converter.flatten_pylint_data(pylint_data_filtered)
 
+    # write json to file
     data_writer.write_json_data(pylint_data_filtered_flat, data_directory / 'pylint-raw-flat.json')
 
+    # Remove unwanted data points and prepare for csv
+    pylint_data_cleaned = data_converter.clean_pylint_data(pylint_data_filtered_flat)
+
     # write csv to file
-    data_writer.pylint_data_csv(pylint_data_filtered_flat, data_directory)
+    data_writer.pylint_data_csv(pylint_data_cleaned, data_directory)
+
     return pylint_data
 
 

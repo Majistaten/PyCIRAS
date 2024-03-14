@@ -21,6 +21,33 @@ def flatten_pylint_data(metrics: dict) -> dict:
 
     return flat_metrics
 
+# TODO Kanske finns datom som ej är unika?
+# TODO men det spelar väl ingen roll, vi kan ändå bara välja ut ett värde per exakt datum?
+def clean_pylint_data(data: dict) -> dict:
+    """Swaps to use date as key for commits, cleans the pylint data."""
+    cleaned_data = {}
+    for repo, commits in data.items():
+        cleaned_data[repo] = {}
+        for commit_hash, pylint_data in commits.items():
+            date = pylint_data.pop("date")
+
+            cleaned_pylint_data = {}
+            for key, value in pylint_data.items():
+                if key.startswith("stats.by_module") \
+                    or key.startswith("stats.dependencies") \
+                    or key == "stats.repository_name" \
+                        or key == "stats.dependencies.util":
+                    continue
+
+                cleaned_pylint_data[key] = value
+
+            # Use the date as a key, cleaned data is used
+            cleaned_data[repo][date] = {
+                "commit_hash": commit_hash,
+                **cleaned_pylint_data  # Use cleaned data
+            }
+
+    return cleaned_data
 
 def clean_stargazers_data(stargazers_metrics: dict) -> dict:
     """Cleans the stargazers data to only contain the starred users and the time they starred the repository."""

@@ -44,22 +44,53 @@ def write_json_data(data: dict, path: Path):
         json.dump(existing_data, file, indent=4, cls=CustomEncoder)
 
 
+# TODO Refactor?
 def pydriller_data_csv(data: dict, path: Path):
     """Writes Pydriller data to a CSV file."""
     _write_to_csv(data, path / 'pydriller-flat.csv', None)
 
 
-# TODO refine, fix with headers and sort by dates first column
-# TODO replace null values with NaN
-# TODO column 1 date, col 2 global note..
-# TODO moduler,filer etc som inte fanns vid en tidpunkt får ett nullvärde för den aktuella metric
 def pylint_data_csv(data: dict, path: Path):
     """Writes Pylint data to a CSV file."""
-    for key, value in data.items():
-        output_path = path / f"pylint-{util.get_repo_name_from_path(key)}.csv"
-        if value.values() is None:
-            continue
-        _write_to_csv(value, output_path, insert_key_as="commit_hash")
+
+    for repo, dates in data.items():
+
+        unique_dates = set()
+        unique_data_points = set()
+
+        for date, pylint_data in dates.items():
+            unique_dates.add(date)
+            unique_data_points.update(pylint_data.keys())
+
+        sorted_dates = sorted(unique_dates)
+        sorted_data_points = sorted(unique_data_points)
+
+        with open(path / f'pylint-{repo}.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+
+            # Write the header
+            writer.writerow(['date'] + sorted_data_points)
+
+            # Write data for each date
+            for date in sorted_dates:
+                pylint_data = dates.get(date, {})
+                row = [date]
+                for data_point in sorted_data_points:
+                    # Append the value if it exists, else append NaN
+                    value = pylint_data.get(data_point, "NaN")
+                    row.append(value)
+
+                writer.writerow(row)
+
+# TODO denna funktionen uppdaterar global note värden på nåt sätt så de inte blir korrekt om man jämför med raw data
+# TODO sker bara vid parallellkörning
+# def pylint_data_csv(data: dict, path: Path):
+#     """Writes Pylint data to a CSV file."""
+#     for key, value in data.items():
+#         output_path = path / f"pylint-{util.get_repo_name_from_path(key)}.csv"
+#         if value.values() is None:
+#             continue
+#         _write_to_csv(value, output_path, insert_key_as="date")
 
 
 def _write_to_csv(data: dict, path: Path, insert_key_as: str | None) -> None:
@@ -69,7 +100,10 @@ def _write_to_csv(data: dict, path: Path, insert_key_as: str | None) -> None:
         field_names = set()
         for section in formatted_data:
             field_names.update([k for k in section.keys()])
-        writer = csv.DictWriter(file, fieldnames=field_names)
+
+        field_names = sorted(field_names)
+
+        writer = csv.DictWriter(file, fieldnames=field_names, restval="NaN")
         if path.stat().st_size == 0:
             writer.writeheader()
         writer.writerows(formatted_data)
