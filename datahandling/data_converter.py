@@ -1,7 +1,7 @@
+import logging
 from collections import defaultdict
 from collections.abc import MutableMapping
 from datetime import datetime
-
 
 def flatten_pydriller_data(metrics: dict) -> dict:
     """Flatten the Pydriller metrics to a single level dictionary."""
@@ -80,65 +80,39 @@ def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
 
 
 def get_test_to_code_ratio_over_time(unit_testing_metrics: dict) -> dict:
+    """Gets the test-to-code-ratio over time for each repository."""
     test_info_over_time = defaultdict(lambda: defaultdict(dict))
-
-    # TODO flera commits samma datum, skriver över varandra, hur lösa på bäst sätt?
     for repo, metrics in unit_testing_metrics.items():
         for commit_hash, data in metrics.items():
-            # date_str = str(data['date']).split(" ")[0]  # Get date without time
-            date_str = str(data['date'])  # Get date without time
-            test_to_code_ratio = data['test-to-code-ratio']
-            test_frameworks = set()
-            # Aggregate unique imports from each file
-            for file_details in data['files'].values():
-                for import_item in file_details['imports']:
-                    test_frameworks.add(import_item)
-            test_frameworks = sorted(list(test_frameworks))
-            test_classes = sum(len(file.get('unittest_classes', [])) for file in data['files'].values())
-            test_functions = sum(len(file.get('pytest_functions', [])) for file in data['files'].values())
+            try:
+                date_str = str(data['date'])
+                test_to_code_ratio = data['test-to-code-ratio']
+                test_frameworks = set()
+                # Aggregate unique imports from each file
+                for file_details in data['files'].values():
+                    for import_item in file_details['imports']:
+                        test_frameworks.add(import_item)
+                test_frameworks = sorted(list(test_frameworks))
+                test_classes = sum(len(file.get('unittest_classes', [])) for file in data['files'].values())
+                test_functions = sum(len(file.get('pytest_functions', [])) for file in data['files'].values())
 
-            test_info_over_time[repo][date_str] = {
-                'test-to-code-ratio': test_to_code_ratio,
-                'test-classes': test_classes,
-                'test-functions': test_functions,
-                'test-frameworks': test_frameworks
-            }
+                test_info_over_time[repo][date_str] = {
+                    'test-to-code-ratio': test_to_code_ratio,
+                    'test-classes': test_classes,
+                    'test-functions': test_functions,
+                    'test-frameworks': test_frameworks
+                }
 
-    # Normalize data to ensure every date has an entry for every repository, if necessary
-    # This step might be optional based on your needs
+            except TypeError as e:
+                logging.error(f"Error when compiling test-to-code-ratio metrics for "
+                              f"{repo} commit {commit_hash}: " + str(e) + "\nSkipping this commit.")
+                continue
+            except Exception as e:
+                logging.error(f"Unexpected Error when compiling test-to-code-ratio metrics for "
+                              f"{repo} commit {commit_hash}: " + str(e) + "\nSkipping this commit.")
+                continue
 
     return test_info_over_time
-
-
-# def get_test_to_code_ratio_over_time(unit_testing_metrics: dict) -> dict:
-#     test_info_over_time = defaultdict(dict)
-#
-#     for repo, metrics in unit_testing_metrics.items():
-#         for commit_hash, data in metrics.items():
-#             date_str = data['date'].split(" ")[0]  # Get date without time
-#             test_to_code_ratio = data['test-to-code-ratio']
-#             test_frameworks = # build a list of unique imports found in the data['import'] for each file
-#             test_classes = sum(len(file['unittest_classes']) for file in data['files'].values())
-#             test_functions = sum(len(file['pytest_functions']) for file in data['files'].values())
-#
-#             # # Assuming the presence of both frameworks if any test class or function is found
-#             # test_frameworks = []
-#             # if test_classes > 0:
-#             #     test_frameworks.append('unittest')
-#             # if test_functions > 0:
-#             #     test_frameworks.append('pytest')
-#
-#             test_info_over_time[repo][date_str] = {
-#                 'test-to-code-ratio': test_to_code_ratio,
-#                 'test-classes': test_classes,
-#                 'test-functions': test_functions,
-#                 'test-frameworks': test_frameworks
-#             }
-#
-#     # Normalize data to ensure every date has an entry for every repository, if necessary
-#     # This step might be optional based on your needs
-#
-#     return test_info_over_time
 
 
 def remove_pylint_messages(data: dict) -> dict:
@@ -177,4 +151,3 @@ def dict_to_list(dictionary: dict | MutableMapping, insert_key_as: str | None = 
             value[insert_key_as] = key
         formatted_list.append(value)
     return formatted_list
-

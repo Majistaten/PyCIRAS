@@ -6,38 +6,57 @@ import logging
 from utility.progress_bars import RichIterableProgressBar
 
 
-# TODO function defenitions are common for unittest and pytest, not specifically pytest
-# TODO lagrar inte imports, klasser och funktioner
 class StatementVisitor(ast.NodeVisitor):
     def __init__(self):
         self.known_test_modules = ['unittest', 'pytest', 'nose2']
+        self.test_imports = []
+        self.test_classes = []
+        self.test_functions = []
         self.test_statements = 0
         self.production_statements = 0
         self.in_test_context = False
 
     def visit_Import(self, node):
-        if any(alias.name in self.known_test_modules for alias in node.names):
-            self.test_statements += 1
-        elif not self.in_test_context:
-            self.production_statements += 1
+        for alias in node.names:
+            if alias.name in self.known_test_modules:
+                self.test_statements += 1
+                self.test_imports.append(alias.name)
+
+            elif not self.in_test_context:
+                self.production_statements += 1
         self.generic_visit(node)
 
     def visit_ClassDef(self, node):
         original_in_test_context = self.in_test_context
-        if "TestCase" in [base.id for base in node.bases if isinstance(base, ast.Name)]:
-            self.in_test_context = True
+
+        test_base_found = False
+        for base in node.bases:
+            # Check if the base is directly an ast.Name and matches 'TestCase'
+            if isinstance(base, ast.Name) and base.id == "TestCase":
+                test_base_found = True
+                break
+            # Additionally, check if the base is an ast.Attribute
+            elif isinstance(base, ast.Attribute) and base.attr == "TestCase":
+                test_base_found = True
+                break
+
+        if test_base_found:
             self.test_statements += 1
+            self.test_classes.append(node.name)
+            self.in_test_context = True
         else:
             if not self.in_test_context:
                 self.production_statements += 1
+
         self.generic_visit(node)
         self.in_test_context = original_in_test_context
 
     def visit_FunctionDef(self, node):
         original_in_test_context = self.in_test_context
         if node.name.startswith('test_'):
-            self.in_test_context = True
+            self.test_functions.append(node.name)
             self.test_statements += 1
+            self.in_test_context = True
         else:
             if not self.in_test_context:
                 self.production_statements += 1
@@ -112,20 +131,20 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
     visitor = StatementVisitor()
     for path in target_file_paths:
         visitor.test_imports = []
-        visitor.unittest_classes = []
-        visitor.pytest_functions = []
+        visitor.test_classes = []
+        visitor.test_functions = []
         visitor.test_statements = 0
         visitor.production_statements = 0
         try:
             with open(path, 'r', encoding='utf-8') as file:
-                tree = ast.parse(file.read())
                 relative_path = util.get_file_relative_path_from_absolute_path(path)
+                tree = ast.parse(file.read())
                 visitor.visit(tree)
 
                 result['files'][relative_path] = {
                     'imports': visitor.test_imports,
-                    'unittest_classes': visitor.unittest_classes,
-                    'pytest_functions': visitor.pytest_functions,
+                    'unittest_classes': visitor.test_classes,
+                    'pytest_functions': visitor.test_functions,
                     'production_statements': visitor.production_statements,
                     'test_statements': visitor.test_statements
                 }
@@ -134,7 +153,8 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
                 total_production_statements += visitor.production_statements
 
         except SyntaxError as e:
-            logging.error(f"Syntax error when executing AST analysis in file {relative_path}: {e}")
+            logging.error(f"Syntax error when executing AST analysis in file "
+                          f"{relative_path}: {e} \nSkipping this file.")
             continue
 
     # Calculate and add the repository-wide test-to-code ratio

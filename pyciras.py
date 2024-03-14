@@ -10,8 +10,9 @@ install()
 data_directory = data_writer.create_timestamped_data_directory()
 logger = logger_setup.get_logger("pyciras_logger")
 
+
 # TODO Error handling i alla metoder med bra meddelanden
-# TODO BASIC Unit testing för projektkraven
+# TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
 
 
@@ -141,6 +142,8 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None) -> dict[str, a
     test_to_code_ratio_over_time = data_converter.get_test_to_code_ratio_over_time(unit_testing_metrics)
 
     data_writer.write_json_data(test_to_code_ratio_over_time, data_directory / 'test-to-code-ratio-over-time.json')
+
+
 
     return unit_testing_metrics
     # TODO unit-testing to CSV
