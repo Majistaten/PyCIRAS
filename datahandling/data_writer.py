@@ -10,6 +10,7 @@ from rich.pretty import pprint
 
 class CustomEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle sets and datetime objects."""
+
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)  # Convert sets to lists
@@ -52,7 +53,7 @@ def pydriller_data_csv(data: dict, path: Path):
 # TODO replace null values with NaN
 # TODO column 1 date, col 2 global note..
 # TODO moduler,filer etc som inte fanns vid en tidpunkt får ett nullvärde för den aktuella metric
-def pylint_data_csv(data: MutableMapping, path: Path):
+def pylint_data_csv(data: dict, path: Path):
     """Writes Pylint data to a CSV file."""
     for key, value in data.items():
         output_path = path / f"pylint-{util.get_repo_name_from_path(key)}.csv"
@@ -61,7 +62,7 @@ def pylint_data_csv(data: MutableMapping, path: Path):
         _write_to_csv(value, output_path, insert_key_as="commit_hash")
 
 
-def _write_to_csv(data: MutableMapping, path: Path, insert_key_as: str | None) -> None:
+def _write_to_csv(data: dict, path: Path, insert_key_as: str | None) -> None:
     """Writes the data to a CSV file."""
     formatted_data = data_converter.dict_to_list(data, insert_key_as)
     with open(path, 'a', newline='') as file:
@@ -127,4 +128,3 @@ def unit_testing_data_csv(data: dict, path: Path) -> None:
             writer.writerow(row)
 
     return None
-
