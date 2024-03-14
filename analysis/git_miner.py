@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 from pydriller import Repository
 from pydriller.metrics.process.change_set import ChangeSet
@@ -8,11 +8,12 @@ from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.contributors_experience import ContributorsExperience
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
-from utility import util, config
+from utility import util, config, ntfyer
 from dotenv import load_dotenv
 import os
 import requests
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from utility.progress_bars import RichIterableProgressBar
 
@@ -52,11 +53,19 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
             disable=config.DISABLE_PROGRESS_BARS):
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url(url)
-        json_query = {
-            "query": f"""query {{
+        if check_stargazers_ratelimit()[0] == 0:
+            logging.error(f"Ratelimit exceeded, skipping {repo_owner}/{repo_name}")
+            continue
+        stargazers_list = []
+        end_cursor = None
+        stargazers_data = None
+        while True:
+            json_query = {
+                "query": f"""query {{
                     repository(owner: "{repo_owner}", name: "{repo_name}") {{
-                        stargazers(first: 100) {{
+                        stargazers(first: 100{', after: "' + end_cursor + '"' if end_cursor else ''}) {{
                             edges {{
+                                cursor
                                 starredAt
                                 node {{
                                     login
@@ -65,43 +74,69 @@ def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
                         }}
                     }}
                 }}"""
-        }
-        stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
-        if "message" in stargazers_data and stargazers_data["message"] == "Bad credentials":
-            raise ValueError(f"The github API key may be invalid: {stargazers_data['message']}")
-        elif "errors" in stargazers_data:
-            logging.error(stargazers_data["errors"][0]["message"])
-            continue
+            }
+            stargazers_data = requests.post(config.GRAPHQL_API, json=json_query, headers=headers).json()
+            if "message" in stargazers_data and stargazers_data["message"] == "Bad credentials":
+                raise ValueError(f"The github API key may be invalid: {stargazers_data['message']}")
+            elif "errors" in stargazers_data:
+                logging.error(stargazers_data["errors"][0]["message"])
+                continue
+            edges = stargazers_data["data"]["repository"]["stargazers"]["edges"]
+            if not edges:
+                break
+            stargazers_list.extend(edges)
+            end_cursor = edges[-1]["cursor"]
+
+            remaining, reset_at = check_stargazers_ratelimit()
+            if remaining in [250, 100, 10, 1]:
+                send_low_rate_limit_message(remaining, reset_at)
+            elif remaining <= 0:
+                break
 
         stargazers_data["data"]["repository"]["name"] = repo_name
+        stargazers_data["data"]["repository"]["stargazers"]["edges"] = stargazers_list
         metrics[repo_name] = stargazers_data
-
-        # TODO debug.warning om rate limit börjar bli för låg
-        # TODO skapa funktion som sköter rate limit checking
-        # rate_limiting_query = {
-        #     "query": """query {
-        #     rateLimit {
-        #         limit
-        #         cost
-        #         remaining
-        #         resetAt
-        #     }
-        #     }"""
-        # }
-        # rate_limit_info = requests.post(config.GRAPHQL_API, json=rate_limiting_query, headers=headers).json()
-        # print(rate_limit_info)
 
     return metrics
 
 
-# "TDD-Hangman": {
-#         "first-commit": "2021-09-01",
-#         "last-commit": "2021-09-01",
-#         "publish-date": "2021-09-01"
-#  },
+def check_stargazers_ratelimit() -> tuple[int, datetime]:
+    """ Checks the remaining calls to the GitHub api and returns the remaining amount and date of reset. """
+    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
+    rate_limiting_query = {
+        "query": """query {
+        rateLimit {
+            limit
+            cost
+            remaining
+            resetAt
+        }
+        }"""
+    }
+    rate_limit_info = requests.post('https://api.github.com/graphql', json=rate_limiting_query, headers=headers).json()
+    remaining = int(rate_limit_info['data']['rateLimit']['remaining'])
+    reset_at_str = rate_limit_info['data']['rateLimit']['resetAt']
+    reset_at = datetime.fromisoformat(reset_at_str.replace('Z', '')).replace(tzinfo=timezone.utc)
+
+    return remaining, reset_at
+
+
+def send_low_rate_limit_message(remaining: int, reset_at: datetime):
+    message = f"The github api rate limit is getting low. You have {remaining} requests left and it will reset {reset_at.date()} {reset_at.time()}"
+    title = "GitHub API rate limit"
+    if config.ENABLE_NTFYER:
+        ntfyer.ntfy(message, title)
+    logging.error(message)
+
+
 def get_repository_lifespan():
     """"Get the first commit, last commit and publish date of a project"""
     # TODO build this method
+    # "TDD-Hangman": {
+    #         "first-commit": "2021-09-01",
+    #         "last-commit": "2021-09-01",
+    #         "publish-date": "2021-09-01"
+    #  },
 
     pass
 

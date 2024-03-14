@@ -15,6 +15,7 @@ logger = logger_setup.get_logger("pyciras_logger")
 # TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
 
+
 def run_analysis(repo_urls: list[str] | None = None,
                  chunk_size: int = 3,
                  parallelism: bool = False,
@@ -167,7 +168,7 @@ def _load_balancing(repo_urls: list[str],
                     analyze_stargazers: bool = True):
     """Handles repositories in groups. Downloads and analyzes the repositories one group at a time,
      stores the result and removes the repository when done."""
-    if analysis_methods is None or len(analysis_methods) == 0:
+    if analyze_stargazers is False and (analysis_methods is None or len(analysis_methods) == 0):
         raise ValueError('At least one analysis method must be selected!')
     for i in range(0, len(repo_urls), chunk_size):
         logging.info(f"Analyzing repositories {i}-{i + chunk_size}")
