@@ -16,7 +16,10 @@ logger = logger_setup.get_logger("pyciras_logger")
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
 # TODO gör så att raw data skrivs till /out/data/repo/raw och processad data till /out/data/repo/processed
 # TODO nån info.txt i varje datamapp om vilken config som användes när den kördes
+# TODO name mangla individuella runmetoder
 
+# TODO lös appending för unit-testing eller fixa på annat sätt, blir överskrivning vid chunk size < repos längd
+# TODO är det relevant att ha t.ex unit testing, stargazers, pydriller CSV i samma fil, eller ska vi dela upp för att förenkla chunkskrivning?
 
 def run_analysis(repo_urls: list[str] | None = None,
                  chunk_size: int = 3,
