@@ -29,7 +29,7 @@ def mine_pylint_metrics(repo_paths_with_commits: dict[str, any]) -> dict[str, an
     metrics = {}
     for repo_path, commits in repo_paths_with_commits.items():
         logging.info(f"Code quality: inspecting {repo_path}")
-        metrics[util.get_repo_name_from_url(repo_path)] = _extract_pylint_metrics(Path(repo_path), commits)
+        metrics[util.get_repo_name_from_path(repo_path)] = _extract_pylint_metrics(Path(repo_path), commits)
 
     return metrics
 

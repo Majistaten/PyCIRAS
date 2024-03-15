@@ -50,36 +50,29 @@ def pydriller_data_csv(data: dict, path: Path):
 
 
 def pylint_data_csv(data: dict, path: Path):
-    """Writes Pylint data to a CSV file."""
+    """Writes Pylint data to a CSV file using pandas."""
 
     for repo, dates in data.items():
-
-        unique_dates = set()
-        unique_data_points = set()
-
+        data_rows = []
         for date, pylint_data in dates.items():
-            unique_dates.add(date)
-            unique_data_points.update(pylint_data.keys())
+            row = {'date': date, **pylint_data}
+            data_rows.append(row)
 
-        sorted_dates = sorted(unique_dates)
-        sorted_data_points = sorted(unique_data_points)
+        # Create DataFrame
+        df = pd.DataFrame(data_rows)
 
-        with open(path / f'pylint-{repo}.csv', mode='w', newline='') as file:
-            writer = csv.writer(file)
+        # Convert 'date' column to datetime and sort
+        df['date'] = pd.to_datetime(df['date'], utc=True)
+        df.sort_values(by='date', inplace=True)
 
-            # Write the header
-            writer.writerow(['date'] + sorted_data_points)
+        # Ensure 'date' and 'commit_hash' are the first two columns, sort other columns alphabetically
+        fixed_columns = ['date', 'commit_hash']
+        other_columns = sorted([col for col in df.columns if col not in fixed_columns])
+        df = df[fixed_columns + other_columns]
 
-            # Write data for each date
-            for date in sorted_dates:
-                pylint_data = dates.get(date, {})
-                row = [date]
-                for data_point in sorted_data_points:
-                    # Append the value if it exists, else append NaN
-                    value = pylint_data.get(data_point, "NaN")
-                    row.append(value)
+        df = df.astype(str).replace('nan', 'NaN')
 
-                writer.writerow(row)
+        df.to_csv(path / f'pylint-{repo}.csv', index=False)
 
 # TODO denna funktionen uppdaterar global note värden på nåt sätt så de inte blir korrekt om man jämför med raw data
 # TODO sker bara vid parallellkörning
