@@ -161,4 +161,3 @@ def unit_testing_data_csv(data: dict, path: Path) -> None:
                 row.append(ratio)
             writer.writerow(row)
 
-    return None
