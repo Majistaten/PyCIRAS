@@ -6,28 +6,24 @@ from analysis import code_quality, git_miner, repo_cloner, unit_testing
 from datahandling import data_writer, data_converter
 from utility import util, config, logger_setup, ntfyer
 
+# Rich progress bars
 install()
+
+# Data directory for an analysis
 data_directory = data_writer.create_timestamped_data_directory()
+
+# Logger setup
 logger = logger_setup.get_logger("pyciras_logger")
 
 
-# TODO Error handling i alla metoder med bra meddelanden
 # TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
+# TODO linta, döp om saker, refaktorera allmänt
 # TODO gör så att raw data skrivs till /out/data/repo/raw och processad data till /out/data/repo/processed
-# TODO nån info.txt i varje datamapp om vilken config som användes när den kördes
+# TODO dumpa settings och inställningar i logger för varje körning om vilken config som användes när den kördes
 # TODO name mangla individuella runmetoder
-
-# TODO lös appending för unit-testing eller fixa på annat sätt, blir överskrivning vid chunk size < repos längd
-# TODO är det relevant att ha t.ex unit testing, stargazers, pydriller CSV i samma fil, eller ska vi dela upp för att förenkla chunkskrivning?
-
-
-#TODO Data-format
-# Ska funka med chunks, appending
-# Sortera rader via datum
-# Fixa VERKLIG sortering via timezone med pandas, inte bara numeriskt -> Fixa Pylint CSV writer funktionen
-# Sortera columner med datum -> sen alfabetisk ordning
-# Parallelism ?
+# TODO verifiera all CSV mot raw-data
+# TODO gå igenom linter issues och fixa allt
 
 def run_analysis(repo_urls: list[str] | None = None,
                  chunk_size: int = 3,
