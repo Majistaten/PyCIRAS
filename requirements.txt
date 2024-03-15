@@ -11,5 +11,4 @@ pydriller~=2.6
 rich
 scipy
 seaborn
-tqdm~=4.66.2
 requests
