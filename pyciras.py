@@ -21,6 +21,14 @@ logger = logger_setup.get_logger("pyciras_logger")
 # TODO lös appending för unit-testing eller fixa på annat sätt, blir överskrivning vid chunk size < repos längd
 # TODO är det relevant att ha t.ex unit testing, stargazers, pydriller CSV i samma fil, eller ska vi dela upp för att förenkla chunkskrivning?
 
+
+#TODO Data-format
+# Ska funka med chunks, appending
+# Sortera rader via datum
+# Fixa VERKLIG sortering via timezone med pandas, inte bara numeriskt -> Fixa Pylint CSV writer funktionen
+# Sortera columner med datum -> sen alfabetisk ordning
+# Parallelism ?
+
 def run_analysis(repo_urls: list[str] | None = None,
                  chunk_size: int = 3,
                  parallelism: bool = False,
@@ -212,11 +220,12 @@ def _execute_in_parallel(args_list: list, max_workers: int = 4):
 
 
 if __name__ == '__main__':
-    run_analysis(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS),
-                 chunk_size=3,
-                 parallelism=False,
-                 remove_repos_after_completion=True,
-                 analyse_stargazers=True,
-                 analyze_unit_testing=True,
-                 analyze_repositories=True,
-                 analyze_code_quality=True)
+    # run_analysis(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS),
+    #              chunk_size=3,
+    #              parallelism=False,
+    #              remove_repos_after_completion=True,
+    #              analyse_stargazers=True,
+    #              analyze_unit_testing=True,
+    #              analyze_repositories=True,
+    #              analyze_code_quality=True)
+    run_unit_testing_analysis()
