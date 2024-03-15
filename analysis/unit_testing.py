@@ -90,7 +90,7 @@ def mine_unit_testing_metrics(repo_paths_with_commits: dict[str, any]) -> dict[s
     metrics = {}
     for repo_path, commits in repo_paths_with_commits.items():
         logging.info(f"Unit Testing: inspecting {repo_path}")
-        metrics[util.get_repo_name_from_url(repo_path)] = _extract_unit_testing_metrics(Path(repo_path), commits)
+        metrics[util.get_repo_name_from_path(repo_path)] = _extract_unit_testing_metrics(Path(repo_path), commits)
 
     return metrics
 
