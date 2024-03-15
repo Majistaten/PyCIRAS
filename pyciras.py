@@ -178,7 +178,7 @@ def run_repo_cloner():
 
 
 def _load_balancing(repo_urls: list[str],
-                    chunk_size: int = 4,
+                    chunk_size: int = 1,
                     parallelism: bool = False,
                     remove_repos_after_completion: bool = True,
                     analysis_methods: list[Callable[..., dict[str, any]]] | None = None,
@@ -220,12 +220,11 @@ def _execute_in_parallel(args_list: list, max_workers: int = 4):
 
 
 if __name__ == '__main__':
-    # run_analysis(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS),
-    #              chunk_size=3,
-    #              parallelism=False,
-    #              remove_repos_after_completion=True,
-    #              analyse_stargazers=True,
-    #              analyze_unit_testing=True,
-    #              analyze_repositories=True,
-    #              analyze_code_quality=True)
-    run_unit_testing_analysis()
+    run_analysis(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS),
+                 chunk_size=3,
+                 parallelism=False,
+                 remove_repos_after_completion=True,
+                 analyse_stargazers=True,
+                 analyze_unit_testing=True,
+                 analyze_repositories=True,
+                 analyze_code_quality=True)
