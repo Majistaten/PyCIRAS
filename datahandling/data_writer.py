@@ -3,9 +3,8 @@ from pathlib import Path
 import csv
 import json
 from datetime import datetime
-from collections.abc import MutableMapping
 import datahandling.data_converter as data_converter
-from rich.pretty import pprint
+import pandas as pd
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -130,34 +129,43 @@ def stargazers_data_csv(data: dict, path: Path) -> None:
 
 
 def unit_testing_data_csv(data: dict, path: Path) -> None:
-    """Writes unit testing data to a CSV file."""
+    """Writes/updates unit testing data to/in a CSV file."""
 
-    # Initialize containers for dates and repositories
-    dates = set()
-    repos = set()
+    file_path = path / 'test-to-code-ratio-over-time.csv'
 
-    # Collect all unique dates and repositories
+    # Try to load the existing CSV into a DataFrame or create an empty one if the file doesn't exist
+    try:
+        existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
+    except FileNotFoundError:
+        existing_df = pd.DataFrame()
+
+    # Preparing new data from the incoming dictionary
+    new_data = []
     for repo, timestamps in data.items():
-        repos.add(repo)
-        for timestamp in timestamps:
-            dates.add(timestamp)
+        for timestamp, details in timestamps.items():
+            new_data.append({
+                'date': timestamp,
+                repo: details.get('test-to-code-ratio')
+            })
 
-    # Sort the collected dates and repositories
-    sorted_dates = sorted(dates)
-    sorted_repos = sorted(repos)
+    # Create a new DataFrame from the new data
+    new_df = pd.DataFrame(new_data)
+    new_df['date'] = pd.to_datetime(new_df['date'], utc=True)
+    new_df.set_index('date', inplace=True)
 
-    with open(path / 'test-to-code-ratio-over-time.csv', mode='w', newline='') as file:
-        writer = csv.writer(file)
+    # Merge or update the existing data with the new data
+    if not existing_df.empty:
+        updated_df = pd.merge(existing_df, new_df, left_index=True, right_index=True, how='outer')
+    else:
+        updated_df = new_df
+    updated_df = updated_df.reindex(sorted(updated_df.columns), axis=1)
 
-        # Write the header
-        writer.writerow(['date'] + list(sorted_repos))
+    # Sort dates from oldest to newest
+    updated_df.sort_index(inplace=True)
 
-        # Write data for each date
-        for date in sorted_dates:
-            row = [date]
-            for repo in sorted_repos:
-                # Get the test-to-code ratio for the repo at the current date, if available
-                ratio = data.get(repo, {}).get(date, {}).get('test-to-code-ratio', 'NaN')
-                row.append(ratio)
-            writer.writerow(row)
+    # Replace 'nan' with 'NaN'
+    updated_df = updated_df.astype(str).replace('nan', 'NaN')
+
+    # Write the updated DataFrame
+    updated_df.to_csv(file_path)
 
