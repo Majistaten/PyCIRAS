@@ -85,7 +85,7 @@ class StatementVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def mine_unit_testing_metrics(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
+def mine_test_data(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
     """Get unit-testing metrics from the commits of multiple git repositories"""
     metrics = {}
     for repo_path, commits in repo_paths_with_commits.items():

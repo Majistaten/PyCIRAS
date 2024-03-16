@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import MutableMapping
 from datetime import datetime
 
-def flatten_pydriller_data(metrics: dict) -> dict:
+def flatten_git_data(metrics: dict) -> dict:
     """Flatten the Pydriller metrics to a single level dictionary."""
     flat_metrics = metrics
     for key, value in flat_metrics.items():
@@ -12,7 +12,7 @@ def flatten_pydriller_data(metrics: dict) -> dict:
     return flat_metrics
 
 
-def flatten_pylint_data(metrics: dict) -> dict:
+def flatten_lint_data(metrics: dict) -> dict:
     """Flatten the Pylint metrics to a single level dictionary."""
     flat_metrics = metrics
     for key, value in flat_metrics.items():
@@ -23,7 +23,7 @@ def flatten_pylint_data(metrics: dict) -> dict:
 
 # TODO Kanske finns datom som ej är unika?
 # TODO men det spelar väl ingen roll, vi kan ändå bara välja ut ett värde per exakt datum?
-def clean_pylint_data(data: dict) -> dict:
+def clean_lint_data(data: dict) -> dict:
     """Swaps to use date as key for commits, cleans the pylint data."""
     cleaned_data = {}
     for repo, commits in data.items():
@@ -107,7 +107,7 @@ def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
     return stars_over_time
 
 
-def get_test_to_code_ratio_over_time(unit_testing_metrics: dict) -> dict:
+def get_test_data_over_time(unit_testing_metrics: dict) -> dict:
     """Gets the test-to-code-ratio over time for each repository."""
     test_info_over_time = defaultdict(lambda: defaultdict(dict))
     for repo, metrics in unit_testing_metrics.items():
@@ -143,7 +143,7 @@ def get_test_to_code_ratio_over_time(unit_testing_metrics: dict) -> dict:
     return test_info_over_time
 
 
-def remove_pylint_messages(data: dict) -> dict:
+def remove_lint_messages(data: dict) -> dict:
     """Removes the messages from the pylint data"""
     for repo, value in data.items():
         if value is None:

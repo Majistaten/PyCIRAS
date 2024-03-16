@@ -26,7 +26,7 @@ class LintReporter(TextReporter):
         self.messages.append(msg)
 
 
-def mine_lint_metrics(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
+def mine_lint_data(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
     """Get Pylint metrics from the commits of multiple git repositories"""
     metrics = {}
     for repo_path, commits in repo_paths_with_commits.items():

@@ -29,7 +29,7 @@ def create_timestamped_data_directory() -> Path:
     return output_directory
 
 
-def write_json_data(data: dict, path: Path):
+def write_json(data: dict, path: Path):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
     try:
         with open(path, 'r') as file:
@@ -44,12 +44,12 @@ def write_json_data(data: dict, path: Path):
 
 
 # TODO Refactor?
-def pydriller_data_csv(data: dict, path: Path):
+def write_git_csv(data: dict, path: Path):
     """Writes Pydriller data to a CSV file."""
     _write_to_csv(data, path / 'pydriller-flat.csv', None)
 
 
-def pylint_data_csv(data: dict, path: Path):
+def write_lint_csv(data: dict, path: Path):
     """Writes Pylint data to a CSV file using pandas."""
 
     for repo, dates in data.items():
@@ -121,7 +121,7 @@ def stargazers_data_csv(data: dict, path: Path) -> None:
             writer.writerow(row)
 
 
-def unit_testing_data_csv(data: dict, path: Path) -> None:
+def write_test_csv(data: dict, path: Path) -> None:
     """Writes/updates unit testing data to/in a CSV file."""
 
     file_path = path / 'test-to-code-ratio-over-time.csv'

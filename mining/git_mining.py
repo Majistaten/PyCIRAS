@@ -14,15 +14,15 @@ import os
 import requests
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from rich.pretty import pprint
 
 from utility.progress_bars import RichIterableProgressBar
 
 
-def mine_pydriller_metrics(repositories: list[str],
-                           repository_directory: Path,
-                           since: datetime = datetime.now(),
-                           to: datetime = datetime.now() - relativedelta(years=20)
-                           ) -> dict[str, dict[str, any]]:
+def mine_git_data(repository_directory: Path,
+                  repositories: list[str],
+                  since: datetime = datetime.now(),
+                  to: datetime = datetime.now() - relativedelta(years=20)) -> dict[str, dict[str, any]]:
     """Get Pydriller metrics in a dict from a git repository"""
 
     metrics = {}
@@ -38,7 +38,7 @@ def mine_pydriller_metrics(repositories: list[str],
     return metrics
 
 
-def mine_stargazers_metrics(repo_urls: list[str]) -> dict[str, [dict]]:
+def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
     """Get stargazers metrics in a dict from the GraphQL API of GitHub"""
 
     load_dotenv()
@@ -181,7 +181,7 @@ def get_repository_lifespan(repo_url: str) -> dict[str, any]:
         return {}
 
 
-def get_repos_commit_metadata(repositories: list[str], repository_directory: Path) -> dict[str, any]:
+def get_repos_commit_metadata(repository_directory: Path, repositories: list[Path]) -> dict[str, any]:
     """Get a dictionary of repo urls with their commit hashes and dates of these commits from a list of repository
     paths """
     repos = _load_repositories(repositories, repository_directory)
@@ -195,20 +195,25 @@ def get_repos_commit_metadata(repositories: list[str], repository_directory: Pat
     return commit_dates
 
 
-def _load_repositories(repositories: list[str], repository_directory: Path) -> (
+# TODO behöver hela URL om den ska klona, annars bara namnet
+# TODO är inte url, är både path och url (Path/String)
+def _load_repositories(repositories: list[Path | str], repository_directory: Path) -> (
         dict[str, Repository]):
     """Load repositories for further processing"""
     repository_path = repository_directory
     repository_path.mkdir(parents=True, exist_ok=True)
     logging.debug('Loading repositories.')
 
+    # TODO är inte url, det är path
     return {
         str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in
         RichIterableProgressBar(repositories,
-                                description="Loading Repositories", # TODO ta bort denna progress bar
+                                description="Loading Repositories",  # TODO ta bort denna progress bar
                                 disable=config.DISABLE_PROGRESS_BARS)}
 
 
+# TODO behöver hela URL om den ska klona, annars bara namnet
+# TODO är inte url, är både path och url (Path/String)
 def _load_repository(repo_url: str, repository_directory: Path) -> Repository:
     """Load repository stored locally, or clone and load if not present"""
 
