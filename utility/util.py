@@ -1,7 +1,6 @@
 import os
 import logging
 from pathlib import Path
-
 from utility import config
 
 
@@ -67,4 +66,3 @@ def format_size(size_in_kb: int) -> str:
     else:
         size_in_gb = size_in_kb / (1024 * 1024)
         return f"{size_in_gb:.2f} GB"
-

@@ -6,6 +6,7 @@ from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, 
 
 class RichProgressColumn(ProgressColumn):
     """ A custom column to display as 'current/total'."""
+
     def render(self, task):
         if task.total is not None:
             return TextColumn(f"{int(task.completed)}/{int(task.total)}").render(task)
@@ -26,6 +27,7 @@ class RichIterableProgressBar:
         refresh_per_second: The refresh rate of the progress bar.
         disable: Whether the progress bar is disabled.
     """
+
     def __init__(self,
                  iterable,
                  description: str = "Processing",
@@ -154,11 +156,11 @@ class CloneProgress(RemoteProgress):
         return cls.OP_CODE_MAP.get(op_code_masked, "?").title()
 
     def update(
-        self,
-        op_code: int,
-        cur_count: str | float,
-        max_count: str | float | None = None,
-        message: str | None = "",
+            self,
+            op_code: int,
+            cur_count: str | float,
+            max_count: str | float | None = None,
+            message: str | None = "",
     ) -> None:
         if op_code & self.BEGIN:
             self.curr_op = self.get_curr_op(op_code)
@@ -179,27 +181,3 @@ class CloneProgress(RemoteProgress):
                 task_id=self.active_task,
                 message=f"[bright_black]{message}",
             )
-
-
-# Example usage
-if __name__ == "__main__":
-    import time
-
-    def generate_items(n):
-        for i in range(n):
-            time.sleep(0.1)
-            yield i
-
-    items = range(50)
-    for item in RichIterableProgressBar(items, description="Processing Items",
-                                        completion_description="Completed processing",
-                                        postfix="Name or something",
-                                        bar_width=30,
-                                        transient=False):
-        time.sleep(0.1)
-
-    generator = generate_items(30)
-    for item in RichIterableProgressBar(generator, description="Processing Generator", transient=False):
-        pass
-
-    print("Manual progress bar")

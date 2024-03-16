@@ -1,4 +1,3 @@
 https://github.com/githubnext/amalfi-artifact
 https://github.com/facebookresearch/data_driven_infer
-https://github.com/se-passau/Distance-Based_Data
 https://github.com/SamuelThand/TDD-Hangman

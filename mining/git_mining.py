@@ -181,7 +181,7 @@ def get_repository_lifespan(repo_url: str) -> dict[str, any]:
         return {}
 
 
-def get_repo_paths_with_commit_hashes_and_dates(repositories: list[str], repository_directory: Path) -> dict[str, any]:
+def get_repos_commit_metadata(repositories: list[str], repository_directory: Path) -> dict[str, any]:
     """Get a dictionary of repo urls with their commit hashes and dates of these commits from a list of repository
     paths """
     repos = _load_repositories(repositories, repository_directory)
@@ -205,7 +205,7 @@ def _load_repositories(repositories: list[str], repository_directory: Path) -> (
     return {
         str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in
         RichIterableProgressBar(repositories,
-                                description="Loading Repositories",
+                                description="Loading Repositories", # TODO ta bort denna progress bar
                                 disable=config.DISABLE_PROGRESS_BARS)}
 
 

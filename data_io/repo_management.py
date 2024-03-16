@@ -6,29 +6,21 @@ from utility import util, config
 from utility.progress_bars import CloneProgress
 
 
-def download_repositories(
-        destination_folder: Path,
-        repo_urls_file_path: Path = None,
-        repo_urls_list: list[str] = None) -> list[Path] | bool:
+# TODO döp om, laddar inte alltid ner - hämtar de snarare från lokal/remote
+# TODO syfte med att den returnar null om det ej finns repo source
+# TODO skriv om docstring, stämmer inte
+def download_repositories(destination_folder: Path, repo_urls: list[str]) -> list[Path]:
     """
     Downloads a list of repositories from a file or a list of URLs.
     Args:
         repo_urls_file_path: Path to a file containing a list of repository URLs.
         destination_folder: The folder to clone the repositories to.
-        repo_urls_list: A list of repository URLs.
+        repo_urls: A list of repository URLs.
 
     Returns:
         True if all repositories were successfully cloned, else False.
     """
     repository_paths = []
-    if repo_urls_list is not None:
-        repo_urls = repo_urls_list
-    elif repo_urls_file_path.exists() and repo_urls_file_path.is_file():
-        repo_urls = util.get_repository_urls_from_file(repo_urls_file_path)
-    else:
-        logging.error('No repository source provided. Please provide either a file or a list of URLs.')
-        return False
-
     logging.info(f'Downloading {len(repo_urls)} repositories.')
     for i, repo_url in enumerate(repo_urls):
         logging.info(f'Downloading repository {i + 1} of {len(repo_urls)}...')
@@ -66,7 +58,8 @@ def clone_repository(repo_url: str, destination_folder: Path, postfix: str = "")
         logging.info(f'Cloning Git Repository {repo_name} of size {repo_size} from {repo_url} ...')
         Repo.clone_from(repo_url,
                         repo_path,
-                        progress=CloneProgress(description=repo_name, postfix=postfix, disable=config.DISABLE_PROGRESS_BARS))
+                        progress=CloneProgress(description=repo_name, postfix=postfix,
+                                               disable=config.DISABLE_PROGRESS_BARS))
 
         logging.info(f'Finished cloning {repo_path}')
         return repo_path
@@ -76,7 +69,7 @@ def clone_repository(repo_url: str, destination_folder: Path, postfix: str = "")
         return None
 
 
-def remove_repositories(content: list[str]) -> None:
+def remove_repos(content: list[str]) -> None:
     """ Remove all repositories in the content list. """
     logging.info(f'Removing {len(content)} repositories {content}')
     for url in content:
@@ -103,4 +96,3 @@ def get_github_repo_size(url: str) -> str:
     else:
         logging.warning(f"Failed to fetch repository data from {api_url}. Status code: {response.status_code}")
         return ""
-
