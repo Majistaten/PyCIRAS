@@ -3,7 +3,7 @@ from pathlib import Path
 import csv
 import json
 from datetime import datetime
-import datahandling.data_converter as data_converter
+import data_io.data_manipulation as data_converter
 import pandas as pd
 
 

@@ -115,7 +115,7 @@ def _extract_unit_testing_metrics(repository_path: Path, commits: any) -> dict[s
 
 
 def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
-    """Run the AST analysis on the files in the repository"""
+    """Run the AST mining on the files in the repository"""
     target_file_paths = util.get_python_files_from_directory(repository_path)
     if target_file_paths is None or len(target_file_paths) == 0:
         logging.info(f"No python files found in {repository_path}")
@@ -153,7 +153,7 @@ def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
                 total_production_statements += visitor.production_statements
 
         except SyntaxError as e:
-            logging.error(f"Syntax error when executing AST analysis in file "
+            logging.error(f"Syntax error when executing AST mining in file "
                           f"{relative_path}: {e} \nSkipping this file.")
             continue
 

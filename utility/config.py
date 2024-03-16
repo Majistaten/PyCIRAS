@@ -8,10 +8,11 @@ OUTPUT_FOLDER: Path = ROOT_DIR / 'out'
 DATA_FOLDER: Path = OUTPUT_FOLDER / 'data'
 REPOSITORY_URLS: Path = ROOT_DIR / 'repos.txt'
 REPOSITORIES_FOLDER: Path = OUTPUT_FOLDER / 'repositories'
-GRAPHQL_API: str = 'https://api.github.com/graphql'
 LOGGING_FOLDER: Path = OUTPUT_FOLDER / 'logs'
+GRAPHQL_API: str = 'https://api.github.com/graphql'
+PYLINT_CONFIG: Path = ROOT_DIR / 'mining' / '.pylintrc'
 DISABLE_PROGRESS_BARS: bool = False
 VERBOSE_LOGGING_LEVEL: int = logging.WARNING
 FILE_LOGGING_LEVEL: int = logging.DEBUG
-ENABLE_NTFYER: bool = True
+ENABLE_NTFYER: bool = False
 

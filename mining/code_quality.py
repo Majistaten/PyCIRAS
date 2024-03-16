@@ -9,6 +9,8 @@ import logging
 from git import Repo
 from utility import util, config
 from utility.progress_bars import RichIterableProgressBar
+from rich.pretty import pprint
+
 
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
@@ -65,7 +67,7 @@ def _run_pylint(repository_path: Path) -> dict[str, any] | None:
 
     logging.info(f"Analyzing {len(target_files)} files in {repository_path}")
 
-    run = Run(target_files, reporter=reporter, exit=False)
+    run = Run([f'--rcfile={config.PYLINT_CONFIG}'] + target_files, reporter=reporter, exit=False)
     stats = run.linter.stats
     if not isinstance(stats, dict):
         stats_dict = {str(attr): getattr(stats, attr) for attr in dir(stats) if

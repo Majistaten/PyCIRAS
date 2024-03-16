@@ -2,12 +2,12 @@ import concurrent.futures
 import logging
 import rich.traceback
 from typing import Callable
-from analysis import code_quality, git_miner, repo_cloner, unit_testing
-from datahandling import data_writer, data_converter
+from mining import code_quality, git_miner, repo_cloner, unit_testing
+from data_io import data_file_management, data_manipulation
 from utility import util, config, logger_setup, ntfyer
 
 rich.traceback.install()
-data_directory = data_writer.create_timestamped_data_directory()
+data_directory = data_file_management.create_timestamped_data_directory()
 logger = logger_setup.get_logger("pyciras_logger")
 
 # TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
@@ -19,7 +19,7 @@ logger = logger_setup.get_logger("pyciras_logger")
 # TODO verifiera all CSV mot raw-data
 # TODO gå igenom linter issues och fixa allt
 # TODO insertera log statements på alla olika execution branches på info-nivå
-
+# TODO kolla .pylintrc settings så man får ut cyclomatic complexity och alla andra intressanta metrics - inte säkert att man får det nu
 
 def run_mining(repo_urls: list[str] = None,
                chunk_size: int = 3,
@@ -29,12 +29,12 @@ def run_mining(repo_urls: list[str] = None,
                code_quality: bool = True,
                unit_testing: bool = True,
                git_mining: bool = True, ):
-    """Run the full analysis pipeline on the specified repositories"""
+    """"Execute the specified mining on a list of repositories."""
 
     if repo_urls is None:
         repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
-    logging.info(f"Running analysis on {len(repo_urls)} repositories.")
+    logging.info(f"Running mining on {len(repo_urls)} repositories.")
     analysis_methods = []
     if code_quality:
         analysis_methods.append(_code_quality)
@@ -66,22 +66,22 @@ def _code_quality(repo_urls: list[str]) -> dict[str, any]:
     pylint_data = code_quality.mine_pylint_metrics(repositories_with_commits)
 
     # write json to file
-    data_writer.write_json_data(pylint_data, data_directory / 'pylint-raw.json')
+    data_file_management.write_json_data(pylint_data, data_directory / 'pylint-raw.json')
 
     # Remove unwanted pylint messages
-    pylint_data_filtered = data_converter.remove_pylint_messages(pylint_data)
+    pylint_data_filtered = data_manipulation.remove_pylint_messages(pylint_data)
 
     # Flatten the data
-    pylint_data_filtered_flat = data_converter.flatten_pylint_data(pylint_data_filtered)
+    pylint_data_filtered_flat = data_manipulation.flatten_pylint_data(pylint_data_filtered)
 
     # write json to file
-    data_writer.write_json_data(pylint_data_filtered_flat, data_directory / 'pylint-raw-flat.json')
+    data_file_management.write_json_data(pylint_data_filtered_flat, data_directory / 'pylint-raw-flat.json')
 
     # Remove unwanted data points and prepare for csv
-    pylint_data_cleaned = data_converter.clean_pylint_data(pylint_data_filtered_flat)
+    pylint_data_cleaned = data_manipulation.clean_pylint_data(pylint_data_filtered_flat)
 
     # write csv to file
-    data_writer.pylint_data_csv(pylint_data_cleaned, data_directory)
+    data_file_management.pylint_data_csv(pylint_data_cleaned, data_directory)
 
     return pylint_data
 
@@ -95,16 +95,16 @@ def run_pydriller_analysis(repo_urls: list[str]) -> dict[str, any]:
     pydriller_data = git_miner.mine_pydriller_metrics(repo_urls, repository_directory=config.REPOSITORIES_FOLDER)
 
     # write json to file
-    data_writer.write_json_data(pydriller_data, data_directory / 'pydriller-raw.json')
+    data_file_management.write_json_data(pydriller_data, data_directory / 'pydriller-raw.json')
 
     # Flatten the data
-    pydriller_data_flat = data_converter.flatten_pydriller_data(pydriller_data)
+    pydriller_data_flat = data_manipulation.flatten_pydriller_data(pydriller_data)
 
     # write json to file
-    data_writer.write_json_data(pydriller_data_flat, data_directory / 'pydriller-flat.json')
+    data_file_management.write_json_data(pydriller_data_flat, data_directory / 'pydriller-flat.json')
 
     # write csv to file
-    data_writer.pydriller_data_csv(pydriller_data_flat, data_directory)
+    data_file_management.pydriller_data_csv(pydriller_data_flat, data_directory)
 
     return pydriller_data
 
@@ -121,18 +121,18 @@ def run_stargazers_analysis(repo_urls: list[str]) -> dict[str, any]:
         logging.error(f"Something unexpected happened: {e}")
         return
 
-    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-raw.json')
+    data_file_management.write_json_data(stargazers_metrics, data_directory / 'stargazers-raw.json')
 
     # Clean the data
-    stargazers_metrics = data_converter.clean_stargazers_data(stargazers_metrics)
+    stargazers_metrics = data_manipulation.clean_stargazers_data(stargazers_metrics)
 
-    data_writer.write_json_data(stargazers_metrics, data_directory / 'stargazers-cleaned.json')
+    data_file_management.write_json_data(stargazers_metrics, data_directory / 'stargazers-cleaned.json')
 
     # Extract stargazers over time
-    stargazers_over_time = data_converter.get_stargazers_over_time(stargazers_metrics)
+    stargazers_over_time = data_manipulation.get_stargazers_over_time(stargazers_metrics)
 
-    data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
-    data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
+    data_file_management.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
+    data_file_management.stargazers_data_csv(stargazers_over_time, data_directory)
 
     return stargazers_metrics
 
@@ -150,17 +150,17 @@ def run_unit_testing_analysis(repo_urls: list[str]) -> dict[str, any]:
     unit_testing_metrics = unit_testing.mine_unit_testing_metrics(repositories_with_commits)
 
     # write json to file
-    data_writer.write_json_data(unit_testing_metrics, data_directory / 'unit-testing-raw.json')
+    data_file_management.write_json_data(unit_testing_metrics, data_directory / 'unit-testing-raw.json')
 
     # Extract test to code ratio over time
     # TODO Rename
-    test_to_code_ratio_over_time = data_converter.get_test_to_code_ratio_over_time(unit_testing_metrics)
+    test_to_code_ratio_over_time = data_manipulation.get_test_to_code_ratio_over_time(unit_testing_metrics)
 
     # write json to file
-    data_writer.write_json_data(test_to_code_ratio_over_time, data_directory / 'test-to-code-ratio-over-time.json')
+    data_file_management.write_json_data(test_to_code_ratio_over_time, data_directory / 'test-to-code-ratio-over-time.json')
 
     # write csv to file
-    data_writer.unit_testing_data_csv(test_to_code_ratio_over_time, data_directory)
+    data_file_management.unit_testing_data_csv(test_to_code_ratio_over_time, data_directory)
 
     return unit_testing_metrics
 
@@ -180,7 +180,7 @@ def _load_balancing(repo_urls: list[str],
     """Handles repositories in groups. Downloads and analyzes the repositories one group at a time,
      stores the result and removes the repository when done."""
     if analyze_stargazers is False and (analysis_methods is None or len(analysis_methods) == 0):
-        raise ValueError('At least one analysis method must be selected!')
+        raise ValueError('At least one mining method must be selected!')
     for i in range(0, len(repo_urls), chunk_size):
         logging.info(f"Analyzing repositories {i}-{i + chunk_size}")
         current_group = repo_urls[i:i + chunk_size]
