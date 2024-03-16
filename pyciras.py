@@ -1,20 +1,14 @@
 import concurrent.futures
 import logging
-from rich.traceback import install
+import rich.traceback
 from typing import Callable
 from analysis import code_quality, git_miner, repo_cloner, unit_testing
 from datahandling import data_writer, data_converter
 from utility import util, config, logger_setup, ntfyer
 
-# Rich progress bars
-install()
-
-# Data directory for an analysis
+rich.traceback.install()
 data_directory = data_writer.create_timestamped_data_directory()
-
-# Logger setup
 logger = logger_setup.get_logger("pyciras_logger")
-
 
 # TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
@@ -24,43 +18,44 @@ logger = logger_setup.get_logger("pyciras_logger")
 # TODO name mangla individuella runmetoder
 # TODO verifiera all CSV mot raw-data
 # TODO gå igenom linter issues och fixa allt
+# TODO insertera log statements på alla olika execution branches på info-nivå
 
-def run_analysis(repo_urls: list[str] | None = None,
-                 chunk_size: int = 3,
-                 parallelism: bool = False,
-                 remove_repos_after_completion: bool = False,
-                 analyse_stargazers: bool = True,
-                 analyze_code_quality: bool = True,
-                 analyze_unit_testing: bool = True,
-                 analyze_repositories: bool = True, ):
+
+def run_mining(repo_urls: list[str] = None,
+               chunk_size: int = 3,
+               multiprocessing: bool = False,
+               persist_repos: bool = True,
+               stargazers: bool = True,
+               code_quality: bool = True,
+               unit_testing: bool = True,
+               git_mining: bool = True, ):
     """Run the full analysis pipeline on the specified repositories"""
+
+    if repo_urls is None:
+        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+
     logging.info(f"Running analysis on {len(repo_urls)} repositories.")
     analysis_methods = []
-    if analyze_code_quality:
-        analysis_methods.append(run_code_quality_analysis)
-    if analyze_repositories:
+    if code_quality:
+        analysis_methods.append(_code_quality)
+    if git_mining:
         analysis_methods.append(run_pydriller_analysis)
-    if analyze_unit_testing:
+    if unit_testing:
         analysis_methods.append(run_unit_testing_analysis)
 
     _load_balancing(repo_urls,
                     chunk_size,
-                    parallelism,
-                    remove_repos_after_completion,
+                    multiprocessing,
+                    persist_repos,
                     analysis_methods,
-                    analyse_stargazers)
+                    stargazers)
 
     ntfyer.ntfy(data=f"The execution has completed, {len(repo_urls)} repositories were analyzed.",
                 title="Pyciras complete")
 
 
-#     TODO notification when its finished running, with totalt time and errors
-#     TODO implement NTFY for errors with the analysis
-
-
-def run_code_quality_analysis(repo_urls: list[str] | None = None) -> dict[str, any]:
-    if repo_urls is None:
-        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+# TODO döp om metoder så de heter något mer beskrivande, t.ex code quality, git metrics, inte pydriller
+def _code_quality(repo_urls: list[str]) -> dict[str, any]:
 
     repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
@@ -91,9 +86,7 @@ def run_code_quality_analysis(repo_urls: list[str] | None = None) -> dict[str, a
     return pylint_data
 
 
-def run_pydriller_analysis(repo_urls: list[str] | None = None) -> dict[str, any]:
-    if repo_urls is None:
-        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+def run_pydriller_analysis(repo_urls: list[str]) -> dict[str, any]:
 
     repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
@@ -107,15 +100,18 @@ def run_pydriller_analysis(repo_urls: list[str] | None = None) -> dict[str, any]
     # Flatten the data
     pydriller_data_flat = data_converter.flatten_pydriller_data(pydriller_data)
 
+    # write json to file
+    data_writer.write_json_data(pydriller_data_flat, data_directory / 'pydriller-flat.json')
+
     # write csv to file
     data_writer.pydriller_data_csv(pydriller_data_flat, data_directory)
 
     return pydriller_data
 
+# TODO name mangla alla metoder och ta bort run_ prefixet
+# Refaktorera ut all dataskrivning till runmetoden, returnera bara metrics istället - få bort massa side effects of duplicerad kod
+def run_stargazers_analysis(repo_urls: list[str]) -> dict[str, any]:
 
-def run_stargazers_analysis(repo_urls: list[str] | None = None) -> dict[str, any]:
-    if repo_urls is None:
-        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
     try:
         stargazers_metrics = git_miner.mine_stargazers_metrics(repo_urls)
     except ValueError as e:
@@ -137,12 +133,11 @@ def run_stargazers_analysis(repo_urls: list[str] | None = None) -> dict[str, any
 
     data_writer.write_json_data(stargazers_over_time, data_directory / 'stargazers-over-time.json')
     data_writer.stargazers_data_csv(stargazers_over_time, data_directory)
+
     return stargazers_metrics
 
 
-def run_unit_testing_analysis(repo_urls: list[str] | None = None) -> dict[str, any]:
-    if repo_urls is None:
-        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+def run_unit_testing_analysis(repo_urls: list[str]) -> dict[str, any]:
 
     repo_paths = repo_cloner.download_repositories(repo_urls_list=repo_urls,
                                                    destination_folder=config.REPOSITORIES_FOLDER)
@@ -158,6 +153,7 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None) -> dict[str, a
     data_writer.write_json_data(unit_testing_metrics, data_directory / 'unit-testing-raw.json')
 
     # Extract test to code ratio over time
+    # TODO Rename
     test_to_code_ratio_over_time = data_converter.get_test_to_code_ratio_over_time(unit_testing_metrics)
 
     # write json to file
@@ -169,10 +165,12 @@ def run_unit_testing_analysis(repo_urls: list[str] | None = None) -> dict[str, a
     return unit_testing_metrics
 
 
+# TODO implement
 def run_repo_cloner():
     pass
 
-
+# TODO döp om
+# TODO refaktorera
 def _load_balancing(repo_urls: list[str],
                     chunk_size: int = 1,
                     parallelism: bool = False,
@@ -193,7 +191,7 @@ def _load_balancing(repo_urls: list[str],
             for method in analysis_methods:
                 logging.info(f"Running {str(method.__name__)}")
                 method(current_group)
-        if remove_repos_after_completion:
+        if not remove_repos_after_completion:
             repo_cloner.remove_repositories(current_group)
     if analyze_stargazers:
         run_stargazers_analysis(repo_urls)
@@ -216,11 +214,11 @@ def _execute_in_parallel(args_list: list, max_workers: int = 4):
 
 
 if __name__ == '__main__':
-    run_analysis(repo_urls=util.get_repository_urls_from_file(config.REPOSITORY_URLS),
-                 chunk_size=3,
-                 parallelism=False,
-                 remove_repos_after_completion=True,
-                 analyse_stargazers=True,
-                 analyze_unit_testing=True,
-                 analyze_repositories=True,
-                 analyze_code_quality=True)
+    run_mining(repo_urls=None,
+               chunk_size=1,
+               multiprocessing=False,
+               persist_repos=True,
+               stargazers=True,
+               unit_testing=True,
+               git_mining=True,
+               code_quality=True)
