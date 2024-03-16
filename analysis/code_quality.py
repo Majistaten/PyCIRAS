@@ -59,6 +59,8 @@ def _run_pylint(repository_path: Path) -> dict[str, any] | None:
     if target_files is None or len(target_files) == 0:
         logging.info(f"No python files found in {repository_path}")
         return None
+    elif len(target_files) > 1000:
+        logging.warning(f"Found {len(target_files)} files in {repository_path}. This might take a while, consider skipping this repository.")
 
     out = StringIO()
     reporter = LintReporter(output=out)

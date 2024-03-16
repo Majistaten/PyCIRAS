@@ -29,7 +29,11 @@ def clean_pylint_data(data: dict) -> dict:
     for repo, commits in data.items():
         cleaned_data[repo] = {}
         for commit_hash, pylint_data in commits.items():
-            date = pylint_data.pop("date")
+            try:
+                date = pylint_data.pop("date")
+            except Exception as e:
+                logging.error(f"Commit {commit_hash} in repository {repo} has no date. Skipping. \nError: {e}")
+                continue
 
             cleaned_pylint_data = {}
             for key, value in pylint_data.items():

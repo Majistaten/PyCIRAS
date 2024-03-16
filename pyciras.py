@@ -35,6 +35,16 @@ def run_analysis(repo_urls: list[str] | None = None,
                  analyze_repositories: bool = True, ):
     """Run the full analysis pipeline on the specified repositories"""
     logging.info(f"Running analysis on {len(repo_urls)} repositories.")
+    logging.info(f"The analysis will run with the current settings: "
+                 f"\n - chunk_size={chunk_size}, parallelism={parallelism}, "
+                 f"\n - remove_repos_after_completion={remove_repos_after_completion}, "
+                 f"\n - analyse_stargazers={analyse_stargazers}, "
+                 f"\n - analyze_code_quality={analyze_code_quality}, "
+                 f"\n - analyze_unit_testing={analyze_unit_testing}, "
+                 f"\n - analyze_repositories={analyze_repositories}."
+                 f"\n   Results will be stored in {data_directory}."
+                 f"\n   Logging will be stored in {config.LOGGING_FOLDER}."
+                 f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
     analysis_methods = []
     if analyze_code_quality:
         analysis_methods.append(run_code_quality_analysis)
