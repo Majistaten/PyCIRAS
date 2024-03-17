@@ -25,7 +25,7 @@ from data_io import data_file_management, data_manipulation, repo_management
 from utility import util, config, logger_setup, ntfyer
 
 rich.traceback.install()
-data_directory = data_file_management.create_timestamped_data_directory()  # TODO ska denna flyttas in i run_mining istället?
+data_directory = data_file_management.make_data_directory()  # TODO ska denna flyttas in i run_mining istället?
 logger = logger_setup.get_logger('pyciras_logger')
 
 
@@ -123,7 +123,7 @@ def _mine_git(repo_urls: list[str]):
 
     data_file_management.write_json(git_data, data_directory / 'git-raw.json')
     data_file_management.write_json(git_data_flat, data_directory / 'git-flat.json')
-    data_file_management.write_git_csv(git_data_flat, data_directory)
+    data_file_management.write_git_csv(git_data_flat, data_directory / 'git-flat.csv')
 
 
 def _mine_test(repo_urls: list[str]):
@@ -138,7 +138,7 @@ def _mine_test(repo_urls: list[str]):
 
     data_file_management.write_json(test_data, data_directory / 'test-raw.json')
     data_file_management.write_json(test_data_over_time, data_directory / 'test-over-time.json')
-    data_file_management.write_test_csv(test_data_over_time, data_directory)
+    data_file_management.write_test_csv(test_data_over_time, data_directory / 'test-over-time.csv')
 
 
 def _mine_stargazers(repo_urls: list[str]):
@@ -152,9 +152,10 @@ def _mine_stargazers(repo_urls: list[str]):
     data_file_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
     data_file_management.write_json(stargazers_data_clean, data_directory / 'stargazers-clean.json')
     data_file_management.write_json(stargazers_over_time, data_directory / 'stargazers-over-time.json')
-    data_file_management.stargazers_data_csv(stargazers_over_time, data_directory)
+    data_file_management.write_stargazers_csv(stargazers_over_time, data_directory / 'stargazers-over-time.csv')
 
 
+# TODO lägg in så man kan skippa repos av viss size?
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
     return repo_management.download_repositories(config.REPOSITORIES_FOLDER, repo_urls)
