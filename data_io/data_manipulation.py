@@ -1,95 +1,114 @@
+"""This module provides functionality for data manipulation and processing."""
+
 import logging
 from collections import defaultdict
 from collections.abc import MutableMapping
 from datetime import datetime
+from rich.pretty import pprint
+import pandas as pd
 
-def flatten_git_data(metrics: dict) -> dict:
-    """Flatten the Pydriller metrics to a single level dictionary."""
-    flat_metrics = metrics
-    for key, value in flat_metrics.items():
-        flat_metrics[key] = _flatten_dict(value, sep=".")
 
-    return flat_metrics
+def flatten_git_data(data: dict) -> dict:
+    """Flatten git data metrics to a single level dict."""
+
+    flat_data = data
+    for key, value in flat_data.items():
+        flat_data[key] = _flatten_dict(value, prefix_separator=".")
+
+    return flat_data
 
 
 def flatten_lint_data(metrics: dict) -> dict:
-    """Flatten the Pylint metrics to a single level dictionary."""
-    flat_metrics = metrics
-    for key, value in flat_metrics.items():
+    """Flatten lint data to a single level dict."""
+
+    flat_data = metrics
+    for key, value in flat_data.items():
         for k, v in value.items():
-            flat_metrics[key][k] = v if not isinstance(v, dict) else _flatten_dict(v, sep=".")
+            flat_data[key][k] = v if not isinstance(v, dict) else _flatten_dict(v, prefix_separator=".")
 
-    return flat_metrics
+    return flat_data
 
-# TODO Kanske finns datom som ej är unika?
-# TODO men det spelar väl ingen roll, vi kan ändå bara välja ut ett värde per exakt datum?
+
 def clean_lint_data(data: dict) -> dict:
-    """Swaps to use date as key for commits, cleans the pylint data."""
-    cleaned_data = {}
-    for repo, commits in data.items():
-        cleaned_data[repo] = {}
-        for commit_hash, pylint_data in commits.items():
-            date = pylint_data.pop("date")
+    """Swaps to use date as key for commits, cleans lint data."""
 
-            cleaned_pylint_data = {}
-            for key, value in pylint_data.items():
+    clean_data = {}
+    for repo, commits in data.items():
+        clean_data[repo] = {}
+        for commit_hash, lint_data in commits.items():
+            date = lint_data.pop("date")
+            cleaned_lint_data = {}
+            for key, value in lint_data.items():
                 if key.startswith("stats.by_module") \
-                    or key.startswith("stats.dependencies") \
-                    or key == "stats.repository_name" \
+                        or key.startswith("stats.dependencies") \
+                        or key == "stats.repository_name" \
                         or key == "stats.dependencies.util":
                     continue
 
-                cleaned_pylint_data[key] = value
+                cleaned_lint_data[key] = value
 
-            # Use the date as a key, cleaned data is used
-            cleaned_data[repo][date] = {
+            clean_data[repo][date] = {
                 "commit_hash": commit_hash,
-                **cleaned_pylint_data  # Use cleaned data
+                **cleaned_lint_data
             }
 
-    return cleaned_data
+    return clean_data
 
-def clean_stargazers_data(stargazers_metrics: dict) -> dict:
-    """Cleans the stargazers data to only contain the starred users and the time they starred the repository."""
-    cleaned_metrics = {}
-    for repo_key, item in stargazers_metrics.items():
-        repository_data = item.get("data", {}).get("repository", {})
-        edges = repository_data.get("stargazers", {}).get("edges", [])
+
+def clean_stargazers_data(data: dict) -> dict:
+    """Cleans stargazers data."""
+
+    clean_data = {}
+    for repo, stargazers_data in data.items():
+        edges = stargazers_data \
+            .get("data", {}) \
+            .get("repository", {}) \
+            .get("stargazers", {}) \
+            .get("edges", [])
+
         starred = {}
         for edge in edges:
             starred_at = edge.get("starredAt")
             user = edge.get("node", {}).get("login")
             starred[user] = starred_at
 
-        cleaned_metrics[repo_key] = starred
+        clean_data[repo] = starred
 
-    return cleaned_metrics
+    return clean_data
 
 
-#TODO använd lifetime-api call för att filtrera bort värden där det inte var publicerat, ersätt med NaN
-def get_stargazers_over_time(stargazers_metrics: dict) -> dict:
-    """Gets the stargazers over time for each repository."""
+# TODO använd lifetime-api call för att filtrera bort värden där det inte var publicerat, ersätt med NaN
+# TODO bug med sortering av datum? Kolla tidigare versioner
+def stargazers_over_time(stargazers_data: dict) -> dict:
+    """Calculates stargazers over time based on clean stargazers data"""
     stars_over_time = defaultdict(dict)
-    for repo, stargazers in stargazers_metrics.items():
-        # Sort the stargazers by date
+
+    pprint(stargazers_data)
+
+    for repo, stargazers in stargazers_data.items():
+
         sorted_dates = sorted(stargazers.values(), key=lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ"))
 
-        star_count = 0
-        for date in sorted_dates:
-            star_count += 1
+        # dates = pd.Series(list(stargazers.values())) # TODO nyttja pandas istället?
+        # dates = pd.to_datetime(dates, utc=True)
+        # sorted_dates = dates.sort_values().astype(str)
 
-            # Convert date to just a date without time for daily granularity
+        stars = 0
+        for date in sorted_dates:
+            stars += 1
+
+            # Convert date to just a date without time for daily granularity # TODO ska vi ha detta?
             date_only = date.split("T")[0]
 
             # If the date already exists in the dictionary, update the star count for this repo
             if date_only in stars_over_time:
-                stars_over_time[date_only][repo] = star_count
+                stars_over_time[date_only][repo] = stars
             else:
-                stars_over_time[date_only][repo] = star_count
+                stars_over_time[date_only][repo] = stars
 
     # Normalize data to ensure every date has an entry for every repository
     all_dates = sorted(stars_over_time.keys())
-    all_repos = stargazers_metrics.keys()
+    all_repos = stargazers_data.keys()
     for date in all_dates:
         for repo in all_repos:
             if repo not in stars_over_time[date]:
@@ -155,20 +174,22 @@ def remove_lint_messages(data: dict) -> dict:
     return data
 
 
-def _flatten_dict(d: MutableMapping, parent_key: str = '', sep: str = '.') -> MutableMapping:
-    """
-    Flatten a nested dictionary. Takes nested keys, and uses them as prefixes.
-    """
+def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
+    """Flatten a nested dict. Takes nested keys, and uses them as prefixes."""
     items = []
-    for k, v in d.items():
-        new_key = parent_key + sep + str(k) if parent_key else str(k)
-        if isinstance(v, MutableMapping):
-            items.extend(_flatten_dict(v, new_key, sep=sep).items())
+    for key, value in dictionary.items():
+
+        new_key = parent_key + prefix_separator + str(key) if parent_key else str(key)
+        if isinstance(value, dict):
+            items.extend(_flatten_dict(value, new_key, prefix_separator=prefix_separator).items())
         else:
-            items.append((new_key, v))
+            items.append((new_key, value))
+
     return dict(items)
 
 
+# TODO remove insert_key_as, skickas alltid in som None - inget syfte
+# TODO få bort mutablemapping?
 def dict_to_list(dictionary: dict | MutableMapping, insert_key_as: str | None = None) -> list:
     """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
     formatted_list = []

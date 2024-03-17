@@ -8,6 +8,7 @@ from datetime import datetime
 import data_io.data_manipulation as data_converter
 import pandas as pd
 
+# TODO refactor date formatting etc to data_manipulation instead
 
 class CustomEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle sets and datetime objects."""
@@ -45,6 +46,7 @@ def write_json(new_data: dict, path: Path):
 
 
 # TODO Refactor to use Pandas?
+# TODO fixa fixed column för repo namn
 def write_git_csv(new_data: dict, path: Path):
     """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
 
@@ -100,6 +102,7 @@ def write_stargazers_csv(data: dict, path: Path):
 
         # Write data for each date
         for date, repo_stargazers in data.items():
+            # date = pd.to_datetime(date, utc=True) # TODO konvertera här med pandas? sortera?
             row = [date] + [repo_stargazers.get(repo, 0) for repo in repos]  # TODO NaN?
             writer.writerow(row)
 

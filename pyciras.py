@@ -147,7 +147,7 @@ def _mine_stargazers(repo_urls: list[str]):
     stargazers_data = git_mining.mine_stargazers_data(repo_urls)
 
     stargazers_data_clean = data_manipulation.clean_stargazers_data(stargazers_data)
-    stargazers_over_time = data_manipulation.get_stargazers_over_time(stargazers_data_clean)
+    stargazers_over_time = data_manipulation.stargazers_over_time(stargazers_data_clean)
 
     data_file_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
     data_file_management.write_json(stargazers_data_clean, data_directory / 'stargazers-clean.json')

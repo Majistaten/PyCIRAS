@@ -208,7 +208,7 @@ def _load_repositories(repositories: list[Path | str], repository_directory: Pat
     return {
         str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in
         RichIterableProgressBar(repositories,
-                                description="Loading Repositories",  # TODO ta bort denna progress bar
+                                description="Loading Repositories",  # TODO ta bort denna progress bar? Behövs den vid många repos?
                                 disable=config.DISABLE_PROGRESS_BARS)}
 
 
