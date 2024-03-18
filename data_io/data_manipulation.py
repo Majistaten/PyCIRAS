@@ -36,7 +36,11 @@ def clean_lint_data(data: dict) -> dict:
     for repo, commits in data.items():
         clean_data[repo] = {}
         for commit_hash, lint_data in commits.items():
+            # try:
             date = lint_data.pop("date")
+            # except Exception as e:
+            #     logging.error(f"Commit {commit_hash} in repository {repo} has no date. Skipping. \nError: {e}")
+            #     continue
             cleaned_lint_data = {}
             for key, value in lint_data.items():
                 if key.startswith("stats.by_module") \
@@ -82,8 +86,6 @@ def clean_stargazers_data(data: dict) -> dict:
 def stargazers_over_time(stargazers_data: dict) -> dict:
     """Calculates stargazers over time based on clean stargazers data"""
     stars_over_time = defaultdict(dict)
-
-    pprint(stargazers_data)
 
     for repo, stargazers in stargazers_data.items():
 

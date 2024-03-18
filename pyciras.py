@@ -75,6 +75,16 @@ def run_mining(repo_urls: list[str] = None,
         return
 
     logging.info(f'Mining {len(repo_urls)} repositories')
+    logging.info(f"The analysis will run with the current settings: "
+                 f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
+                 f"\n - persist_repos={persist_repos}, "
+                 f"\n - stagazers={stargazers}, "
+                 f"\n - lint={lint}, "
+                 f"\n - test={test}, "
+                 f"\n - git={git}."
+                 f"\n   Results will be stored in {data_directory}."
+                 f"\n   Logging will be stored in {config.LOGGING_FOLDER}."
+                 f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
 
     mining_functions = []
     if lint:
