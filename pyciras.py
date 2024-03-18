@@ -169,10 +169,16 @@ def _mine_stargazers(repo_urls: list[str]):
     data_file_management.write_stargazers_csv(stargazers_over_time, data_directory / 'stargazers-over-time.csv')
 
 
+def _mine_lifespan(repo_urls: list[str]):
+    """ Mine dates from the project lifespan from a list of repositories. """
+    # TODO: Print to json/csv etc..
+    lifespan_data = git_mining.get_repositories_lifespan(repo_urls)
+
+
 # TODO lägg in så man kan skippa repos av viss size?
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
-    return repo_management.download_repositories(config.REPOSITORIES_FOLDER, repo_urls)
+    return repo_management.prepare_repositories(config.REPOSITORIES_FOLDER, repo_urls)
 
 
 # TODO heltäckande error handling i denna?

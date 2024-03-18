@@ -6,25 +6,21 @@ from utility import util, config
 from utility.progress_bars import CloneProgress
 
 
-# TODO döp om, laddar inte alltid ner - hämtar de snarare från lokal/remote
-# TODO syfte med att den returnar null om det ej finns repo source
-# TODO skriv om docstring, stämmer inte
-def download_repositories(destination_folder: Path, repo_urls: list[str]) -> list[Path]:
+def prepare_repositories(destination_folder: Path, repo_urls: list[str]) -> list[Path]:
     """
-    Downloads a list of repositories from a file or a list of URLs.
+    Prepares a list of repositories from a list of URLs.
     Args:
-        repo_urls_file_path: Path to a file containing a list of repository URLs.
-        destination_folder: The folder to clone the repositories to.
+        destination_folder: The folder to clone the repositories to or search for its existence.
         repo_urls: A list of repository URLs.
 
     Returns:
-        True if all repositories were successfully cloned, else False.
+        A list of repository paths.
     """
     repository_paths = []
     logging.info(f'Downloading {len(repo_urls)} repositories.')
     for i, repo_url in enumerate(repo_urls):
         logging.info(f'Downloading repository {i + 1} of {len(repo_urls)}...')
-        repository_path = clone_repository(repo_url, destination_folder, postfix=f"({i + 1}/{len(repo_urls)})")
+        repository_path = prepare_repository(repo_url, destination_folder, postfix=f"({i + 1}/{len(repo_urls)})")
         if repository_path is None:
             logging.error(f'Failed to download repository from {repo_url}')
         else:
@@ -34,7 +30,7 @@ def download_repositories(destination_folder: Path, repo_urls: list[str]) -> lis
     return repository_paths
 
 
-def clone_repository(repo_url: str, destination_folder: Path, postfix: str = "") -> Path | None:
+def prepare_repository(repo_url: str, destination_folder: Path, postfix: str = "") -> Path | None:
     """
     Clones a Git repository from a given URL to a given destination folder.
     Args:
@@ -43,7 +39,7 @@ def clone_repository(repo_url: str, destination_folder: Path, postfix: str = "")
         postfix: A postfix to add to the progress bar.
 
     Returns:
-        True if the repository was successfully cloned, False otherwise.
+        The repository path.
     """
     try:
         repo_name = util.get_repo_name_from_url(repo_url)

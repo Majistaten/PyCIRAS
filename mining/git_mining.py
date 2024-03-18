@@ -125,62 +125,39 @@ def send_low_rate_limit_message(remaining: int, reset_at: datetime):
     ntfyer.ntfy(message, title)
     logging.error(message)
 
-# TODO bygg om så den tar lista med repos, integrera i git mining pipeline
+
+def get_repositories_lifespan(repos: list[str]) -> dict[str, any]:
+    lifespan: dict[str, any] = {}
+    for repo in RichIterableProgressBar(repos, description="Fetching lifespan data",
+                                        disable=config.DISABLE_PROGRESS_BARS):
+        lifespan.update(get_repository_lifespan(repo))
+    return lifespan
+
+
 def get_repository_lifespan(repo_url: str) -> dict[str, any]:
     """Get the first commit, last commit, and publish date of a project."""
-    parts = repo_url.split("/")
-    owner, repo = parts[-2], parts[-1]
+    owner = util.get_repo_owner_from_url(repo_url)
+    repo = util.get_repo_name_from_url(repo_url)
 
-    query = """
-    query {
-      repository(owner: "%s", name: "%s") {
-        createdAt
-        defaultBranchRef {
-          target {
-            ... on Commit {
-              history(first: 1) {
-                edges {
-                  node {
-                    committedDate
-                  }
-                }
-              }
-              history(last: 1) {
-                edges {
-                  node {
-                    committedDate
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    """ % (owner, repo)
-
-    headers = {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"}
-    response = requests.post(config.GRAPHQL_API, json=query, headers=headers)
+    api_url = f"https://api.github.com/repos/{owner}/{repo}"
+    response = requests.get(api_url)
 
     if response.status_code == 200:
-        data = response.json()['data']['repository']
-        first_commit_date = data['defaultBranchRef']['target']['history']['edges'][0]['node']['committedDate']
-        last_commit_date = data['defaultBranchRef']['target']['history']['edges'][-1]['node']['committedDate']
-        publish_date = data['createdAt']
+        data = response.json()
 
         result = {
             repo: {
-                "first-commit": first_commit_date,
-                "last-commit": last_commit_date,
-                "publish-date": publish_date,
+                "created_at": data['created_at'],
+                "pushed_at": data['pushed_at'],
             }
         }
         return result
     else:
-        logging.warning(f"Failed to fetch repository data. Status code: {response.status_code}")
+        logging.warning(f"Failed to fetch repository data. Status code: {response.status_code}. Error: {response.text}")
         return {}
 
 
+# TODO: Baka in i pipeline och skriv ut i fil.
 def get_repos_commit_metadata(repository_directory: Path, repositories: list[Path]) -> dict[str, any]:
     """Get a dictionary of repo urls with their commit hashes and dates of these commits from a list of repository
     paths """
@@ -196,6 +173,7 @@ def get_repos_commit_metadata(repository_directory: Path, repositories: list[Pat
 
 
 # TODO behöver hela URL om den ska klona, annars bara namnet
+# TODO: Fixa docstring som förklarar functionalitet
 # TODO är inte url, är både path och url (Path/String)
 def _load_repositories(repositories: list[Path | str], repository_directory: Path) -> (
         dict[str, Repository]):
@@ -204,12 +182,8 @@ def _load_repositories(repositories: list[Path | str], repository_directory: Pat
     repository_path.mkdir(parents=True, exist_ok=True)
     logging.debug('Loading repositories.')
 
-    # TODO är inte url, det är path
-    return {
-        str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in
-        RichIterableProgressBar(repositories,
-                                description="Loading Repositories",  # TODO ta bort denna progress bar? Behövs den vid många repos?
-                                disable=config.DISABLE_PROGRESS_BARS)}
+    # TODO: SANITY CHECK, DOES IT STILL WORK? removed "loading repositories...3/3" progress bar
+    return {str(repo_url): _load_repository(repo_url, repository_directory) for repo_url in repositories}
 
 
 # TODO behöver hela URL om den ska klona, annars bara namnet
