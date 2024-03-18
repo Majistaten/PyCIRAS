@@ -13,6 +13,7 @@
 # TODO få ut complexity metrics från pydriller också?
 # TODO progressbar stannar om det kastas error för ett syntax error i en fil under unit testing analysis
 # TODO error handling här i denna filen?
+# TODO byt alla NaN till nan
 
 import concurrent.futures
 import logging
@@ -29,6 +30,7 @@ data_directory = data_file_management.make_data_directory()  # TODO ska denna fl
 logger = logger_setup.get_logger('pyciras_logger')
 
 
+# TODO fixa bättre docstrings som förklarar parametrar
 def run_repo_cloner(repo_urls: list[str] = None,
                     chunk_size: int = 1,
                     multiprocessing: bool = False):
@@ -55,6 +57,7 @@ def run_repo_cloner(repo_urls: list[str] = None,
                 title='PyCIRAS Cloning Completed')
 
 
+# TODO fixa bättre docstrings som förklarar parametrar
 def run_mining(repo_urls: list[str] = None,
                chunk_size: int = 1,
                multiprocessing: bool = False,
@@ -155,6 +158,7 @@ def _mine_stargazers(repo_urls: list[str]):
     """Mine stargazers data from a list of repositories."""
 
     stargazers_data = git_mining.mine_stargazers_data(repo_urls)
+    # repo_lifespans = git_mining.get_repo_lifespans(stargazers_data)
 
     stargazers_data_clean = data_manipulation.clean_stargazers_data(stargazers_data)
     stargazers_over_time = data_manipulation.stargazers_over_time(stargazers_data_clean)
@@ -227,6 +231,6 @@ if __name__ == '__main__':
                multiprocessing=False,
                persist_repos=True,
                stargazers=True,
-               test=True,
-               git=True,
-               lint=True)
+               test=False,
+               git=False,
+               lint=False)

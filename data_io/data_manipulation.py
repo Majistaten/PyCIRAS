@@ -81,51 +81,25 @@ def clean_stargazers_data(data: dict) -> dict:
     return clean_data
 
 
-# TODO använd lifetime-api call för att filtrera bort värden där det inte var publicerat, ersätt med NaN
-# TODO bug med sortering av datum? Kolla tidigare versioner
 def stargazers_over_time(stargazers_data: dict) -> dict:
-    """Calculates stargazers over time based on clean stargazers data"""
-    stars_over_time = defaultdict(dict)
+    """Accumulates stargazers over time based on clean stargazers data"""
 
+    data = []
     for repo, stargazers in stargazers_data.items():
+        if stargazers:
+            for user, date in stargazers.items():
+                data.append({'repo': repo, 'date': pd.to_datetime(date, utc=True), 'user': user})
+        else:
+            logging.error(f"Repository {repo} has no stargazers data. Skipping stargazers over time for this repo.")
 
-        sorted_dates = sorted(stargazers.values(), key=lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ"))
+    data_frame = pd.DataFrame(data)
+    data_frame.sort_values(by='date', inplace=True)
+    data_frame['stargazers_count'] = data_frame.groupby('repo').cumcount() + 1
+    data_frame = data_frame.pivot_table(index='date', columns='repo', values='stargazers_count', aggfunc='last')
+    data_frame.ffill(inplace=True)
+    data_frame.index = data_frame.index.astype(str)
 
-        # dates = pd.Series(list(stargazers.values())) # TODO nyttja pandas istället?
-        # dates = pd.to_datetime(dates, utc=True)
-        # sorted_dates = dates.sort_values().astype(str)
-
-        stars = 0
-        for date in sorted_dates:
-            stars += 1
-
-            # Convert date to just a date without time for daily granularity # TODO ska vi ha detta?
-            date_only = date.split("T")[0]
-
-            # If the date already exists in the dictionary, update the star count for this repo
-            if date_only in stars_over_time:
-                stars_over_time[date_only][repo] = stars
-            else:
-                stars_over_time[date_only][repo] = stars
-
-    # Normalize data to ensure every date has an entry for every repository
-    all_dates = sorted(stars_over_time.keys())
-    all_repos = stargazers_data.keys()
-    for date in all_dates:
-        for repo in all_repos:
-            if repo not in stars_over_time[date]:
-
-                # Find the last known star count for this repo and carry it forward
-                previous_count = 0
-                for previous_date in sorted(stars_over_time.keys()):
-                    if previous_date >= date:
-                        break
-                    if repo in stars_over_time[previous_date]:
-                        previous_count = stars_over_time[previous_date][repo]
-
-                stars_over_time[date][repo] = previous_count
-
-    return stars_over_time
+    return data_frame.to_dict('index')
 
 
 def get_test_data_over_time(unit_testing_metrics: dict) -> dict:

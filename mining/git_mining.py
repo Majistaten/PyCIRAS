@@ -125,7 +125,7 @@ def send_low_rate_limit_message(remaining: int, reset_at: datetime):
     ntfyer.ntfy(message, title)
     logging.error(message)
 
-
+# TODO bygg om så den tar lista med repos, integrera i git mining pipeline
 def get_repository_lifespan(repo_url: str) -> dict[str, any]:
     """Get the first commit, last commit, and publish date of a project."""
     parts = repo_url.split("/")
