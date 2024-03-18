@@ -230,7 +230,7 @@ if __name__ == '__main__':
                chunk_size=3,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=False,
-               test=True,
+               stargazers=True,
+               test=False,
                git=False,
                lint=False)

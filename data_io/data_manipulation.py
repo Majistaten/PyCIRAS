@@ -1,9 +1,6 @@
 """This module provides functionality for data manipulation and processing."""
 
 import logging
-from collections import defaultdict
-from collections.abc import MutableMapping
-from datetime import datetime
 from rich.pretty import pprint
 import pandas as pd
 
@@ -65,23 +62,19 @@ def clean_lint_data(data: dict) -> dict:
 
 
 def clean_stargazers_data(data: dict) -> dict:
-    """Cleans stargazers data."""
+    """Cleans stargazers data using pandas."""
 
     clean_data = {}
     for repo, stargazers_data in data.items():
-        edges = stargazers_data \
-            .get("data", {}) \
-            .get("repository", {}) \
-            .get("stargazers", {}) \
-            .get("edges", [])
+        edges = stargazers_data.get("data", {}).get("repository", {}).get("stargazers", {}).get("edges", [])
 
-        starred = {}
-        for edge in edges:
-            starred_at = edge.get("starredAt")
-            user = edge.get("node", {}).get("login")
-            starred[user] = starred_at
-
-        clean_data[repo] = starred
+        if edges:
+            data_frame = pd.DataFrame(edges)
+            data_frame['login'] = data_frame['node'].apply(lambda x: x.get('login'))
+            starred = data_frame.set_index('login')['starredAt'].to_dict()
+            clean_data[repo] = starred
+        else:
+            clean_data[repo] = {}
 
     return clean_data
 
