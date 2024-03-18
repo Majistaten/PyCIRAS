@@ -58,6 +58,7 @@ def run_repo_cloner(repo_urls: list[str] = None,
 
 
 # TODO fixa bättre docstrings som förklarar parametrar
+# TODO Bool för att få ut JSON/CSV/inte
 def run_mining(repo_urls: list[str] = None,
                chunk_size: int = 1,
                multiprocessing: bool = False,
@@ -108,6 +109,7 @@ def run_mining(repo_urls: list[str] = None,
                 title='PyCIRAS Mining Completed')
 
 
+# TODO kalla data_management för att mangla med pandas, sen en skrivmetod i samma fil för att skriva
 def _mine_lint(repo_urls: list[str]):
     """"Mine lint data from a list of repositories."""
 
@@ -227,10 +229,10 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=3,
+               chunk_size=1,
                multiprocessing=False,
                persist_repos=True,
                stargazers=True,
-               test=False,
-               git=False,
-               lint=False)
+               test=True,
+               git=True,
+               lint=True)

@@ -4,6 +4,7 @@ import logging
 from rich.pretty import pprint
 import pandas as pd
 
+
 # TODO städa upp och refaktorera, sedan flytta all skrivning in i dessa funktioner istället och migrera hit
 # alla andra funktioner från data_file_management och ta bort filen.
 # gör alla skrivningar till csv och json med pandas, kolla om man kan köra flatten också med pandas
@@ -36,27 +37,25 @@ def clean_lint_data(data: dict) -> dict:
 
     clean_data = {}
     for repo, commits in data.items():
-        clean_data[repo] = {}
-        for commit_hash, lint_data in commits.items():
-            try:
-                date = lint_data.pop("date")
-            except Exception as e:
-                logging.error(f"Commit {commit_hash} in repository {repo} has no date. Skipping. \nError: {e}")
-                continue
-            cleaned_lint_data = {}
-            for key, value in lint_data.items():
-                if key.startswith("stats.by_module") \
-                        or key.startswith("stats.dependencies") \
-                        or key == "stats.repository_name" \
-                        or key == "stats.dependencies.util":
-                    continue
+        commit_list = [{"commit_hash": commit_hash, **commit_info} for commit_hash, commit_info in commits.items() if
+                       "date" in commit_info]
 
-                cleaned_lint_data[key] = value
+        if commit_list:
+            data_frame = pd.DataFrame(commit_list)
+            data_frame.drop(
+                columns=[col for col in data_frame.columns if col.startswith("stats.by_module") or
+                         col.startswith("stats.dependencies") or
+                         col == "stats.repository_name" or
+                         col == "stats.dependencies.util"],
+                inplace=True)
 
-            clean_data[repo][date] = {
-                "commit_hash": commit_hash,
-                **cleaned_lint_data
-            }
+            data_frame.set_index("date", inplace=True)
+            cleaned_lint_data = data_frame.to_dict("index")
+            clean_data[repo] = cleaned_lint_data
+
+        else:
+            clean_data[repo] = {}
+            logging.error(f"Repository {repo} has no valid commits with dates.")
 
     return clean_data
 
