@@ -49,8 +49,8 @@ def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, an
         date = commit["date"]
         repo.git.checkout(commit_hash)
         metrics[commit_hash] = _run_pylint(repository_path)
-        # if metrics[commit_hash] is not None:
-        metrics[commit_hash]['date'] = date
+        if metrics[commit_hash] is not None:
+            metrics[commit_hash]['date'] = date
     return metrics
 
 
@@ -60,8 +60,7 @@ def _run_pylint(repository_path: Path) -> dict[str, any] | None:
     target_files = util.get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
         logging.info(f"No python files found in {repository_path}")
-        # return None
-        return result
+        return None
     elif len(target_files) > 1000:
         logging.warning(
             f"Found {len(target_files)} files in {repository_path}. "
