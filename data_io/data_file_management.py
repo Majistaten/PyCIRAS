@@ -50,7 +50,7 @@ def write_json(new_data: dict, path: Path):
 def write_git_csv(new_data: dict, path: Path):
     """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
 
-    new_data = data_converter.dict_to_list(new_data, None)
+    new_data = data_converter.dict_to_list(new_data)
     with open(path, 'a', newline='') as file:
         column_names = set()
         for repo in new_data:

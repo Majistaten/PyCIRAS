@@ -7,6 +7,11 @@ from datetime import datetime
 from rich.pretty import pprint
 import pandas as pd
 
+# TODO städa upp och refaktorera, sedan flytta all skrivning in i dessa funktioner istället och migrera hit
+# alla andra funktioner från data_file_management och ta bort filen.
+# gör alla skrivningar till csv och json med pandas, kolla om man kan köra flatten också med pandas
+# Döp om till data_management.py
+
 
 def flatten_git_data(data: dict) -> dict:
     """Flatten git data metrics to a single level dict."""
@@ -102,40 +107,49 @@ def stargazers_over_time(stargazers_data: dict) -> dict:
     return data_frame.to_dict('index')
 
 
-def get_test_data_over_time(unit_testing_metrics: dict) -> dict:
+def get_test_data_over_time(test_data: dict) -> dict:
     """Gets the test-to-code-ratio over time for each repository."""
-    test_info_over_time = defaultdict(lambda: defaultdict(dict))
-    for repo, metrics in unit_testing_metrics.items():
-        for commit_hash, data in metrics.items():
+
+    aggregated_data = []
+    for repo, commits in test_data.items():
+        for commit_hash, data in commits.items():
             try:
-                date_str = str(data['date'])
                 test_to_code_ratio = data['test-to-code-ratio']
                 test_frameworks = set()
-                # Aggregate unique imports from each file
-                for file_details in data['files'].values():
-                    for import_item in file_details['imports']:
-                        test_frameworks.add(import_item)
-                test_frameworks = sorted(list(test_frameworks))
-                test_classes = sum(len(file.get('unittest_classes', [])) for file in data['files'].values())
-                test_functions = sum(len(file.get('pytest_functions', [])) for file in data['files'].values())
+                test_classes = 0
+                test_functions = 0
+                for file_data in data['files'].values():
+                    test_frameworks.update(file_data.get('imports', []))
+                    test_classes += len(file_data.get('unittest_classes', []))
+                    test_functions += len(file_data.get('pytest_functions', []))
 
-                test_info_over_time[repo][date_str] = {
+                aggregated_data.append({
+                    'repo': repo,
+                    'date': pd.to_datetime(data['date'], utc=True),
                     'test-to-code-ratio': test_to_code_ratio,
+                    'test-frameworks': sorted(test_frameworks),
                     'test-classes': test_classes,
-                    'test-functions': test_functions,
-                    'test-frameworks': test_frameworks
-                }
+                    'test-functions': test_functions
+                })
 
-            except TypeError as e:
-                logging.error(f"Error when compiling test-to-code-ratio metrics for "
-                              f"{repo} commit {commit_hash}: " + str(e) + "\nSkipping this commit.")
-                continue
             except Exception as e:
-                logging.error(f"Unexpected Error when compiling test-to-code-ratio metrics for "
-                              f"{repo} commit {commit_hash}: " + str(e) + "\nSkipping this commit.")
+                logging.error(f"Error processing metrics for {repo} commit {commit_hash}: {e}"
+                              f"\nSkipping this commit.")
                 continue
 
-    return test_info_over_time
+    data_frame = pd.DataFrame(aggregated_data)
+
+    if data_frame.empty:
+        logging.warning("No data to process into DataFrame.")
+        return {}
+
+    data_frame['date'] = pd.to_datetime(data_frame['date'], utc=True)
+    data_frame.sort_values(by=['repo', 'date'], inplace=True)
+    data_frame['date'] = data_frame['date'].astype(str)
+    data_frame.set_index(['repo', 'date'], inplace=True)
+
+    result_dict = data_frame.groupby(level=0).apply(lambda df: df.xs(df.name).to_dict(orient='index')).to_dict()
+    return result_dict
 
 
 def remove_lint_messages(data: dict) -> dict:
@@ -164,15 +178,11 @@ def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str 
     return dict(items)
 
 
-# TODO remove insert_key_as, skickas alltid in som None - inget syfte
-# TODO få bort mutablemapping?
-def dict_to_list(dictionary: dict | MutableMapping, insert_key_as: str | None = None) -> list:
+def dict_to_list(dictionary: dict) -> list:
     """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
     formatted_list = []
     for key, value in dictionary.items():
         if value is None:
             continue
-        if insert_key_as is not None:
-            value[insert_key_as] = key
         formatted_list.append(value)
     return formatted_list

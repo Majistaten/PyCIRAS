@@ -227,10 +227,10 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=1,
+               chunk_size=3,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=True,
-               test=False,
+               stargazers=False,
+               test=True,
                git=False,
                lint=False)
