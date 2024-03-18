@@ -23,7 +23,7 @@ def mine_git_data(repository_directory: Path,
                   repositories: list[str],
                   since: datetime = datetime.now(),
                   to: datetime = datetime.now() - relativedelta(years=20)) -> dict[str, dict[str, any]]:
-    """Get Pydriller metrics in a dict from a git repository"""
+    """Get git metrics in a dict from a git repository"""
 
     metrics = {}
     repos = _load_repositories(repositories, repository_directory)
