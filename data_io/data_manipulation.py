@@ -5,12 +5,12 @@ from rich.pretty import pprint
 import pandas as pd
 
 
-# TODO städa upp och refaktorera, sedan flytta all skrivning in i dessa funktioner istället och migrera hit
+# TODO Flytta all CSV preppning och skrivning in i dessa stora funktioner och gör allt med pandas istället
 # alla andra funktioner från data_file_management och ta bort filen.
-# gör alla skrivningar till csv och json med pandas, kolla om man kan köra flatten också med pandas
+# gör alla skrivningar till csv med pandas, kolla om man kan köra flatten också med pandas
 # Döp om till data_management.py
 
-
+#TODO ta bort när allt görs med pandas
 def flatten_git_data(data: dict) -> dict:
     """Flatten git data metrics to a single level dict."""
 
@@ -21,6 +21,7 @@ def flatten_git_data(data: dict) -> dict:
     return flat_data
 
 
+#TODO ta bort när allt görs med pandas
 def flatten_lint_data(metrics: dict) -> dict:
     """Flatten lint data to a single level dict."""
 
@@ -32,8 +33,15 @@ def flatten_lint_data(metrics: dict) -> dict:
     return flat_data
 
 
+# TODO gör allt detta och allt innan enbart i pandas och skriv rakt på CSV
 def clean_lint_data(data: dict) -> dict:
     """Swaps to use date as key for commits, cleans lint data."""
+
+    # TODO refaktorera in och förenkla, enbart pandas
+    # remove_lint_messages
+    # flatten_lint_data
+    # clean_lint_data
+    # write_lint_csv
 
     clean_data = {}
     for repo, commits in data.items():
@@ -60,6 +68,7 @@ def clean_lint_data(data: dict) -> dict:
     return clean_data
 
 
+# TODO flytta in denna i den stora funktionen med enbart pandas
 def clean_stargazers_data(data: dict) -> dict:
     """Cleans stargazers data using pandas."""
 
@@ -78,8 +87,13 @@ def clean_stargazers_data(data: dict) -> dict:
     return clean_data
 
 
+# TODO gör allt innan detta i en och samma funktion med enbart pandas och skriv direkt till CSV
 def stargazers_over_time(stargazers_data: dict) -> dict:
     """Accumulates stargazers over time based on clean stargazers data"""
+
+    # TODO refaktorera in och förenkla, enbart pandas
+    # clean_stargazers_data
+    # write_stargazers_csv
 
     data = []
     for repo, stargazers in stargazers_data.items():
@@ -101,6 +115,9 @@ def stargazers_over_time(stargazers_data: dict) -> dict:
 
 def get_test_data_over_time(test_data: dict) -> dict:
     """Gets the test-to-code-ratio over time for each repository."""
+
+    # TODO refaktorera in och förenkla, enbart pandas
+    # write_test_csv
 
     aggregated_data = []
     for repo, commits in test_data.items():
@@ -144,6 +161,7 @@ def get_test_data_over_time(test_data: dict) -> dict:
     return result_dict
 
 
+# TODO ta bort när allt görs i pandasfunktionen för lint
 def remove_lint_messages(data: dict) -> dict:
     """Removes the messages from the pylint data"""
     for repo, value in data.items():
@@ -156,6 +174,7 @@ def remove_lint_messages(data: dict) -> dict:
     return data
 
 
+# TODO ta bort när allt görs i pandas
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
     """Flatten a nested dict. Takes nested keys, and uses them as prefixes."""
     items = []
@@ -170,6 +189,7 @@ def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str 
     return dict(items)
 
 
+# TODO ta bort när allt görs i pandas
 def dict_to_list(dictionary: dict) -> list:
     """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
     formatted_list = []

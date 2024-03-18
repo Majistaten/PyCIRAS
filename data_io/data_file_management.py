@@ -10,6 +10,8 @@ import pandas as pd
 
 # TODO refactor date formatting etc to data_manipulation instead
 
+
+# TODO ta bort när allt görs med pandas
 class CustomEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle sets and datetime objects."""
 
@@ -24,6 +26,7 @@ class CustomEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
+# TODO flytta in i data_management
 def make_data_directory() -> Path:
     """Creates a timestamped directory for the output data."""
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
@@ -32,6 +35,7 @@ def make_data_directory() -> Path:
     return data_dir
 
 
+# TODO flytta in i data_management och förenkla, kommer inte behöva custom encoder för att dumpa raw json
 def write_json(new_data: dict, path: Path):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
     try:
@@ -46,6 +50,7 @@ def write_json(new_data: dict, path: Path):
 
 
 # TODO Refactor sorting and formatting to data_manipulation, fixa fixed column för repo namn. Sortera lite finare
+# TODO flytta in i data_management gör CSV skrivningen där
 def write_git_csv(new_data: dict, path: Path):
     """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
 
@@ -64,7 +69,7 @@ def write_git_csv(new_data: dict, path: Path):
         writer.writerows(new_data)
 
 
-# TODO refaktorera bort sortering och mangling in i data_manipulation
+# TODO refaktorera bort sortering och mangling in i data_manipulation, gör CSV skrivningen där
 def write_lint_csv(data: dict, path: Path):
     """Writes lint data to separate CSV files for each repo."""
 
@@ -86,7 +91,7 @@ def write_lint_csv(data: dict, path: Path):
         data_frame.to_csv(path / f'lint-{repo}.csv', index=False)
 
 
-# TODO refaktorera bort sortering och mangling in i data_manipulation
+# TODO refaktorera bort sortering och mangling in i data_manipulation, gör CSV skrivningen där
 def write_stargazers_csv(data: dict, path: Path):
     """Writes stargazers data to a CSV file."""
 
@@ -107,7 +112,7 @@ def write_stargazers_csv(data: dict, path: Path):
             writer.writerow(row)
 
 
-# TODO refaktorera bort sortering och mangling in i data_manipulation
+# TODO refaktorera bort sortering och mangling in i data_manipulation, gör CSV skrivningen där
 def write_test_csv(data: dict, path: Path):
     """Loads existing test data and updates it with new data, or writes new data to a CSV file."""
 
