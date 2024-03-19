@@ -1,9 +1,11 @@
-import requests
 from git import Repo, RemoteProgress, rmtree
-from pathlib import Path
-import logging
-from utility import util, config
 from utility.progress_bars import CloneProgress
+import logging
+from datetime import datetime
+from pydriller import Repository
+from utility import util, config, ntfyer
+import requests
+from pathlib import Path
 
 
 def prepare_repositories(destination_folder: Path, repo_urls: list[str]) -> list[Path]:
@@ -63,6 +65,46 @@ def prepare_repository(repo_url: str, destination_folder: Path, postfix: str = "
     except Exception as ex:
         logging.error('Something went wrong when cloning the repository!\n' + str(ex))
         return None
+
+
+# TODO: Baka in i pipeline och skriv ut i fil.
+def get_repo_paths_and_commit_metadata(repos_directory: Path,
+                                       repo_paths: list[Path]) -> dict[str, list[tuple[str, datetime]]]:
+    """Get a dict of repo paths with a list of tuples containing commit hashes and dates"""
+    repos: dict[str, Repository] = load_repositories(repos_directory, repo_paths)
+    repos_with_commit_hashes_and_dates = {}
+    for repo_path, repo in repos.items():
+        hashes_and_dates = []
+        for commit in repo.traverse_commits():
+            hashes_and_dates.append((commit.hash, commit.committer_date))
+
+        repos_with_commit_hashes_and_dates[repo_path] = hashes_and_dates
+
+    return repos_with_commit_hashes_and_dates
+
+
+def load_repositories(repo_directory: Path, repos: list[Path | str]) -> (dict[str, Repository]):
+    """Load repos for mining, from an URL or a path."""
+
+    repo_directory.mkdir(parents=True, exist_ok=True)
+    logging.info('Loading repositories.')
+
+    return {
+        str(repo_path_or_url):
+            _load_repository(repo_path_or_url, repo_directory) for repo_path_or_url in repos
+    }
+
+
+def _load_repository(url_or_path: str, repo_directory: Path) -> Repository:
+    """Load repository stored locally, or clone and load if not present"""
+
+    repo_name = util.get_repo_name_from_url_or_path(url_or_path)
+    repo_path = repo_directory / repo_name
+
+    if repo_path.exists():
+        return Repository(str(repo_path))
+    else:
+        return Repository(url_or_path, clone_repo_to=str(repo_directory))
 
 
 def remove_repos(content: list[str]) -> None:

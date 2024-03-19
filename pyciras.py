@@ -9,6 +9,7 @@
 # TODO error handling här i denna filen?
 # TODO fixa bättre docstrings som förklarar parametrar
 # TODO Sätt ut logging.info överallt
+# TODO kolla igenom git mining så vi får med exakt alla metrics vi vill ha
 
 import concurrent.futures
 import logging
@@ -109,7 +110,8 @@ def _mine_lint(repo_urls: list[str]):
 
     repo_paths = _clone_repos(repo_urls)
 
-    repos_and_commit_metadata = git_mining.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
+    repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
+                                                                                   repo_paths)
     lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
 
     data_management.write_json(lint_data, data_directory / 'lint-raw.json')
@@ -130,7 +132,8 @@ def _mine_test(repo_urls: list[str]):
 
     repo_paths = _clone_repos(repo_urls)
 
-    repos_and_commit_metadata = git_mining.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
+    repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
+                                                                                   repo_paths)
     test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
     data_management.write_json(test_data, data_directory / 'test-raw.json')
@@ -143,7 +146,7 @@ def _mine_stargazers(repo_urls: list[str]):
     stargazers_data = git_mining.mine_stargazers_data(repo_urls)
 
     data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
-    data_management.stargazers_data_to_csv(stargazers_data,data_directory / 'stargazers.csv')
+    data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
 
 
 def _mine_lifespan(repo_urls: list[str]):

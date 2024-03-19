@@ -15,9 +15,9 @@ from dotenv import load_dotenv
 import os
 import requests
 from pathlib import Path
-from rich.pretty import pprint
 from utility.progress_bars import RichIterableProgressBar
 import pandas as pd
+from data_io import repo_management
 
 
 def mine_git_data(repo_directory: Path,
@@ -27,11 +27,11 @@ def mine_git_data(repo_directory: Path,
     """Mine git data from a list of repositories and return a dictionary with the data"""
 
     data = {}
-    repo_urls = _load_repositories(repo_directory, repo_urls)
+    repo_urls = repo_management.load_repositories(repo_directory, repo_urls)
     for repo_url, repo in repo_urls.items():
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
-        data[repo_name] = _extract_commit_metrics(repo)
-        data[repo_name].update(_extract_process_metrics(repo_directory / repo_name, since, to))
+        data[repo_name] = _mine_commit_data(repo)
+        data[repo_name].update(_mine_process_data(repo_directory / repo_name, since, to))
         data[repo_name]['repo'] = repo_name
         data[repo_name]['repo_url'] = repo_url
 
@@ -47,7 +47,7 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
     data = {}
     for url in RichIterableProgressBar(
             repo_urls,
-            description="Querying GraphQL API for Stargazers data",
+            description="Querying GraphQL API for stargazers data",
             disable=config.DISABLE_PROGRESS_BARS):
 
         repo_owner = util.get_repo_owner_from_url(url)
@@ -161,7 +161,7 @@ def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
     for repo_url in RichIterableProgressBar(repos,
-                                            description="Mining repo lifespans",
+                                            description="Querying GraphQL API for lifespan data",
                                             disable=config.DISABLE_PROGRESS_BARS):
         repo_owner = util.get_repo_owner_from_url(repo_url)
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
@@ -192,49 +192,10 @@ def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
     return data
 
 
-# TODO: Baka in i pipeline och skriv ut i fil.
-def get_repo_paths_and_commit_metadata(repos_directory: Path,
-                                       repo_paths: list[Path]) -> dict[str, list[tuple[str, datetime]]]:
-    """Get a dict of repo paths with a list of tuples containing commit hashes and dates"""
-    repos: dict[str, Repository] = _load_repositories(repos_directory, repo_paths)
-    repos_with_commit_hashes_and_dates = {}
-    for repo_path, repo in repos.items():
-        hashes_and_dates = []
-        for commit in repo.traverse_commits():
-            hashes_and_dates.append((commit.hash, commit.committer_date))
+def _mine_commit_data(repo: Repository) -> dict[str, any]:
+    """Mine commit data from a repository."""
 
-        repos_with_commit_hashes_and_dates[repo_path] = hashes_and_dates
-
-    return repos_with_commit_hashes_and_dates
-
-# TODO refactor these to repo management
-def _load_repositories(repo_directory: Path, repos: list[Path | str]) -> (dict[str, Repository]):
-    """Load repos for mining, from an URL or a path."""
-
-    repo_directory.mkdir(parents=True, exist_ok=True)
-    logging.info('Loading repositories.')
-
-    return {
-        str(repo_path_or_url):
-            _load_repository(repo_path_or_url, repo_directory) for repo_path_or_url in repos
-    }
-
-
-def _load_repository(url_or_path: str, repo_directory: Path) -> Repository:
-    """Load repository stored locally, or clone and load if not present"""
-
-    repo_name = util.get_repo_name_from_url_or_path(url_or_path)
-    repo_path = repo_directory / repo_name
-
-    if repo_path.exists():
-        return Repository(str(repo_path))
-    else:
-        return Repository(url_or_path, clone_repo_to=str(repo_directory))
-
-
-def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
-    """Extract git metrics from a repository."""
-    metrics = {
+    data = {
         "total_commits": 0,
         "developers": [],
         "developer_count": 0,
@@ -246,34 +207,33 @@ def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
     for commit in RichIterableProgressBar(repo.traverse_commits(),
                                           description="Traversing commits, mining git data",
                                           disable=config.DISABLE_PROGRESS_BARS):
-        metrics["total_commits"] += 1
-        if commit.author.name not in metrics["developers"]:
-            metrics["developers"].append(commit.author.name)
-        metrics["files_modified"] += len(commit.modified_files)
+
+        data["total_commits"] += 1
+        data["files_modified"] += len(commit.modified_files)
+
+        if commit.author.name not in data["developers"]:
+            data["developers"].append(commit.author.name)
 
         for file in commit.modified_files:
-            metrics["lines_added"] += file.added_lines
-            metrics["lines_deleted"] += file.deleted_lines
+            data["lines_added"] += file.added_lines
+            data["lines_deleted"] += file.deleted_lines
 
-    metrics["developer_count"] = len(metrics["developers"])
-    metrics["average_lines_added_per_commit"] = metrics["lines_added"] / metrics["total_commits"]
-    metrics["average_lines_deleted_per_commit"] = metrics["lines_deleted"] / metrics["total_commits"]
+    data["developer_count"] = len(data["developers"])
+    data["average_lines_added_per_commit"] = data["lines_added"] / data["total_commits"]
+    data["average_lines_deleted_per_commit"] = data["lines_deleted"] / data["total_commits"]
 
-    return metrics
+    return data
 
 
-# TODO används from_commit, to_commit?
-def _extract_process_metrics(repo_path: Path,
-                             since: datetime = None,
-                             to: datetime = None):
-    """Extract Pydriller Process metrics from a repository"""
+def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine process data from a repository"""
 
-    lines_count_added, lines_count_removed = _lines_count_metrics(repo_path, since, to)
-    hunks_count = _hunk_count_metrics(repo_path, since, to)
-    contributors_experience = _contribution_experience_metrics(repo_path, since, to)
-    contributors_count_total, contributors_count_minor = _contribution_count_metrics(repo_path, since, to)
-    code_churn = _code_churns_metrics(repo_path, since, to)
-    change_set_max, change_set_avg = _change_set_metrics(repo_path, since, to)
+    lines_count_added, lines_count_removed = _lines_count(repo_path, since, to)
+    hunks_count = _hunks_count(repo_path, since, to)
+    contributors_experience = _contributor_experience(repo_path, since, to)
+    contributors_count_total, contributors_count_minor = _contributor_count(repo_path, since, to)
+    code_churn = _code_churn(repo_path, since, to)
+    change_set_max, change_set_avg = _change_set(repo_path, since, to)
 
     return {
         'lines_count': {
@@ -292,53 +252,36 @@ def _extract_process_metrics(repo_path: Path,
     }
 
 
-def _lines_count_metrics(repo_path: Path,
-                         since: datetime = None,
-                         to: datetime = None):
-    lines_count_metric = LinesCount(path_to_repo=str(repo_path),
-                                    since=since,
-                                    to=to)
-    return lines_count_metric.count_added(), lines_count_metric.count_removed()
+def _lines_count(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine lines count data from a repository"""
+    data = LinesCount(path_to_repo=str(repo_path), since=since, to=to)
+    return data.count_added(), data.count_removed()
 
 
-def _hunk_count_metrics(repo_path: Path,
-                        since: datetime = None,
-                        to: datetime = None):
-    hunks_count_metric = HunksCount(path_to_repo=str(repo_path),
-                                    since=since,
-                                    to=to)
-    return hunks_count_metric.count()
+def _hunks_count(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine hunks count data from a repository"""
+    data = HunksCount(path_to_repo=str(repo_path), since=since, to=to)
+    return data.count()
 
 
-def _contribution_experience_metrics(repo_path: Path,
-                                     since: datetime = None,
-                                     to: datetime = None):
-    contributors_experience_metric = ContributorsExperience(path_to_repo=str(repo_path), since=since, to=to)
-    return contributors_experience_metric.count()
+def _contributor_experience(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine contribution experience data from a repository"""
+    data = ContributorsExperience(path_to_repo=str(repo_path), since=since, to=to)
+    return data.count()
 
 
-def _contribution_count_metrics(repo_path: Path,
-                                since: datetime = None,
-                                to: datetime = None):
-    contributors_count_metric = ContributorsCount(path_to_repo=str(repo_path),
-                                                  since=since, to=to)
-    return contributors_count_metric.count(), contributors_count_metric.count_minor()
+def _contributor_count(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine contribution count data from a repository"""
+    data = ContributorsCount(path_to_repo=str(repo_path), since=since, to=to)
+    return data.count(), data.count_minor()
 
 
-def _code_churns_metrics(repo_path: Path,
-                         since: datetime = None,
-                         to: datetime = None):
-    code_churn_metric = CodeChurn(path_to_repo=str(repo_path),
-                                  since=since,
-                                  to=to)
-    metrics = {'total': code_churn_metric.count(), 'max': code_churn_metric.max(), 'avg': code_churn_metric.avg()}
-    return metrics
+def _code_churn(repo_path: Path, since: datetime = None, to: datetime = None):
+    """"Mine code churn data from a repository"""
+    data = CodeChurn(path_to_repo=str(repo_path), since=since, to=to)
+    return {'total': data.count(), 'max': data.max(), 'avg': data.avg()}
 
 
-def _change_set_metrics(repo_path: Path,
-                        since: datetime = None,
-                        to: datetime = None):
-    change_set_metric = ChangeSet(path_to_repo=str(repo_path),
-                                  since=since,
-                                  to=to)
+def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
+    change_set_metric = ChangeSet(path_to_repo=str(repo_path), since=since, to=to)
     return change_set_metric.max(), change_set_metric.avg()
