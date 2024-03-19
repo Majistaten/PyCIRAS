@@ -24,6 +24,14 @@ class CustomEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
+def make_data_directory() -> Path:
+    """Creates a timestamped directory for the output data."""
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    data_dir = config.DATA_FOLDER / f'./{timestamp}'
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
+
+
 def write_json(new_data: dict, path: Path):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
     try:
@@ -116,6 +124,8 @@ def git_data_to_csv(git_data: dict, path: Path):
 def test_data_to_csv(test_data: dict, path: Path):
     """Loads existing test CSV data and updates it with new data, or writes new data to a CSV file."""
 
+    # pprint(test_data)
+
     flattened_data = [
         {
             'repo': repo,
@@ -158,22 +168,23 @@ def test_data_to_csv(test_data: dict, path: Path):
     updated_df.to_csv(path)
 
 
-def clean_stargazers_data(data: dict) -> dict:
-    """Cleans stargazers data using pandas."""
+def stargazers_data_to_csv(stargazers_data: dict, path: Path):
+    """Writes stargazers data to a CSV file. Needs to be filtered by repo creation date"""
 
-    clean_data = {}
-    for repo, stargazers_data in data.items():
-        edges = stargazers_data.get("data", {}).get("repository", {}).get("stargazers", {}).get("edges", [])
+    rows_list = []
+    for repo, data in stargazers_data.items():
+        edges = data.get("data", {}).get("repository", {}).get("stargazers", {}).get("edges", [])
+        for edge in edges:
+            if 'node' in edge and 'login' in edge['node'] and 'starredAt' in edge:
+                rows_list.append({'repo': repo, 'date': edge['starredAt'], 'user': edge['node']['login']})
 
-        if edges:
-            data_frame = pd.DataFrame(edges)
-            data_frame['login'] = data_frame['node'].apply(lambda x: x.get('login'))
-            starred = data_frame.set_index('login')['starredAt'].to_dict()
-            clean_data[repo] = starred
-        else:
-            clean_data[repo] = {}
+    df = pd.DataFrame(rows_list)
+    df['date'] = pd.to_datetime(df['date'], utc=True)
+    df.sort_values(by='date', inplace=True)
+    df['stargazers_count'] = df.groupby('repo').cumcount() + 1
+    df = df.pivot_table(index='date', columns='repo', values='stargazers_count', aggfunc='last').ffill()
 
-    return clean_data
+    df.to_csv(path, mode='w', na_rep=0.0)
 
 
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
@@ -188,29 +199,3 @@ def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str 
             items.append((new_key, value))
 
     return dict(items)
-
-
-# TODO gör allt innan detta i en och samma funktion med enbart pandas och skriv direkt till CSV
-def stargazers_over_time(stargazers_data: dict) -> dict:
-    """Accumulates stargazers over time based on clean stargazers data"""
-
-    # TODO refaktorera in och förenkla, enbart pandas
-    # clean_stargazers_data
-    # write_stargazers_csv
-
-    data = []
-    for repo, stargazers in stargazers_data.items():
-        if stargazers:
-            for user, date in stargazers.items():
-                data.append({'repo': repo, 'date': pd.to_datetime(date, utc=True), 'user': user})
-        else:
-            logging.error(f"Repository {repo} has no stargazers data. Skipping stargazers over time for this repo.")
-
-    data_frame = pd.DataFrame(data)
-    data_frame.sort_values(by='date', inplace=True)
-    data_frame['stargazers_count'] = data_frame.groupby('repo').cumcount() + 1
-    data_frame = data_frame.pivot_table(index='date', columns='repo', values='stargazers_count', aggfunc='last')
-    data_frame.ffill(inplace=True)
-    data_frame.index = data_frame.index.astype(str)
-
-    return data_frame.to_dict('index')
