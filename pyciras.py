@@ -10,6 +10,7 @@
 # TODO gå igenom linter issues och fixa allt
 # TODO insertera log statements på alla olika execution branches på info-nivå
 # TODO kolla .pylintrc settings så man får ut cyclomatic complexity och alla andra intressanta metrics - inte säkert att man får det nu
+# TOOD kanske finns nice plugins som löser detta åt oss
 # TODO få ut complexity metrics från pydriller också?
 # TODO progressbar stannar om det kastas error för ett syntax error i en fil under unit testing analysis
 # TODO error handling här i denna filen?

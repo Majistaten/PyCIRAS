@@ -45,8 +45,7 @@ def write_json(new_data: dict, path: Path):
         json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
-# TODO Refactor to use Pandas?
-# TODO fixa fixed column för repo namn
+# TODO Refactor sorting and formatting to data_manipulation, fixa fixed column för repo namn. Sortera lite finare
 def write_git_csv(new_data: dict, path: Path):
     """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
 
@@ -58,13 +57,14 @@ def write_git_csv(new_data: dict, path: Path):
 
         column_names = sorted(column_names)
 
-        writer = csv.DictWriter(file, fieldnames=column_names, restval='NaN')
+        writer = csv.DictWriter(file, fieldnames=column_names, restval='nan') # TODO ska inte behöva bry sig om restvals här, få bort dictwriter?
         if path.stat().st_size == 0:
             writer.writeheader()
 
         writer.writerows(new_data)
 
 
+# TODO refaktorera bort sortering och mangling in i data_manipulation
 def write_lint_csv(data: dict, path: Path):
     """Writes lint data to separate CSV files for each repo."""
 
@@ -81,11 +81,12 @@ def write_lint_csv(data: dict, path: Path):
         fixed_columns = ['date', 'commit_hash']
         other_columns = sorted([col for col in data_frame.columns if col not in fixed_columns])
         data_frame = data_frame[fixed_columns + other_columns]
-        data_frame = data_frame.astype(str).replace('nan', 'NaN')
+        data_frame = data_frame.astype(str)
 
         data_frame.to_csv(path / f'lint-{repo}.csv', index=False)
 
 
+# TODO refaktorera bort sortering och mangling in i data_manipulation
 def write_stargazers_csv(data: dict, path: Path):
     """Writes stargazers data to a CSV file."""
 
@@ -102,11 +103,11 @@ def write_stargazers_csv(data: dict, path: Path):
 
         # Write data for each date
         for date, repo_stargazers in data.items():
-            # date = pd.to_datetime(date, utc=True) # TODO konvertera här med pandas? sortera?
-            row = [date] + [repo_stargazers.get(repo, 0) for repo in repos]  # TODO NaN?
+            row = [date] + [repo_stargazers.get(repo, 0) for repo in repos]
             writer.writerow(row)
 
 
+# TODO refaktorera bort sortering och mangling in i data_manipulation
 def write_test_csv(data: dict, path: Path):
     """Loads existing test data and updates it with new data, or writes new data to a CSV file."""
 
@@ -134,6 +135,6 @@ def write_test_csv(data: dict, path: Path):
 
     updated_df = updated_df.reindex(sorted(updated_df.columns), axis=1)
     updated_df.sort_index(inplace=True)
-    updated_df = updated_df.astype(str).replace('nan', 'NaN')
+    updated_df = updated_df.astype(str)
 
     updated_df.to_csv(path)
