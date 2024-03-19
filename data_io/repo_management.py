@@ -65,7 +65,7 @@ def prepare_repository(repo_url: str, destination_folder: Path, postfix: str = "
         return None
 
 
-def remove_repos(content: list[str]) -> None:
+def remove_repositories(content: list[str]) -> None:
     """ Remove all repositories in the content list. """
     logging.info(f'Removing {len(content)} repositories {content}')
     for url in content:

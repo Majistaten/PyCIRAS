@@ -240,7 +240,7 @@ def _process_chunk(repo_urls: list[str],
                 logging.info(f'Running {str(function.__name__)}')
                 function(chunk_of_repos)
         if not persist_repos:
-            repo_management.remove_repos(chunk_of_repos)
+            repo_management.remove_repositories(chunk_of_repos)
     if stargazers:
         _mine_stargazers(repo_urls)
     if lifespan:
