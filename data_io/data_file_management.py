@@ -5,7 +5,7 @@ from pathlib import Path
 import csv
 import json
 from datetime import datetime
-import data_io.data_manipulation as data_converter
+import data_io.data_management as data_converter
 import pandas as pd
 
 # TODO refactor date formatting etc to data_manipulation instead
@@ -67,28 +67,6 @@ def write_git_csv(new_data: dict, path: Path):
             writer.writeheader()
 
         writer.writerows(new_data)
-
-
-# TODO refaktorera bort sortering och mangling in i data_manipulation, gör CSV skrivningen där
-def write_lint_csv(data: dict, path: Path):
-    """Writes lint data to separate CSV files for each repo."""
-
-    for repo, dates in data.items():
-        data_rows = []
-        for date, lint_data in dates.items():
-            row = {'date': date, **lint_data}
-            data_rows.append(row)
-
-        data_frame = pd.DataFrame(data_rows)
-        data_frame['date'] = pd.to_datetime(data_frame['date'], utc=True)
-        data_frame.sort_values(by='date', inplace=True)
-
-        fixed_columns = ['date', 'commit_hash']
-        other_columns = sorted([col for col in data_frame.columns if col not in fixed_columns])
-        data_frame = data_frame[fixed_columns + other_columns]
-        data_frame = data_frame.astype(str)
-
-        data_frame.to_csv(path / f'lint-{repo}.csv', index=False)
 
 
 # TODO refaktorera bort sortering och mangling in i data_manipulation, gör CSV skrivningen där

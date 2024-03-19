@@ -41,7 +41,7 @@ def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, an
     metrics = {}
     repo = Repo(repository_path)
     for commit in RichIterableProgressBar(commits,
-                                          description=f"Traversing commits, extracting pylint metrics",
+                                          description=f"Traversing commits, extracting lint data",
                                           postfix=util.get_repo_name_from_path(str(repository_path)),
                                           disable=config.DISABLE_PROGRESS_BARS):
         commit_hash = commit["commit_hash"]

@@ -23,7 +23,7 @@ from pathlib import Path
 import rich.traceback
 from typing import Callable
 from mining import lint_mining, git_mining, test_mining
-from data_io import data_file_management, data_manipulation, repo_management
+from data_io import data_file_management, data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
 
 rich.traceback.install()
@@ -110,7 +110,6 @@ def run_mining(repo_urls: list[str] = None,
                 title='PyCIRAS Mining Completed')
 
 
-# TODO kalla data_management för att mangla med pandas, sen en skrivmetod i samma fil för att skriva
 def _mine_lint(repo_urls: list[str]):
     """"Mine lint data from a list of repositories."""
 
@@ -119,23 +118,15 @@ def _mine_lint(repo_urls: list[str]):
     repos_and_commit_metadata = git_mining.get_repos_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
     lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
 
-    lint_data_no_msg = data_manipulation.remove_lint_messages(lint_data)
-    lint_data_no_msg_flat = data_manipulation.flatten_lint_data(lint_data_no_msg)
-    lint_data_clean = data_manipulation.clean_lint_data(lint_data_no_msg_flat)
-
-    data_file_management.write_json(lint_data, data_directory / 'lint-raw.json')
-    data_file_management.write_json(lint_data_no_msg, data_directory / 'lint-no-msg.json')
-    data_file_management.write_json(lint_data_no_msg_flat, data_directory / 'lint-no-msg-flat.json')
-    # TODO fixa i clean funktionen så det inte är datettime objekt i, annars funkar inte denna skrivning
-    # data_file_management.write_json(lint_data_clean, data_directory / 'lint-clean.json')
-    data_file_management.write_lint_csv(lint_data_clean, data_directory)
+    data_management.write_json(lint_data, data_directory / 'lint-raw.json')
+    data_management.lint_data_to_csv(lint_data, data_directory)
 
 
 def _mine_git(repo_urls: list[str]):
     """Mine git data from a list of repositories."""
 
     git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
-    git_data_flat = data_manipulation.flatten_git_data(git_data)
+    git_data_flat = data_management.flatten_git_data(git_data)
 
     data_file_management.write_json(git_data, data_directory / 'git-raw.json')
     data_file_management.write_json(git_data_flat, data_directory / 'git-flat.json')
@@ -150,7 +141,7 @@ def _mine_test(repo_urls: list[str]):
     repos_and_commit_metadata = git_mining.get_repos_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
     test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
-    test_data_over_time = data_manipulation.get_test_data_over_time(test_data)
+    test_data_over_time = data_management.get_test_data_over_time(test_data)
 
     data_file_management.write_json(test_data, data_directory / 'test-raw.json')
     data_file_management.write_json(test_data_over_time, data_directory / 'test-over-time.json')
@@ -163,8 +154,8 @@ def _mine_stargazers(repo_urls: list[str]):
     stargazers_data = git_mining.mine_stargazers_data(repo_urls)
     # repo_lifespans = git_mining.get_repo_lifespans(stargazers_data)
 
-    stargazers_data_clean = data_manipulation.clean_stargazers_data(stargazers_data)
-    stargazers_over_time = data_manipulation.stargazers_over_time(stargazers_data_clean)
+    stargazers_data_clean = data_management.clean_stargazers_data(stargazers_data)
+    stargazers_over_time = data_management.stargazers_over_time(stargazers_data_clean)
 
     data_file_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
     data_file_management.write_json(stargazers_data_clean, data_directory / 'stargazers-clean.json')
@@ -239,7 +230,7 @@ if __name__ == '__main__':
                chunk_size=1,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=True,
-               test=True,
-               git=True,
+               stargazers=False,
+               test=False,
+               git=False,
                lint=True)

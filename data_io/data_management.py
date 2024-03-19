@@ -1,16 +1,41 @@
 """This module provides functionality for data manipulation and processing."""
-
+import json
 import logging
+from datetime import datetime
+from pathlib import Path
 from rich.pretty import pprint
 import pandas as pd
+from utility import config
+from utility.progress_bars import RichIterableProgressBar
 
 
-# TODO Flytta all CSV preppning och skrivning in i dessa stora funktioner och gör allt med pandas istället
-# alla andra funktioner från data_file_management och ta bort filen.
-# gör alla skrivningar till csv med pandas, kolla om man kan köra flatten också med pandas
-# Döp om till data_management.py
+class CustomEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle sets and datetime objects."""
 
-#TODO ta bort när allt görs med pandas
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)  # Convert sets to lists
+        elif isinstance(obj, datetime):
+            return str(obj)
+        elif isinstance(obj, Path):
+            return str(obj)
+        else:
+            return json.JSONEncoder.default(self, obj)
+
+
+def write_json(new_data: dict, path: Path):
+    """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
+    try:
+        with open(path, 'r') as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = {}
+
+    data.update(new_data)
+    with open(path, 'w') as file:
+        json.dump(data, file, indent=4, cls=CustomEncoder)
+
+
 def flatten_git_data(data: dict) -> dict:
     """Flatten git data metrics to a single level dict."""
 
@@ -19,53 +44,6 @@ def flatten_git_data(data: dict) -> dict:
         flat_data[key] = _flatten_dict(value, prefix_separator=".")
 
     return flat_data
-
-
-#TODO ta bort när allt görs med pandas
-def flatten_lint_data(metrics: dict) -> dict:
-    """Flatten lint data to a single level dict."""
-
-    flat_data = metrics
-    for key, value in flat_data.items():
-        for k, v in value.items():
-            flat_data[key][k] = v if not isinstance(v, dict) else _flatten_dict(v, prefix_separator=".")
-
-    return flat_data
-
-
-# TODO gör allt detta och allt innan enbart i pandas och skriv rakt på CSV
-def clean_lint_data(data: dict) -> dict:
-    """Swaps to use date as key for commits, cleans lint data."""
-
-    # TODO refaktorera in och förenkla, enbart pandas
-    # remove_lint_messages
-    # flatten_lint_data
-    # clean_lint_data
-    # write_lint_csv
-
-    clean_data = {}
-    for repo, commits in data.items():
-        commit_list = [{"commit_hash": commit_hash, **commit_info} for commit_hash, commit_info in commits.items() if
-                       "date" in commit_info]
-
-        if commit_list:
-            data_frame = pd.DataFrame(commit_list)
-            data_frame.drop(
-                columns=[col for col in data_frame.columns if col.startswith("stats.by_module") or
-                         col.startswith("stats.dependencies") or
-                         col == "stats.repository_name" or
-                         col == "stats.dependencies.util"],
-                inplace=True)
-
-            data_frame.set_index("date", inplace=True)
-            cleaned_lint_data = data_frame.to_dict("index")
-            clean_data[repo] = cleaned_lint_data
-
-        else:
-            clean_data[repo] = {}
-            logging.error(f"Repository {repo} has no valid commits with dates.")
-
-    return clean_data
 
 
 # TODO flytta in denna i den stora funktionen med enbart pandas
@@ -85,6 +63,77 @@ def clean_stargazers_data(data: dict) -> dict:
             clean_data[repo] = {}
 
     return clean_data
+
+
+def lint_data_to_csv(lint_data: dict, path: Path):
+    """
+    Processes lint data and writes it to CSV files, one per repository.
+
+    Parameters:
+    - lint_data: A dictionary containing lint data for multiple repositories.
+    - output_dir: The directory where the CSV files will be saved.
+    """
+
+    for repo, repo_data in RichIterableProgressBar(lint_data.items(),
+                                                   description="Processing lint data",
+                                                   disable=config.DISABLE_PROGRESS_BARS):
+        if repo_data is None:
+            continue
+
+        data_list = []
+        for commit_hash, commit_data in repo_data.items():
+            if commit_data is None:
+                continue
+
+            commit_data.pop('messages', None)
+            flattened_data = _flatten_dict(commit_data)
+
+            for metric, value in flattened_data.items():
+                data_list.append({'commit_hash': commit_hash, 'metric': metric, 'value': value})
+
+        df = pd.DataFrame(data_list)
+
+        if df.empty:
+            logging.error(f"Repository {repo} has no valid commits. Skipping...")
+            continue
+
+        df_formatted = df.pivot_table(index=['commit_hash'],
+                                      columns='metric',
+                                      values='value',
+                                      aggfunc='first').reset_index()
+
+        df_formatted.columns.name = None
+        df_formatted.reset_index(drop=True, inplace=True)
+
+        df_formatted.drop(columns=[col for col in df_formatted.columns if
+                                   col.startswith('stats.by_module') or
+                                   col.startswith('stats.dependencies') or
+                                   col == 'stats.repository_name' or
+                                   col == 'stats.dependencies.util'],
+                          inplace=True,
+                          errors='ignore')
+
+        if 'date' in df_formatted.columns:
+            df_formatted['date'] = pd.to_datetime(df_formatted['date'], utc=True)
+            df_formatted.sort_values(by='date', inplace=True)
+            cols = ['date', 'commit_hash'] + [col for col in df_formatted.columns if col not in ['date', 'commit_hash']]
+            df_formatted = df_formatted[cols]
+
+        df_formatted.to_csv(path / f'lint-{repo}.csv', index=False, na_rep='nan')
+
+
+def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
+    """Flatten a nested dict. Takes nested keys, and uses them as prefixes."""
+    items = []
+    for key, value in dictionary.items():
+
+        new_key = parent_key + prefix_separator + str(key) if parent_key else str(key)
+        if isinstance(value, dict):
+            items.extend(_flatten_dict(value, new_key, prefix_separator=prefix_separator).items())
+        else:
+            items.append((new_key, value))
+
+    return dict(items)
 
 
 # TODO gör allt innan detta i en och samma funktion med enbart pandas och skriv direkt till CSV
@@ -159,34 +208,6 @@ def get_test_data_over_time(test_data: dict) -> dict:
 
     result_dict = data_frame.groupby(level=0).apply(lambda df: df.xs(df.name).to_dict(orient='index')).to_dict()
     return result_dict
-
-
-# TODO ta bort när allt görs i pandasfunktionen för lint
-def remove_lint_messages(data: dict) -> dict:
-    """Removes the messages from the pylint data"""
-    for repo, value in data.items():
-        if value is None:
-            continue
-        for commit, v in value.items():
-            if v is None:
-                continue
-            v.pop("messages")
-    return data
-
-
-# TODO ta bort när allt görs i pandas
-def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
-    """Flatten a nested dict. Takes nested keys, and uses them as prefixes."""
-    items = []
-    for key, value in dictionary.items():
-
-        new_key = parent_key + prefix_separator + str(key) if parent_key else str(key)
-        if isinstance(value, dict):
-            items.extend(_flatten_dict(value, new_key, prefix_separator=prefix_separator).items())
-        else:
-            items.append((new_key, value))
-
-    return dict(items)
 
 
 # TODO ta bort när allt görs i pandas
