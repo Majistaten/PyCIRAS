@@ -1,7 +1,9 @@
 import os
 import logging
+import re
 from pathlib import Path
 from utility import config
+from rich.pretty import pprint
 
 
 def get_python_files_from_directory(directory: Path) -> list[str]:
@@ -16,19 +18,21 @@ def get_python_files_from_directory(directory: Path) -> list[str]:
     return python_files
 
 
-def get_repo_name_from_url(repo_url: str) -> str:
-    """Returns the name of a repository from a git URL"""
-    return str(repo_url).rstrip('/').split('/')[-1].replace('.git', '').strip()
-
-
 def get_repo_owner_from_url(repo_url: str) -> str:
     """Returns the owner of a repository from a git URL"""
     return str(repo_url).rstrip('/').split('/')[-2].strip()
 
 
-def get_repo_name_from_path(path: str) -> str:
-    """Returns the name of a repository from a path"""
-    return path.replace('\\', '/').rstrip('/').split('/')[-1].strip()
+def get_repo_name_from_url_or_path(path_or_url: Path | str) -> str:
+    """Returns the name of a repository from either a file path or a URL."""
+    if isinstance(path_or_url, Path):
+        path_str = str(path_or_url)
+    else:
+        path_str = path_or_url
+
+    normalized_path = path_str.replace('\\', '/').rstrip('/')
+    repo_name = normalized_path.split('/')[-1]
+    return repo_name.replace('.git', '')
 
 
 def get_repository_urls_from_file(file_path: Path) -> list[str]:
@@ -47,7 +51,7 @@ def get_file_relative_path_from_absolute_path(absolute_path: str) -> str:
 
 
 def get_path_to_repo(repo_url: str) -> Path:
-    name = get_repo_name_from_url(repo_url)
+    name = get_repo_name_from_url_or_path(repo_url)
     return config.REPOSITORIES_FOLDER / name
 
 

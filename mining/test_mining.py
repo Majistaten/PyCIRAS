@@ -93,7 +93,7 @@ def mine_test_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, da
     data = {}
     for repo_path, commit_metadata in repo_paths_with_commit_metadata.items():
         logging.info(f"Unit Testing: inspecting {repo_path}")
-        data[util.get_repo_name_from_path(repo_path)] = _extract_unit_testing_metrics(Path(repo_path), commit_metadata)
+        data[util.get_repo_name_from_url_or_path(repo_path)] = _extract_unit_testing_metrics(Path(repo_path), commit_metadata)
 
     return data
 
@@ -104,8 +104,8 @@ def _extract_unit_testing_metrics(repository_path: Path, commit_metadata: [tuple
     repo = Repo(repository_path)
 
     for commit_hash, date in RichIterableProgressBar(commit_metadata,
-                                                     description=f"Traversing commits, extracting unit-testing data",
-                                                     postfix=util.get_repo_name_from_path(str(repository_path)),
+                                                     description=f"Traversing commits, mining test data",
+                                                     postfix=util.get_repo_name_from_url_or_path(str(repository_path)),
                                                      disable=config.DISABLE_PROGRESS_BARS):
 
         repo.git.checkout(commit_hash)

@@ -42,7 +42,7 @@ def prepare_repository(repo_url: str, destination_folder: Path, postfix: str = "
         The repository path.
     """
     try:
-        repo_name = util.get_repo_name_from_url(repo_url)
+        repo_name = util.get_repo_name_from_url_or_path(repo_url)
         if not destination_folder.exists() or not destination_folder.is_dir():
             logging.info(f'Path {destination_folder} did not exist, creating path.')
             destination_folder.mkdir(parents=True, exist_ok=True)
@@ -81,7 +81,7 @@ def remove_repos(content: list[str]) -> None:
 
 def get_github_repo_size(url: str) -> str:
     user = util.get_repo_owner_from_url(url)
-    repo = util.get_repo_name_from_url(url)
+    repo = util.get_repo_name_from_url_or_path(url)
     api_url = f"https://api.github.com/repos/{user}/{repo}"
     response = requests.get(api_url)
     if response.status_code == 200:

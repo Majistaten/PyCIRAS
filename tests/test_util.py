@@ -24,7 +24,7 @@ class MyModuleTests(unittest.TestCase):
             ("https://github.com/user/repo_name", "repo_name")
         ]
         for repo_url, expected in test_cases:
-            result = util.get_repo_name_from_url(repo_url)
+            result = util.get_repo_name_from_url_or_path(repo_url)
             self.assertEqual(result, expected)
 
     def test_get_repo_owner_from_url(self):
@@ -42,7 +42,7 @@ class MyModuleTests(unittest.TestCase):
             ("/path/to/repo_name", "repo_name")
         ]
         for path, expected in test_cases:
-            result = util.get_repo_name_from_path(path)
+            result = util.get_repo_name_from_url_or_path(path)
             self.assertEqual(result, expected)
 
     @patch('builtins.open', new_callable=mock_open,

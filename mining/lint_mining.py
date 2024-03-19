@@ -32,7 +32,7 @@ def mine_lint_data(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
     metrics = {}
     for repo_path, commits in repo_paths_with_commits.items():
         logging.info(f"Code quality: inspecting {repo_path}")
-        metrics[util.get_repo_name_from_path(repo_path)] = _extract_pylint_metrics(Path(repo_path), commits)
+        metrics[util.get_repo_name_from_url_or_path(repo_path)] = _extract_pylint_metrics(Path(repo_path), commits)
 
     return metrics
 
@@ -42,8 +42,8 @@ def _extract_pylint_metrics(repository_path: Path, commit_metadata: [tuple[str, 
     data = {}
     repo = Repo(repository_path)
     for commit_hash, date in RichIterableProgressBar(commit_metadata,
-                                                     description=f"Traversing commits, extracting lint data",
-                                                     postfix=util.get_repo_name_from_path(str(repository_path)),
+                                                     description=f"Traversing commits, mining lint data",
+                                                     postfix=util.get_repo_name_from_url_or_path(str(repository_path)),
                                                      disable=config.DISABLE_PROGRESS_BARS):
 
         repo.git.checkout(commit_hash)
@@ -84,7 +84,7 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     else:
         stats_dict = stats
 
-    repository_name = util.get_repo_name_from_path(str(repository_path))
+    repository_name = util.get_repo_name_from_url_or_path(str(repository_path))
     result['messages'] = _parse_pylint_messages(reporter.messages)
     result['messages']['repository_name'] = repository_name
     result['stats'] = stats_dict

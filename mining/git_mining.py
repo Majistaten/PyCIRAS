@@ -20,18 +20,18 @@ from utility.progress_bars import RichIterableProgressBar
 import pandas as pd
 
 
-def mine_git_data(repo_path: Path,
-                  repos: list[str],
+def mine_git_data(repo_directory: Path,
+                  repo_urls: list[str],
                   since: datetime = datetime.now(),
                   to: datetime = datetime.now() - relativedelta(years=20)) -> dict[str, dict[str, any]]:
     """Mine git data from a list of repositories and return a dictionary with the data"""
 
     data = {}
-    repos = _load_repositories(repos, repo_path)
-    for repo_url, repo in repos.items():
-        repo_name = util.get_repo_name_from_url(repo_url)
+    repo_urls = _load_repositories(repo_directory, repo_urls)
+    for repo_url, repo in repo_urls.items():
+        repo_name = util.get_repo_name_from_url_or_path(repo_url)
         data[repo_name] = _extract_commit_metrics(repo)
-        data[repo_name].update(_extract_process_metrics(repo_path / repo_name, since, to))
+        data[repo_name].update(_extract_process_metrics(repo_directory / repo_name, since, to))
         data[repo_name]['repo'] = repo_name
         data[repo_name]['repo_url'] = repo_url
 
@@ -51,7 +51,7 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
             disable=config.DISABLE_PROGRESS_BARS):
 
         repo_owner = util.get_repo_owner_from_url(url)
-        repo_name = util.get_repo_name_from_url(url)
+        repo_name = util.get_repo_name_from_url_or_path(url)
 
         if check_graphql_rate_limit()[0] == 0:
             logging.error(f"Ratelimit exceeded, skipping {repo_owner}/{repo_name}")
@@ -164,7 +164,7 @@ def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
                                             description="Mining repo lifespans",
                                             disable=config.DISABLE_PROGRESS_BARS):
         repo_owner = util.get_repo_owner_from_url(repo_url)
-        repo_name = util.get_repo_name_from_url(repo_url)
+        repo_name = util.get_repo_name_from_url_or_path(repo_url)
 
         lifespan_query = {
             "query": """
@@ -193,10 +193,10 @@ def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
 
 
 # TODO: Baka in i pipeline och skriv ut i fil.
-def get_repo_paths_and_commit_metadata(repo_directory: Path,
+def get_repo_paths_and_commit_metadata(repos_directory: Path,
                                        repo_paths: list[Path]) -> dict[str, list[tuple[str, datetime]]]:
     """Get a dict of repo paths with a list of tuples containing commit hashes and dates"""
-    repos: dict[str, Repository] = _load_repositories(repo_paths, repo_directory)
+    repos: dict[str, Repository] = _load_repositories(repos_directory, repo_paths)
     repos_with_commit_hashes_and_dates = {}
     for repo_path, repo in repos.items():
         hashes_and_dates = []
@@ -207,39 +207,33 @@ def get_repo_paths_and_commit_metadata(repo_directory: Path,
 
     return repos_with_commit_hashes_and_dates
 
+# TODO refactor these to repo management
+def _load_repositories(repo_directory: Path, repos: list[Path | str]) -> (dict[str, Repository]):
+    """Load repos for mining, from an URL or a path."""
 
-# TODO behöver hela URL om den ska klona, annars bara namnet
-# TODO: Fixa docstring som förklarar functionalitet
-# TODO är inte url, är både path och url (Path/String)
-def _load_repositories(repo_paths_or_urls: list[Path | str],
-                       repo_directory: Path) -> (dict[str, Repository]):
-    """Load repositories for further processing"""
-    repository_path = repo_directory  # TODO använder repo dir här
-    repository_path.mkdir(parents=True, exist_ok=True)
-    logging.debug('Loading repositories.')
+    repo_directory.mkdir(parents=True, exist_ok=True)
+    logging.info('Loading repositories.')
 
     return {
         str(repo_path_or_url):
-            _load_repository(repo_path_or_url, repo_directory) for repo_path_or_url in repo_paths_or_urls
+            _load_repository(repo_path_or_url, repo_directory) for repo_path_or_url in repos
     }
 
 
-# TODO behöver hela URL om den ska klona, annars bara namnet
-# TODO är inte url, är både path och url (Path/String)
-def _load_repository(repo_url_or_path: str, repository_directory: Path) -> Repository:
+def _load_repository(url_or_path: str, repo_directory: Path) -> Repository:
     """Load repository stored locally, or clone and load if not present"""
 
-    repo_name = util.get_repo_name_from_url(repo_url_or_path)
-    repo_path = repository_directory / repo_name
+    repo_name = util.get_repo_name_from_url_or_path(url_or_path)
+    repo_path = repo_directory / repo_name
 
-    if not repo_path.exists():
-        return Repository(repo_url_or_path, clone_repo_to=str(repository_directory))
-
-    return Repository(str(repo_path))
+    if repo_path.exists():
+        return Repository(str(repo_path))
+    else:
+        return Repository(url_or_path, clone_repo_to=str(repo_directory))
 
 
 def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
-    """Extract Pydriller commit metrics from a repository."""
+    """Extract git metrics from a repository."""
     metrics = {
         "total_commits": 0,
         "developers": [],
@@ -250,7 +244,7 @@ def _extract_commit_metrics(repo: Repository) -> dict[str, any]:
     }
 
     for commit in RichIterableProgressBar(repo.traverse_commits(),
-                                          description="Traversing commits, extracting Pydriller commit metrics",
+                                          description="Traversing commits, mining git data",
                                           disable=config.DISABLE_PROGRESS_BARS):
         metrics["total_commits"] += 1
         if commit.author.name not in metrics["developers"]:

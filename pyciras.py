@@ -8,6 +8,7 @@
 # TODO progressbar stannar om det kastas error för ett syntax error i en fil under unit testing analysis
 # TODO error handling här i denna filen?
 # TODO fixa bättre docstrings som förklarar parametrar
+# TODO Sätt ut logging.info överallt
 
 import concurrent.futures
 import logging
@@ -108,7 +109,7 @@ def _mine_lint(repo_urls: list[str]):
 
     repo_paths = _clone_repos(repo_urls)
 
-    repos_and_commit_metadata = git_mining.get_repos_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
+    repos_and_commit_metadata = git_mining.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
     lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
 
     data_management.write_json(lint_data, data_directory / 'lint-raw.json')
@@ -129,7 +130,7 @@ def _mine_test(repo_urls: list[str]):
 
     repo_paths = _clone_repos(repo_urls)
 
-    repos_and_commit_metadata = git_mining.get_repos_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
+    repos_and_commit_metadata = git_mining.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
     test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
     data_management.write_json(test_data, data_directory / 'test-raw.json')
@@ -148,7 +149,7 @@ def _mine_stargazers(repo_urls: list[str]):
 def _mine_lifespan(repo_urls: list[str]):
     """ Mine dates from the project lifespan from a list of repositories."""
 
-    lifespan_data = git_mining.get_repositories_lifespan(repo_urls)
+    lifespan_data = git_mining.mine_repo_lifespans(repo_urls)
 
     data_management.write_json(lifespan_data, data_directory / 'lifespan-raw.json')
     data_management.lifespan_data_to_csv(lifespan_data, data_directory / 'lifespan.csv')
@@ -218,8 +219,8 @@ if __name__ == '__main__':
                chunk_size=1,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=False,
+               stargazers=True,
                lifespan=True,
-               test=False,
-               git=False,
-               lint=False)
+               test=True,
+               git=True,
+               lint=True)
