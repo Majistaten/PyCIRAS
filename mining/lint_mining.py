@@ -41,25 +41,31 @@ def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, an
     metrics = {}
     repo = Repo(repository_path)
     for commit in RichIterableProgressBar(commits,
-                                          description=f"Traversing commits, extracting pylint metrics",
+                                          description=f"Traversing commits, extracting lint data",
                                           postfix=util.get_repo_name_from_path(str(repository_path)),
                                           disable=config.DISABLE_PROGRESS_BARS):
         commit_hash = commit["commit_hash"]
 
         date = commit["date"]
         repo.git.checkout(commit_hash)
-        metrics[commit_hash] = _run_pylint(repository_path)
-        if metrics[commit_hash] is not None:
+        lint_data = _run_pylint(repository_path, commit_hash)
+
+        if lint_data is not None:
+            metrics[commit_hash] = lint_data
             metrics[commit_hash]['date'] = date
+
     return metrics
 
 
-def _run_pylint(repository_path: Path) -> dict[str, any] | None:
+def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     """Execute Pylint on a single repository, get the report in a dict"""
     result = {}
     target_files = util.get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
-        logging.info(f"No python files found in {repository_path}")
+        logging.warning(f"\nNo python files found in "
+                        f"{util.get_file_relative_path_from_absolute_path(str(repository_path))}"
+                        f" when executing lint mining.\n"
+                        f"Skipping commit: {commit}")
         return None
     elif len(target_files) > 1000:
         logging.warning(

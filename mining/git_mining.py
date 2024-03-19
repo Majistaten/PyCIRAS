@@ -134,27 +134,59 @@ def get_repositories_lifespan(repos: list[str]) -> dict[str, any]:
     return lifespan
 
 
+# TODO refactor to use same format as other queries
 def get_repository_lifespan(repo_url: str) -> dict[str, any]:
     """Get the first commit, last commit, and publish date of a project."""
+
+    load_dotenv()
+
     owner = util.get_repo_owner_from_url(repo_url)
     repo = util.get_repo_name_from_url(repo_url)
+    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
 
-    api_url = f"https://api.github.com/repos/{owner}/{repo}"
-    response = requests.get(api_url)
-
-    if response.status_code == 200:
-        data = response.json()
-
-        result = {
-            repo: {
-                "created_at": data['created_at'],
-                "pushed_at": data['pushed_at'],
+    lifespan_query = {
+        "query": """
+            query ($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                createdAt
+                pushedAt
+              }
             }
+            """,
+        "variables": {
+            "owner": owner,
+            "repo": repo
         }
-        return result
-    else:
-        logging.warning(f"Failed to fetch repository data. Status code: {response.status_code}. Error: {response.text}")
-        return {}
+    }
+
+    response = requests.post(config.GRAPHQL_API, json=lifespan_query, headers=headers).json()
+
+    return {
+        repo: {
+            "created_at": response['data']['repository']['createdAt'],
+            "pushed_at": response['data']['repository']['pushedAt']
+        }
+    }
+
+    # owner = util.get_repo_owner_from_url(repo_url)
+    # repo = util.get_repo_name_from_url(repo_url)
+    #
+    # api_url = f"https://api.github.com/repos/{owner}/{repo}"
+    # response = requests.get(api_url)
+    #
+    # if response.status_code == 200:
+    #     data = response.json()
+    #
+    #     result = {
+    #         repo: {
+    #             "created_at": data['created_at'],
+    #             "pushed_at": data['pushed_at'],
+    #         }
+    #     }
+    #     return result
+    # else:
+    #     logging.warning(f"Failed to fetch repository data. Status code: {response.status_code}. Error: {response.text}")
+    #     return {}
 
 
 # TODO: Baka in i pipeline och skriv ut i fil.

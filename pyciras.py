@@ -1,33 +1,26 @@
 """This module provides the main entry point for the PyCIRAS application and the main mining functionality."""
 
-# TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
 # TODO linta, döp om saker, refaktorera allmänt
-# TODO gör så att raw data skrivs till /out/data/repo/raw och processad data till /out/data/repo/processed
-# TODO dumpa settings och inställningar i logger för varje körning om vilken config som användes när den kördes
-# TODO name mangla individuella runmetoder
-# TODO verifiera all CSV mot raw-data
 # TODO gå igenom linter issues och fixa allt
 # TODO insertera log statements på alla olika execution branches på info-nivå
-# TODO kolla .pylintrc settings så man får ut cyclomatic complexity och alla andra intressanta metrics - inte säkert att man får det nu
-# TOOD kanske finns nice plugins som löser detta åt oss
-# TODO få ut complexity metrics från pydriller också?
+# TODO kolla .pylintrc settings så man får ut alla andra intressanta metrics
 # TODO progressbar stannar om det kastas error för ett syntax error i en fil under unit testing analysis
 # TODO error handling här i denna filen?
-# TODO byt alla NaN till nan
+# TODO fixa bättre docstrings som förklarar parametrar
 
 import concurrent.futures
 import logging
 from pathlib import Path
-
 import rich.traceback
 from typing import Callable
 from mining import lint_mining, git_mining, test_mining
-from data_io import data_file_management, data_manipulation, repo_management
+from data_io import data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
+from rich.pretty import pprint
 
 rich.traceback.install()
-data_directory = data_file_management.make_data_directory()  # TODO ska denna flyttas in i run_mining istället?
+data_directory = data_management.make_data_directory()
 logger = logger_setup.get_logger('pyciras_logger')
 
 
@@ -58,8 +51,6 @@ def run_repo_cloner(repo_urls: list[str] = None,
                 title='PyCIRAS Cloning Completed')
 
 
-# TODO fixa bättre docstrings som förklarar parametrar
-# TODO Bool för att få ut JSON/CSV/inte
 def run_mining(repo_urls: list[str] = None,
                chunk_size: int = 1,
                multiprocessing: bool = False,
@@ -110,7 +101,6 @@ def run_mining(repo_urls: list[str] = None,
                 title='PyCIRAS Mining Completed')
 
 
-# TODO kalla data_management för att mangla med pandas, sen en skrivmetod i samma fil för att skriva
 def _mine_lint(repo_urls: list[str]):
     """"Mine lint data from a list of repositories."""
 
@@ -119,27 +109,17 @@ def _mine_lint(repo_urls: list[str]):
     repos_and_commit_metadata = git_mining.get_repos_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
     lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
 
-    lint_data_no_msg = data_manipulation.remove_lint_messages(lint_data)
-    lint_data_no_msg_flat = data_manipulation.flatten_lint_data(lint_data_no_msg)
-    lint_data_clean = data_manipulation.clean_lint_data(lint_data_no_msg_flat)
-
-    data_file_management.write_json(lint_data, data_directory / 'lint-raw.json')
-    data_file_management.write_json(lint_data_no_msg, data_directory / 'lint-no-msg.json')
-    data_file_management.write_json(lint_data_no_msg_flat, data_directory / 'lint-no-msg-flat.json')
-    # TODO fixa i clean funktionen så det inte är datettime objekt i, annars funkar inte denna skrivning
-    # data_file_management.write_json(lint_data_clean, data_directory / 'lint-clean.json')
-    data_file_management.write_lint_csv(lint_data_clean, data_directory)
+    data_management.write_json(lint_data, data_directory / 'lint-raw.json')
+    data_management.lint_data_to_csv(lint_data, data_directory)
 
 
 def _mine_git(repo_urls: list[str]):
     """Mine git data from a list of repositories."""
 
     git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
-    git_data_flat = data_manipulation.flatten_git_data(git_data)
 
-    data_file_management.write_json(git_data, data_directory / 'git-raw.json')
-    data_file_management.write_json(git_data_flat, data_directory / 'git-flat.json')
-    data_file_management.write_git_csv(git_data_flat, data_directory / 'git-flat.csv')
+    data_management.write_json(git_data, data_directory / 'git-raw.json')
+    data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
 
 
 def _mine_test(repo_urls: list[str]):
@@ -150,26 +130,17 @@ def _mine_test(repo_urls: list[str]):
     repos_and_commit_metadata = git_mining.get_repos_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
     test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
-    test_data_over_time = data_manipulation.get_test_data_over_time(test_data)
-
-    data_file_management.write_json(test_data, data_directory / 'test-raw.json')
-    data_file_management.write_json(test_data_over_time, data_directory / 'test-over-time.json')
-    data_file_management.write_test_csv(test_data_over_time, data_directory / 'test-over-time.csv')
+    data_management.write_json(test_data, data_directory / 'test-raw.json')
+    data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
 
 
 def _mine_stargazers(repo_urls: list[str]):
     """Mine stargazers data from a list of repositories."""
 
     stargazers_data = git_mining.mine_stargazers_data(repo_urls)
-    # repo_lifespans = git_mining.get_repo_lifespans(stargazers_data)
 
-    stargazers_data_clean = data_manipulation.clean_stargazers_data(stargazers_data)
-    stargazers_over_time = data_manipulation.stargazers_over_time(stargazers_data_clean)
-
-    data_file_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
-    data_file_management.write_json(stargazers_data_clean, data_directory / 'stargazers-clean.json')
-    data_file_management.write_json(stargazers_over_time, data_directory / 'stargazers-over-time.json')
-    data_file_management.write_stargazers_csv(stargazers_over_time, data_directory / 'stargazers-over-time.csv')
+    data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
+    data_management.stargazers_data_to_csv(stargazers_data,data_directory / 'stargazers.csv')
 
 
 def _mine_lifespan(repo_urls: list[str]):
@@ -239,7 +210,7 @@ if __name__ == '__main__':
                chunk_size=1,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=True,
+               stargazers=False,
                test=True,
                git=True,
                lint=True)

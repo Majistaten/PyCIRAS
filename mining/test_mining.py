@@ -4,6 +4,7 @@ from utility import util, config
 import ast
 import logging
 from utility.progress_bars import RichIterableProgressBar
+from rich.pretty import pprint
 
 
 class StatementVisitor(ast.NodeVisitor):
@@ -107,18 +108,23 @@ def _extract_unit_testing_metrics(repository_path: Path, commits: any) -> dict[s
 
         date = commit["date"]
         repo.git.checkout(commit_hash)
-        metrics[commit_hash] = _run_ast_analysis(repository_path)
-        if metrics[commit_hash] is not None:
+        test_data = _run_ast_analysis(repository_path, commit_hash)
+
+        if test_data is not None:
+            metrics[commit_hash] = test_data
             metrics[commit_hash]['date'] = date
 
     return metrics
 
 
-def _run_ast_analysis(repository_path: Path) -> dict[str, any] | None:
+def _run_ast_analysis(repository_path: Path, commit: str) -> dict[str, any] | None:
     """Run the AST mining on the files in the repository"""
     target_file_paths = util.get_python_files_from_directory(repository_path)
     if target_file_paths is None or len(target_file_paths) == 0:
-        logging.info(f"No python files found in {repository_path}")
+        logging.warning(f"\nNo python files found in "
+                        f"{util.get_file_relative_path_from_absolute_path(str(repository_path))}"
+                        f" when executing test mining.\n"
+                        f"Skipping commit: {commit}")
         return None
 
     result = {
