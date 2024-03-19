@@ -107,15 +107,35 @@ def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
 
         msg_id = msg.msg_id
         if msg_id not in result[module]['categories'][category]['message_ids']:
-            result[module]['categories'][category]['message_ids'][msg_id] = {
-                'count': 0,
-                'symbol': msg.symbol
-            }
+            result[module]['categories'][category]['message_ids'][msg_id] = []
+        result[module]['categories'][category]['message_ids'][msg_id].append({
+            'symbol': msg.symbol,
+            'msg': msg.msg,
+            'confidence': msg.confidence,
+            'path': msg.path
+        })
 
         result[module]['total_messages'] += 1
         result[module]['categories'][category]['total'] += 1
-        result[module]['categories'][category]['message_ids'][msg_id]['count'] += 1
 
+    result['avg_mccabe_complexity'] = get_average_complexity(messages)
     logging.info(f"Extracted {len(result)} modules")
-
     return result
+
+
+def get_average_complexity(messages: list[Message]) -> float:
+    """Calculates the average McCabe Rating for 'too-complex' messages from the given list of Pylint messages."""
+    total_complexity = 0
+    complexity_count = 0
+
+    for msg in messages:
+        if msg.symbol == 'too-complex':
+            complexity_value = [int(s) for s in msg.msg.split() if s.isdigit()]
+            pprint(complexity_value)
+            if complexity_value:
+                total_complexity += complexity_value[0]
+                complexity_count += 1
+
+    average_complexity = total_complexity / complexity_count if complexity_count else 0
+    return average_complexity
+
