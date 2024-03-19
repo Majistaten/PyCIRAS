@@ -42,6 +42,7 @@ def run_repo_cloner(repo_urls: list[str] = None,
     _process_chunk(repo_urls,
                    pyciras_functions=[_clone_repos],
                    stargazers=False,
+                   lifespan=False,
                    chunk_size=chunk_size,
                    multiprocessing=multiprocessing,
                    persist_repos=True)
@@ -55,6 +56,7 @@ def run_mining(repo_urls: list[str] = None,
                multiprocessing: bool = False,
                persist_repos: bool = True,
                stargazers: bool = True,
+               lifespan: bool = True,
                lint: bool = True,
                test: bool = True,
                git: bool = True):
@@ -92,6 +94,7 @@ def run_mining(repo_urls: list[str] = None,
     _process_chunk(repo_urls,
                    mining_functions,
                    stargazers,
+                   lifespan,
                    chunk_size,
                    multiprocessing,
                    persist_repos)
@@ -143,9 +146,12 @@ def _mine_stargazers(repo_urls: list[str]):
 
 
 def _mine_lifespan(repo_urls: list[str]):
-    """ Mine dates from the project lifespan from a list of repositories. """
-    # TODO: Print to json/csv etc..
+    """ Mine dates from the project lifespan from a list of repositories."""
+
     lifespan_data = git_mining.get_repositories_lifespan(repo_urls)
+
+    data_management.write_json(lifespan_data, data_directory / 'lifespan-raw.json')
+    data_management.lifespan_data_to_csv(lifespan_data, data_directory / 'lifespan.csv')
 
 
 # TODO lägg in så man kan skippa repos av viss size?
@@ -158,13 +164,14 @@ def _clone_repos(repo_urls: list[str]) -> list[Path]:
 def _process_chunk(repo_urls: list[str],
                    pyciras_functions: list[Callable[..., list[Path] | None]],
                    stargazers: bool,
+                   lifespan: bool,
                    chunk_size: int = 1,
                    multiprocessing: bool = False,
                    persist_repos: bool = True):
     """Processes repos in chunks."""
 
-    if stargazers is False and len(pyciras_functions) == 0:
-        logging.error('At least one pyciras function must be selected!')
+    if stargazers is False and lifespan is False and len(pyciras_functions) == 0:
+        logging.error('At least one PyCIRAS function must be selected!')
         return
 
     for i in range(0, len(repo_urls), chunk_size):
@@ -183,6 +190,8 @@ def _process_chunk(repo_urls: list[str],
             repo_management.remove_repos(chunk_of_repos)
     if stargazers:
         _mine_stargazers(repo_urls)
+    if lifespan:
+        _mine_lifespan(repo_urls)
 
 
 def _execute_in_parallel(args_list: list, workers: int = 4):
@@ -210,6 +219,7 @@ if __name__ == '__main__':
                multiprocessing=False,
                persist_repos=True,
                stargazers=False,
-               test=True,
-               git=True,
-               lint=True)
+               lifespan=True,
+               test=False,
+               git=False,
+               lint=False)
