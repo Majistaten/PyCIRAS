@@ -37,6 +37,7 @@ def write_json(new_data: dict, path: Path):
         json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
+# TODO fixa så att alla rader ligger i samma CSV, med repo/date som index
 def lint_data_to_csv(lint_data: dict, path: Path):
     """
     Processes lint data and writes it to CSV files, one per repository.
@@ -112,6 +113,51 @@ def git_data_to_csv(git_data: dict, path: Path):
     updated_data_df.fillna('nan').to_csv(path, index=False)
 
 
+def test_data_to_csv(test_data: dict, path: Path):
+    """Loads existing test CSV data and updates it with new data, or writes new data to a CSV file."""
+
+    flattened_data = [
+        {
+            'repo': repo,
+            'date': pd.to_datetime(data['date'], utc=True),
+            'test-to-code-ratio': data['test-to-code-ratio'],
+            'test-frameworks': tuple(sorted(set([
+                import_name for file_data in data['files'].values() for import_name in file_data.get('imports', [])
+            ]))),
+            'test-classes': sum(len(file_data.get('unittest_classes', [])) for file_data in data['files'].values()),
+            'test-functions': sum(len(file_data.get('pytest_functions', [])) for file_data in data['files'].values()),
+        }
+        for repo, commits in test_data.items()
+        for commit_hash, data in commits.items()
+    ]
+
+    new_df = pd.DataFrame(flattened_data)
+
+    if new_df.empty:
+        logging.warning("No data to process into DataFrame.")
+        return
+
+    new_df.sort_values(by=['repo', 'date'], inplace=True)
+    new_df.set_index(['repo', 'date'], inplace=True)
+
+    try:
+        existing_df = pd.read_csv(path, index_col=['repo', 'date'], parse_dates=['date'])
+    except FileNotFoundError:
+        existing_df = pd.DataFrame()
+
+    if not existing_df.empty:
+        existing_df = existing_df.reset_index()
+        new_df = new_df.reset_index()
+        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+        updated_df.sort_values(by=['repo', 'date'], inplace=True)
+        updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
+        updated_df.set_index(['repo', 'date'], inplace=True)
+    else:
+        updated_df = new_df
+
+    updated_df.to_csv(path)
+
+
 def clean_stargazers_data(data: dict) -> dict:
     """Cleans stargazers data using pandas."""
 
@@ -168,52 +214,3 @@ def stargazers_over_time(stargazers_data: dict) -> dict:
     data_frame.index = data_frame.index.astype(str)
 
     return data_frame.to_dict('index')
-
-
-def get_test_data_over_time(test_data: dict) -> dict:
-    """Gets the test-to-code-ratio over time for each repository."""
-
-    # TODO refaktorera in och förenkla, enbart pandas
-    # write_test_csv
-
-    aggregated_data = []
-    for repo, commits in test_data.items():
-        for commit_hash, data in commits.items():
-            try:
-                test_to_code_ratio = data['test-to-code-ratio']
-                test_frameworks = set()
-                test_classes = 0
-                test_functions = 0
-                for file_data in data['files'].values():
-                    test_frameworks.update(file_data.get('imports', []))
-                    test_classes += len(file_data.get('unittest_classes', []))
-                    test_functions += len(file_data.get('pytest_functions', []))
-
-                aggregated_data.append({
-                    'repo': repo,
-                    'date': pd.to_datetime(data['date'], utc=True),
-                    'test-to-code-ratio': test_to_code_ratio,
-                    'test-frameworks': sorted(test_frameworks),
-                    'test-classes': test_classes,
-                    'test-functions': test_functions
-                })
-
-            except Exception as e:
-                logging.error(f"Error processing metrics for {repo} commit {commit_hash}: {e}"
-                              f"\nSkipping this commit.")
-                continue
-
-    data_frame = pd.DataFrame(aggregated_data)
-
-    if data_frame.empty:
-        logging.warning("No data to process into DataFrame.")
-        return {}
-
-    data_frame['date'] = pd.to_datetime(data_frame['date'], utc=True)
-    data_frame.sort_values(by=['repo', 'date'], inplace=True)
-    data_frame['date'] = data_frame['date'].astype(str)
-    data_frame.set_index(['repo', 'date'], inplace=True)
-
-    result_dict = data_frame.groupby(level=0).apply(lambda df: df.xs(df.name).to_dict(orient='index')).to_dict()
-    return result_dict
-

@@ -68,36 +68,3 @@ def write_stargazers_csv(data: dict, path: Path):
         for date, repo_stargazers in data.items():
             row = [date] + [repo_stargazers.get(repo, 0) for repo in repos]
             writer.writerow(row)
-
-
-# TODO refaktorera bort sortering och mangling in i data_manipulation, gör CSV skrivningen där
-def write_test_csv(data: dict, path: Path):
-    """Loads existing test data and updates it with new data, or writes new data to a CSV file."""
-
-    try:
-        existing_df = pd.read_csv(path, index_col='date', parse_dates=True)
-    except FileNotFoundError:
-        existing_df = pd.DataFrame()
-
-    new_data = []
-    for repo, dates in data.items():
-        for date, test_data in dates.items():
-            new_data.append({
-                'date': date,
-                repo: test_data.get('test-to-code-ratio')
-            })
-
-    new_df = pd.DataFrame(new_data)
-    new_df['date'] = pd.to_datetime(new_df['date'], utc=True)
-    new_df.set_index('date', inplace=True)
-
-    if not existing_df.empty:
-        updated_df = pd.merge(existing_df, new_df, left_index=True, right_index=True, how='outer')
-    else:
-        updated_df = new_df
-
-    updated_df = updated_df.reindex(sorted(updated_df.columns), axis=1)
-    updated_df.sort_index(inplace=True)
-    updated_df = updated_df.astype(str)
-
-    updated_df.to_csv(path)

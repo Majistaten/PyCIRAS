@@ -139,11 +139,8 @@ def _mine_test(repo_urls: list[str]):
     repos_and_commit_metadata = git_mining.get_repos_commit_metadata(config.REPOSITORIES_FOLDER, repo_paths)
     test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
-    test_data_over_time = data_management.get_test_data_over_time(test_data)
-
-    data_file_management.write_json(test_data, data_directory / 'test-raw.json')
-    data_file_management.write_json(test_data_over_time, data_directory / 'test-over-time.json')
-    data_file_management.write_test_csv(test_data_over_time, data_directory / 'test-over-time.csv')
+    data_management.write_json(test_data, data_directory / 'test-raw.json')
+    data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
 
 
 def _mine_stargazers(repo_urls: list[str]):
@@ -225,10 +222,10 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=2,
+               chunk_size=3,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=True,
+               stargazers=False,
                test=True,
                git=True,
                lint=True)
