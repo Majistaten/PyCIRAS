@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from git import Repo
 from pathlib import Path
 from utility import util, config
@@ -86,35 +88,34 @@ class StatementVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def mine_test_data(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
-    """Get unit-testing metrics from the commits of multiple git repositories"""
-    metrics = {}
-    for repo_path, commits in repo_paths_with_commits.items():
+def mine_test_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, datetime]]]) -> dict[str, any]:
+    """Get unit-testing data from the commits of multiple git repositories"""
+    data = {}
+    for repo_path, commit_metadata in repo_paths_with_commit_metadata.items():
         logging.info(f"Unit Testing: inspecting {repo_path}")
-        metrics[util.get_repo_name_from_path(repo_path)] = _extract_unit_testing_metrics(Path(repo_path), commits)
+        data[util.get_repo_name_from_path(repo_path)] = _extract_unit_testing_metrics(Path(repo_path), commit_metadata)
 
-    return metrics
+    return data
 
 
-def _extract_unit_testing_metrics(repository_path: Path, commits: any) -> dict[str, any]:
-    """Extract unit-testing metrics from a the commits of a single repository"""
-    metrics = {}
+def _extract_unit_testing_metrics(repository_path: Path, commit_metadata: [tuple[str, datetime]]) -> dict[str, any]:
+    """Extract unit-testing data from a the commits of a single repository"""
+    data = {}
     repo = Repo(repository_path)
-    for commit in RichIterableProgressBar(commits,
-                                          description=f"Traversing commits, extracting unit-testing metrics",
-                                          postfix=util.get_repo_name_from_path(str(repository_path)),
-                                          disable=config.DISABLE_PROGRESS_BARS):
-        commit_hash = commit["commit_hash"]
 
-        date = commit["date"]
+    for commit_hash, date in RichIterableProgressBar(commit_metadata,
+                                                     description=f"Traversing commits, extracting unit-testing data",
+                                                     postfix=util.get_repo_name_from_path(str(repository_path)),
+                                                     disable=config.DISABLE_PROGRESS_BARS):
+
         repo.git.checkout(commit_hash)
         test_data = _run_ast_analysis(repository_path, commit_hash)
 
         if test_data is not None:
-            metrics[commit_hash] = test_data
-            metrics[commit_hash]['date'] = date
+            data[commit_hash] = test_data
+            data[commit_hash]['date'] = date
 
-    return metrics
+    return data
 
 
 def _run_ast_analysis(repository_path: Path, commit: str) -> dict[str, any] | None:

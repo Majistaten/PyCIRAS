@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from pylint.lint import Run
@@ -36,25 +37,23 @@ def mine_lint_data(repo_paths_with_commits: dict[str, any]) -> dict[str, any]:
     return metrics
 
 
-def _extract_pylint_metrics(repository_path: Path, commits: any) -> dict[str, any]:
+def _extract_pylint_metrics(repository_path: Path, commit_metadata: [tuple[str, datetime]]) -> dict[str, any]:
     """Extract Pylint metrics from a the commits of a single repository"""
-    metrics = {}
+    data = {}
     repo = Repo(repository_path)
-    for commit in RichIterableProgressBar(commits,
-                                          description=f"Traversing commits, extracting lint data",
-                                          postfix=util.get_repo_name_from_path(str(repository_path)),
-                                          disable=config.DISABLE_PROGRESS_BARS):
-        commit_hash = commit["commit_hash"]
+    for commit_hash, date in RichIterableProgressBar(commit_metadata,
+                                                     description=f"Traversing commits, extracting lint data",
+                                                     postfix=util.get_repo_name_from_path(str(repository_path)),
+                                                     disable=config.DISABLE_PROGRESS_BARS):
 
-        date = commit["date"]
         repo.git.checkout(commit_hash)
         lint_data = _run_pylint(repository_path, commit_hash)
 
         if lint_data is not None:
-            metrics[commit_hash] = lint_data
-            metrics[commit_hash]['date'] = date
+            data[commit_hash] = lint_data
+            data[commit_hash]['date'] = date
 
-    return metrics
+    return data
 
 
 def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
@@ -143,4 +142,3 @@ def get_average_complexity(messages: list[Message]) -> float:
 
     average_complexity = total_complexity / complexity_count if complexity_count else 0
     return average_complexity
-

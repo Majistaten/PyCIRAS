@@ -193,20 +193,19 @@ def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
 
 
 # TODO: Baka in i pipeline och skriv ut i fil.
-def get_repos_commit_metadata(repo_directory: Path, repo_paths: list[Path]) -> dict[str, any]:
-    """Get repo paths with commit hashes and dates"""
-    repos = _load_repositories(repo_paths, repo_directory)
-    commit_dates = {}
+def get_repo_paths_and_commit_metadata(repo_directory: Path,
+                                       repo_paths: list[Path]) -> dict[str, list[tuple[str, datetime]]]:
+    """Get a dict of repo paths with a list of tuples containing commit hashes and dates"""
+    repos: dict[str, Repository] = _load_repositories(repo_paths, repo_directory)
+    repos_with_commit_hashes_and_dates = {}
     for repo_path, repo in repos.items():
-        hash_dates = []
+        hashes_and_dates = []
         for commit in repo.traverse_commits():
-            #TODO bryt ut och förenkla?
-            hash_dates.append({'commit_hash': commit.hash, 'date': commit.committer_date})
-        commit_dates[repo_path] = hash_dates
+            hashes_and_dates.append((commit.hash, commit.committer_date))
 
-    pprint(commit_dates)
+        repos_with_commit_hashes_and_dates[repo_path] = hashes_and_dates
 
-    return commit_dates
+    return repos_with_commit_hashes_and_dates
 
 
 # TODO behöver hela URL om den ska klona, annars bara namnet
