@@ -17,7 +17,6 @@ from typing import Callable
 from mining import lint_mining, git_mining, test_mining
 from data_io import data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
-from rich.pretty import pprint
 
 rich.traceback.install()
 data_directory = data_management.make_data_directory()

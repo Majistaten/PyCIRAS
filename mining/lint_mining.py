@@ -137,7 +137,6 @@ def get_average_complexity(messages: list[Message]) -> float:
     for msg in messages:
         if msg.symbol == 'too-complex':
             complexity_value = [int(s) for s in msg.msg.split() if s.isdigit()]
-            pprint(complexity_value)
             if complexity_value:
                 total_complexity += complexity_value[0]
                 complexity_count += 1
