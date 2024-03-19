@@ -126,11 +126,9 @@ def _mine_git(repo_urls: list[str]):
     """Mine git data from a list of repositories."""
 
     git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
-    git_data_flat = data_management.flatten_git_data(git_data)
 
-    data_file_management.write_json(git_data, data_directory / 'git-raw.json')
-    data_file_management.write_json(git_data_flat, data_directory / 'git-flat.json')
-    data_file_management.write_git_csv(git_data_flat, data_directory / 'git-flat.csv')
+    data_management.write_json(git_data, data_directory / 'git-raw.json')
+    data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
 
 
 def _mine_test(repo_urls: list[str]):
@@ -227,10 +225,10 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=1,
+               chunk_size=2,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=False,
-               test=False,
-               git=False,
+               stargazers=True,
+               test=True,
+               git=True,
                lint=True)

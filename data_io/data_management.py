@@ -1,4 +1,5 @@
 """This module provides functionality for data manipulation and processing."""
+import csv
 import json
 import logging
 from datetime import datetime
@@ -34,35 +35,6 @@ def write_json(new_data: dict, path: Path):
     data.update(new_data)
     with open(path, 'w') as file:
         json.dump(data, file, indent=4, cls=CustomEncoder)
-
-
-def flatten_git_data(data: dict) -> dict:
-    """Flatten git data metrics to a single level dict."""
-
-    flat_data = data
-    for key, value in flat_data.items():
-        flat_data[key] = _flatten_dict(value, prefix_separator=".")
-
-    return flat_data
-
-
-# TODO flytta in denna i den stora funktionen med enbart pandas
-def clean_stargazers_data(data: dict) -> dict:
-    """Cleans stargazers data using pandas."""
-
-    clean_data = {}
-    for repo, stargazers_data in data.items():
-        edges = stargazers_data.get("data", {}).get("repository", {}).get("stargazers", {}).get("edges", [])
-
-        if edges:
-            data_frame = pd.DataFrame(edges)
-            data_frame['login'] = data_frame['node'].apply(lambda x: x.get('login'))
-            starred = data_frame.set_index('login')['starredAt'].to_dict()
-            clean_data[repo] = starred
-        else:
-            clean_data[repo] = {}
-
-    return clean_data
 
 
 def lint_data_to_csv(lint_data: dict, path: Path):
@@ -120,6 +92,42 @@ def lint_data_to_csv(lint_data: dict, path: Path):
             df_formatted = df_formatted[cols]
 
         df_formatted.to_csv(path / f'lint-{repo}.csv', index=False, na_rep='nan')
+
+
+def git_data_to_csv(git_data: dict, path: Path):
+    """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
+
+    flat_data = [_flatten_dict(repo, prefix_separator=".") for repo in git_data.values()]
+    new_data_df = pd.DataFrame(flat_data)
+    if Path(path).exists():
+        existing_data_df = pd.read_csv(path)
+        updated_data_df = pd.concat([existing_data_df, new_data_df]).drop_duplicates('repository_name', keep='last')
+    else:
+        updated_data_df = new_data_df
+
+    cols = ['repository_name'] + [col for col in sorted(updated_data_df.columns) if col != 'repository_name']
+    updated_data_df = updated_data_df[cols]
+    updated_data_df = updated_data_df.sort_values(by='repository_name')
+
+    updated_data_df.fillna('nan').to_csv(path, index=False)
+
+
+def clean_stargazers_data(data: dict) -> dict:
+    """Cleans stargazers data using pandas."""
+
+    clean_data = {}
+    for repo, stargazers_data in data.items():
+        edges = stargazers_data.get("data", {}).get("repository", {}).get("stargazers", {}).get("edges", [])
+
+        if edges:
+            data_frame = pd.DataFrame(edges)
+            data_frame['login'] = data_frame['node'].apply(lambda x: x.get('login'))
+            starred = data_frame.set_index('login')['starredAt'].to_dict()
+            clean_data[repo] = starred
+        else:
+            clean_data[repo] = {}
+
+    return clean_data
 
 
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
@@ -209,13 +217,3 @@ def get_test_data_over_time(test_data: dict) -> dict:
     result_dict = data_frame.groupby(level=0).apply(lambda df: df.xs(df.name).to_dict(orient='index')).to_dict()
     return result_dict
 
-
-# TODO ta bort när allt görs i pandas
-def dict_to_list(dictionary: dict) -> list:
-    """Extracts all values from the dictionary, adds the keys and returns it wrapped in a list"""
-    formatted_list = []
-    for key, value in dictionary.items():
-        if value is None:
-            continue
-        formatted_list.append(value)
-    return formatted_list

@@ -49,26 +49,6 @@ def write_json(new_data: dict, path: Path):
         json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
-# TODO Refactor sorting and formatting to data_manipulation, fixa fixed column för repo namn. Sortera lite finare
-# TODO flytta in i data_management gör CSV skrivningen där
-def write_git_csv(new_data: dict, path: Path):
-    """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
-
-    new_data = data_converter.dict_to_list(new_data)
-    with open(path, 'a', newline='') as file:
-        column_names = set()
-        for repo in new_data:
-            column_names.update([data_point for data_point in repo.keys()])
-
-        column_names = sorted(column_names)
-
-        writer = csv.DictWriter(file, fieldnames=column_names, restval='nan') # TODO ska inte behöva bry sig om restvals här, få bort dictwriter?
-        if path.stat().st_size == 0:
-            writer.writeheader()
-
-        writer.writerows(new_data)
-
-
 # TODO refaktorera bort sortering och mangling in i data_manipulation, gör CSV skrivningen där
 def write_stargazers_csv(data: dict, path: Path):
     """Writes stargazers data to a CSV file."""
