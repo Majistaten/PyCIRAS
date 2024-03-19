@@ -9,7 +9,6 @@ import logging
 from git import Repo
 from utility import util, config
 from utility.progress_bars import RichIterableProgressBar
-from rich.pretty import pprint
 
 
 class LintReporter(TextReporter):
@@ -89,6 +88,7 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     result['messages'] = _parse_pylint_messages(reporter.messages)
     result['messages']['repository_name'] = repository_name
     result['stats'] = stats_dict
+    result['stats']['avg_mccabe_complexity'] = result['messages']['avg_mccabe_complexity']
     result['stats']['repository_name'] = repository_name
 
     logging.info(f"Analyzed {len(target_files)} files in {repository_path}")
