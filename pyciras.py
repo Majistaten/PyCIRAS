@@ -82,9 +82,9 @@ def run_mining(repo_urls: list[str] = None,
     Executes a series of mining operations on a given list of repository URLs to analyze their code quality,
     testing practices, and other characteristics.
 
-    This function can perform several types of analyses, including linting, testing, stargazers, and Git history
-    analysis. The results of these analyses are stored in predefined directories, and the progress is logged for
-    monitoring purposes. The mining process can be customized through a set of boolean flags that enable or disable
+    This function can perform several types of analyses, including linting, testing, stargazers, lifespan, and Git
+    history analysis. The results of these analyses are stored in predefined directories, and the progress is logged
+    for monitoring purposes. The mining process can be customized through a set of boolean flags that enable or disable
     specific analyses. Further functionalities can be applied or modified in the config.py file.
 
     Parameters:
@@ -97,6 +97,7 @@ def run_mining(repo_urls: list[str] = None,
             Defaults to True.
         stargazers (bool, optional): If True, information about stargazers will be collected for each repository.
             Defaults to True.
+        lifespan (int, optional): Enable or disable the lifespan analysis. Defaults to True.
         lint (bool, optional): Enables or disables linting analysis. Defaults to True.
         test (bool, optional): Enables or disables testing analysis. Defaults to True.
         git (bool, optional): Enables or disables Git history analysis. Defaults to True.
@@ -270,8 +271,8 @@ if __name__ == '__main__':
                chunk_size=1,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=False,
+               stargazers=True,
                lifespan=True,
-               test=False,
-               git=False,
-               lint=False)
+               test=True,
+               git=True,
+               lint=True)
