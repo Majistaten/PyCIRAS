@@ -187,6 +187,20 @@ def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     df.to_csv(path, mode='w', na_rep=0.0)
 
 
+def lifespan_data_to_csv(lifespan_data: dict, path: Path):
+    """Writes lifespan data to a CSV file."""
+    data = [{
+        'repository': repo,
+        'created_at': pd.to_datetime(details['created_at'], utc=True),
+        'pushed_at': pd.to_datetime(details['pushed_at'], utc=True),
+    } for repo, details in lifespan_data.items()]
+
+    df = pd.DataFrame(data)
+    df = df.sort_values(by='repository')
+
+    df.to_csv(path, index=False)
+
+
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
     """Flatten a nested dict. Takes nested keys, and uses them as prefixes."""
     items = []
