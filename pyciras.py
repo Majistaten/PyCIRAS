@@ -1,33 +1,26 @@
 """This module provides the main entry point for the PyCIRAS application and the main mining functionality."""
 
-# TODO BASIC Unit testing för projektkraven, coveragePy coverage checking
 # TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
 # TODO linta, döp om saker, refaktorera allmänt
-# TODO gör så att raw data skrivs till /out/data/repo/raw och processad data till /out/data/repo/processed
-# TODO dumpa settings och inställningar i logger för varje körning om vilken config som användes när den kördes
-# TODO name mangla individuella runmetoder
-# TODO verifiera all CSV mot raw-data
 # TODO gå igenom linter issues och fixa allt
 # TODO insertera log statements på alla olika execution branches på info-nivå
-# TODO kolla .pylintrc settings så man får ut cyclomatic complexity och alla andra intressanta metrics - inte säkert att man får det nu
-# TOOD kanske finns nice plugins som löser detta åt oss
-# TODO få ut complexity metrics från pydriller också?
+# TODO kolla .pylintrc settings så man får ut alla andra intressanta metrics
 # TODO progressbar stannar om det kastas error för ett syntax error i en fil under unit testing analysis
 # TODO error handling här i denna filen?
-# TODO byt alla NaN till nan
+# TODO fixa bättre docstrings som förklarar parametrar
 
 import concurrent.futures
 import logging
 from pathlib import Path
-
 import rich.traceback
 from typing import Callable
 from mining import lint_mining, git_mining, test_mining
-from data_io import data_file_management, data_management, repo_management
+from data_io import data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
+from rich.pretty import pprint
 
 rich.traceback.install()
-data_directory = data_file_management.make_data_directory()  # TODO ska denna flyttas in i run_mining istället?
+data_directory = data_management.make_data_directory()
 logger = logger_setup.get_logger('pyciras_logger')
 
 
@@ -58,8 +51,6 @@ def run_repo_cloner(repo_urls: list[str] = None,
                 title='PyCIRAS Cloning Completed')
 
 
-# TODO fixa bättre docstrings som förklarar parametrar
-# TODO Bool för att få ut JSON/CSV/inte
 def run_mining(repo_urls: list[str] = None,
                chunk_size: int = 1,
                multiprocessing: bool = False,
@@ -147,15 +138,9 @@ def _mine_stargazers(repo_urls: list[str]):
     """Mine stargazers data from a list of repositories."""
 
     stargazers_data = git_mining.mine_stargazers_data(repo_urls)
-    # repo_lifespans = git_mining.get_repo_lifespans(stargazers_data)
 
-    stargazers_data_clean = data_management.clean_stargazers_data(stargazers_data)
-    stargazers_over_time = data_management.stargazers_over_time(stargazers_data_clean)
-
-    data_file_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
-    data_file_management.write_json(stargazers_data_clean, data_directory / 'stargazers-clean.json')
-    data_file_management.write_json(stargazers_over_time, data_directory / 'stargazers-over-time.json')
-    data_file_management.write_stargazers_csv(stargazers_over_time, data_directory / 'stargazers-over-time.csv')
+    data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
+    data_management.stargazers_data_to_csv(stargazers_data,data_directory / 'stargazers.csv')
 
 
 def _mine_lifespan(repo_urls: list[str]):
@@ -222,7 +207,7 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=3,
+               chunk_size=1,
                multiprocessing=False,
                persist_repos=True,
                stargazers=False,
