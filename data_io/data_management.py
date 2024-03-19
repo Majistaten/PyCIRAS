@@ -110,13 +110,13 @@ def git_data_to_csv(git_data: dict, path: Path):
     new_data_df = pd.DataFrame(flat_data)
     if Path(path).exists():
         existing_data_df = pd.read_csv(path)
-        updated_data_df = pd.concat([existing_data_df, new_data_df]).drop_duplicates('repository_name', keep='last')
+        updated_data_df = pd.concat([existing_data_df, new_data_df]).drop_duplicates('repo', keep='last')
     else:
         updated_data_df = new_data_df
 
-    cols = ['repository_name'] + [col for col in sorted(updated_data_df.columns) if col != 'repository_name']
+    cols = ['repo'] + [col for col in sorted(updated_data_df.columns) if col != 'repo']
     updated_data_df = updated_data_df[cols]
-    updated_data_df = updated_data_df.sort_values(by='repository_name')
+    updated_data_df = updated_data_df.sort_values(by='repo')
 
     updated_data_df.fillna('nan').to_csv(path, index=False)
 
