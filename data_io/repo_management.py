@@ -133,4 +133,4 @@ def remove_repos(repo_urls: list[str]) -> None:
                 logging.error(f'Failed to remove {path}')
 
         else:
-            logging.info(f'Could not find repository path. Will not try to remove non-existing repositories.')
+            logging.debug(f'Could not find repository path. Will not try to remove non-existing repositories.')

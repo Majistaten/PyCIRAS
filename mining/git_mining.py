@@ -19,6 +19,7 @@ from utility.progress_bars import RichIterableProgressBar
 import pandas as pd
 from data_io import repo_management
 from rich.pretty import pprint
+from rich.progress import Progress, TaskID
 
 
 def mine_git_data(repo_directory: Path,
@@ -39,17 +40,22 @@ def mine_git_data(repo_directory: Path,
     return data
 
 
-def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
+def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, [dict]]:
     """Mine stargazers data from a list of repositories and return a dictionary with the data"""
+
+    mining_task = progress.add_task(description="Mining Stargazers", total=len(repo_urls), start=True)
 
     load_dotenv()
 
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
-    for url in RichIterableProgressBar(
-            repo_urls,
-            description="Querying GraphQL API for stargazers data",
-            disable=config.DISABLE_PROGRESS_BARS):
+    # for url in RichIterableProgressBar(
+    #         repo_urls,
+    #         description="Querying GraphQL API for stargazers data",
+    #         disable=config.DISABLE_PROGRESS_BARS):
+
+    progress.start_task(mining_task) # TODO ska tasken läggas till starta här istället?
+    for url in repo_urls:
 
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url_or_path(url)
@@ -60,6 +66,7 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
 
         stargazers = []
         end_cursor = None
+        query_task = progress.add_task(description="Querying GraphQL API", total=None, start=True)
         while True:
 
             query = {
@@ -115,10 +122,13 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
                 send_graphql_rate_limit_warning(remaining, reset_at)
             elif remaining <= 0:
                 break
+        progress.remove_task(query_task)
 
         response["data"]["repository"]["name"] = repo_name
         response["data"]["repository"]["stargazers"]["edges"] = stargazers
         data[repo_name] = response
+
+        progress.update(mining_task, advance=1, refresh=True)
 
     return data
 

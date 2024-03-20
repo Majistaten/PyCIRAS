@@ -12,7 +12,7 @@ LOGGING_FOLDER: Path = OUTPUT_FOLDER / 'logs'
 GRAPHQL_API: str = 'https://api.github.com/graphql'
 PYLINT_CONFIG: Path = ROOT_DIR / 'mining' / '.pylintrc'
 DISABLE_PROGRESS_BARS: bool = False
-VERBOSE_LOGGING_LEVEL: int = logging.WARNING
+CONSOLE_LOGGING_LEVEL: int = logging.INFO
 FILE_LOGGING_LEVEL: int = logging.DEBUG
 ENABLE_NTFYER: bool = False
 

@@ -19,16 +19,18 @@ def setup_root_logger():
         file_handler.setLevel(config.FILE_LOGGING_LEVEL)
 
         rich_handler = RichHandler(console=console, rich_tracebacks=True)
-        rich_handler.setLevel(config.VERBOSE_LOGGING_LEVEL)
+        rich_handler.setLevel(config.CONSOLE_LOGGING_LEVEL)
 
-        console_format = "%(name)s - %(message)s"
+        console_format = "%(message)s"
         console_formatter = logging.Formatter(console_format)
         rich_handler.setFormatter(console_formatter)
 
         logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, rich_handler])
 
+        return console
+
 
 def get_logger(name=None):
     """Configure and return a custom or the root logger."""
-    setup_root_logger()
-    return logging.getLogger(name)
+    rich_console = setup_root_logger()
+    return logging.getLogger(name), rich_console

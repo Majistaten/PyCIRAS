@@ -20,10 +20,38 @@ from typing import Callable
 from mining import lint_mining, git_mining, test_mining
 from data_io import data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    ProgressColumn, SpinnerColumn, TaskID,
+    TextColumn,
+    TimeElapsedColumn, TimeRemainingColumn,
+    TransferSpeedColumn,
+)
+
+from utility.progress_bars import RichProgressColumn
 
 rich.traceback.install()
 data_directory = data_management.make_data_directory()
-logger = logger_setup.get_logger('pyciras_logger')
+logger, rich_console = logger_setup.get_logger('pyciras_logger')
+
+# TODO bygg custom columns som går att disabla/ändra beroende på vilken typ av task
+progress = Progress(
+    SpinnerColumn(),
+    TextColumn("[bold blue]{task.description}", justify='right'),
+    BarColumn(bar_width=None),
+    "[progress.percentage]{task.percentage:>3.1f}%",
+    # "•",
+    RichProgressColumn(),
+    # DownloadColumn(),
+    # "•",
+    # TransferSpeedColumn(),
+    # "•",
+    # TimeRemainingColumn(),
+    TimeElapsedColumn(),
+    console=rich_console
+)
 
 
 def run_repo_cloner(repo_urls: list[str] = None,
@@ -45,30 +73,32 @@ def run_repo_cloner(repo_urls: list[str] = None,
         None. The cloned repositories are saved in a predefined directory.
     """
 
-    start_time = time.time()
-    if repo_urls is None:
-        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+    with progress:
 
-    if len(repo_urls) == 0:
-        logging.error(
-            'Repositories list was empty. '
-            'Please provide a list of repository URLs or a file that is not empty.')
-        return
+        start_time = time.time()
+        if repo_urls is None:
+            repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
-    logging.info(f'Cloning {len(repo_urls)} repositories')
+        if len(repo_urls) == 0:
+            logging.error(
+                'Repositories list was empty. '
+                'Please provide a list of repository URLs or a file that is not empty.')
+            return
 
-    _process_chunk(repo_urls,
-                   pyciras_functions=[_clone_repos],
-                   stargazers=False,
-                   metadata=False,
-                   chunk_size=chunk_size,
-                   multiprocessing=multiprocessing,
-                   persist_repos=True)
+        logging.info(f'Cloning {len(repo_urls)} repositories')
 
-    duration = util.format_duration(time.time() - start_time)
-    ntfyer.ntfy(data=f'PyCIRAS cloning completed! Cloned {len(repo_urls)} repos in the duration of: {duration}',
-                title='PyCIRAS cloning Completed')
-    logging.info(f"PyCIRAS cloning completed - Duration: {duration}.")
+        _process_chunks(repo_urls,
+                        pyciras_functions=[_clone_repos],
+                        stargazers=False,
+                        metadata=False,
+                        chunk_size=chunk_size,
+                        multiprocessing=multiprocessing,
+                        persist_repos=True)
+
+        duration = util.format_duration(time.time() - start_time)
+        ntfyer.ntfy(data=f'PyCIRAS cloning completed! Cloned {len(repo_urls)} repos in the duration of: {duration}',
+                    title='PyCIRAS cloning Completed')
+        logging.info(f"PyCIRAS cloning completed - Duration: {duration}.")
 
 
 def run_mining(repo_urls: list[str] = None,
@@ -113,49 +143,51 @@ def run_mining(repo_urls: list[str] = None,
         - Notifies the user upon completion of the mining process via a notification system if correctly configured.
     """
 
-    start_time = time.time()
-    if repo_urls is None:
-        repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
+    with progress:
 
-    if len(repo_urls) == 0:
-        logging.error(
-            'Repositories list was empty. '
-            'Please provide a list of repository URLs or a file that is not empty.')
-        return
+        start_time = time.time()
+        if repo_urls is None:
+            repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
 
-    logging.info(f'Mining {len(repo_urls)} repositories')
-    logging.info(f"The analysis will run with the current settings: "
-                 f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
-                 f"\n - persist_repos={persist_repos}, "
-                 f"\n - stagazers={stargazers}, "
-                 f"\n - lint={lint}, "
-                 f"\n - test={test}, "
-                 f"\n - git={git}."
-                 f"\n   Results will be stored in {data_directory}."
-                 f"\n   Logging will be stored in {config.LOGGING_FOLDER}."
-                 f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
+        if len(repo_urls) == 0:
+            logging.error(
+                'Repositories list was empty. '
+                'Please provide a list of repository URLs or a file that is not empty.')
+            return
 
-    mining_functions = []
-    if lint:
-        mining_functions.append(_mine_lint)
-    if git:
-        mining_functions.append(_mine_git)
-    if test:
-        mining_functions.append(_mine_test)
+        logging.info(f'Mining {len(repo_urls)} repositories')
+        logging.debug(f"The analysis will run with the current settings: "
+                      f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
+                      f"\n - persist_repos={persist_repos}, "
+                      f"\n - stagazers={stargazers}, "
+                      f"\n - lint={lint}, "
+                      f"\n - test={test}, "
+                      f"\n - git={git}."
+                      f"\n   Results will be stored in {data_directory}."
+                      f"\n   Logging will be stored in {config.LOGGING_FOLDER}."
+                      f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
 
-    _process_chunk(repo_urls,
-                   mining_functions,
-                   stargazers,
-                   metadata,
-                   chunk_size,
-                   multiprocessing,
-                   persist_repos)
+        mining_functions = []
+        if lint:
+            mining_functions.append(_mine_lint)
+        if git:
+            mining_functions.append(_mine_git)
+        if test:
+            mining_functions.append(_mine_test)
 
-    duration = util.format_duration(time.time() - start_time)
+        _process_chunks(repo_urls,
+                        mining_functions,
+                        stargazers,
+                        metadata,
+                        chunk_size,
+                        multiprocessing,
+                        persist_repos)
 
-    ntfyer.ntfy(data=f'PyCIRAS mining completed! Analyzed {len(repo_urls)} repos in the duration of: {duration}',
-                title='PyCIRAS Mining Completed')
-    logging.info(f"PyCIRAS Mining completed - Duration: {duration}.")
+        duration = util.format_duration(time.time() - start_time)
+
+        ntfyer.ntfy(data=f'PyCIRAS mining completed! Analyzed {len(repo_urls)} repos in the duration of: {duration}',
+                    title='PyCIRAS Mining Completed')
+        logging.info(f"PyCIRAS Mining completed - Duration: {duration}.")
 
 
 def _mine_lint(repo_urls: list[str]):
@@ -199,6 +231,7 @@ def _mine_test(repo_urls: list[str]):
 
         data_management.write_json(test_data, data_directory / 'test-raw.json')
         data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining test data from repositories {repos}.', exc_info=True)
@@ -208,7 +241,7 @@ def _mine_test(repo_urls: list[str]):
 def _mine_stargazers(repo_urls: list[str]):
     """ Mine stargazers data from a list of repositories. """
     try:
-        stargazers_data = git_mining.mine_stargazers_data(repo_urls)
+        stargazers_data = git_mining.mine_stargazers_data(repo_urls, progress)
 
         data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
         data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
@@ -236,39 +269,43 @@ def _clone_repos(repo_urls: list[str]) -> list[Path]:
     return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls)
 
 
-# TODO heltäckande error handling i denna?
+# TODO få till med console log handler, multiprocessing
 # TODO kör API calls först
-def _process_chunk(repo_urls: list[str],
-                   pyciras_functions: list[Callable[..., list[Path] | None]],
-                   stargazers: bool,
-                   metadata: bool,
-                   chunk_size: int = 1,
-                   multiprocessing: bool = False,
-                   persist_repos: bool = True):
+# TODO fixa så det
+def _process_chunks(repo_urls: list[str],
+                    pyciras_functions: list[Callable[..., list[Path] | None]],
+                    stargazers: bool,
+                    metadata: bool,
+                    chunk_size: int = 1,
+                    multiprocessing: bool = False,
+                    persist_repos: bool = True):
     """Processes repos in chunks."""
 
     if stargazers is False and metadata is False and len(pyciras_functions) == 0:
         logging.error('At least one PyCIRAS function must be selected!')
         return
 
+    if stargazers:
+        logging.info(f'Running {_mine_stargazers.__name__}')
+        _mine_stargazers(repo_urls)
+
+    if metadata:
+        _mine_metadata(repo_urls)
+
     for i in range(0, len(repo_urls), chunk_size):
-        logging.info(f'Processing repositories {i}-{i + chunk_size}')
+        logging.debug(f'Processing repositories {i}-{i + chunk_size}')
         chunk_of_repos = repo_urls[i:i + chunk_size]
         if multiprocessing:
-            logging.info(f'Processing in parallel')
+            logging.debug(f'Processing in parallel')
             _execute_in_parallel(args_list=[(pyciras_functions, [repo]) for repo in chunk_of_repos],
                                  workers=chunk_size)
         else:
-            logging.info(f'Processing sequentially')
+            logging.debug(f'Processing sequentially')
             for function in pyciras_functions:
                 logging.info(f'Running {str(function.__name__)}')
                 function(chunk_of_repos)
-        if not persist_repos:
+        if len(pyciras_functions) != 0 and not persist_repos:
             repo_management.remove_repos(chunk_of_repos)
-    if stargazers:
-        _mine_stargazers(repo_urls)
-    if metadata:
-        _mine_metadata(repo_urls)
 
 
 def _execute_in_parallel(args_list: list, workers: int = 4):
@@ -294,7 +331,7 @@ if __name__ == '__main__':
     run_mining(repo_urls=None,
                chunk_size=1,
                multiprocessing=False,
-               persist_repos=True,
+               persist_repos=False,
                stargazers=True,
                metadata=False,
                test=False,
