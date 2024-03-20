@@ -59,7 +59,7 @@ def sanitize_url(url: str) -> str:
     """Removes any non-printable characters and whitespace"""
     return url.strip().removesuffix('/')
 
-
+# TODO formatera i MB istället utan postfix, bara siffror - för sortering
 def kb_to_mb_gb(size_in_kb: int) -> str:
     """Convert size from KB to MB or GB if large enough."""
     if size_in_kb < 1024:
