@@ -27,7 +27,7 @@ def mine_git_data(repo_directory: Path,
     """Mine git data from a list of repositories and return a dictionary with the data"""
 
     data = {}
-    repo_urls = repo_management.load_repositories(repo_directory, repo_urls)
+    repo_urls = repo_management.load_repos(repo_directory, repo_urls)
     for repo_url, repo in repo_urls.items():
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
         data[repo_name] = _mine_commit_data(repo)

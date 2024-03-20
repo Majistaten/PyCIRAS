@@ -8,7 +8,7 @@
 # TODO progressbar stannar om det kastas error för ett syntax error i en fil under unit testing analysis
 # TODO error handling här i denna filen?
 # TODO fixa bättre docstrings som förklarar parametrar
-# TODO Sätt ut logging.info överallt
+# TODO Sätt ut logging.info överallt, se över så det är samma format överallt
 # TODO kolla igenom git mining så vi får med exakt alla metrics vi vill ha
 
 import concurrent.futures
@@ -214,7 +214,7 @@ def _mine_lifespan(repo_urls: list[str]):
 # TODO lägg in så man kan skippa repos av viss size?
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
-    return repo_management.prepare_repositories(config.REPOSITORIES_FOLDER, repo_urls)
+    return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls)
 
 
 # TODO heltäckande error handling i denna?
@@ -244,7 +244,7 @@ def _process_chunk(repo_urls: list[str],
                 logging.info(f'Running {str(function.__name__)}')
                 function(chunk_of_repos)
         if not persist_repos:
-            repo_management.remove_repositories(chunk_of_repos)
+            repo_management.remove_repos(chunk_of_repos)
     if stargazers:
         _mine_stargazers(repo_urls)
     if lifespan:
@@ -274,7 +274,7 @@ if __name__ == '__main__':
     run_mining(repo_urls=None,
                chunk_size=1,
                multiprocessing=False,
-               persist_repos=True,
+               persist_repos=False,
                stargazers=True,
                lifespan=True,
                test=True,
