@@ -1,6 +1,5 @@
 from datetime import datetime
 from pydriller import Repository
-import requests
 from git import Repo, rmtree
 from pathlib import Path
 import logging
@@ -62,9 +61,7 @@ def _clone_repo(repos_directory: Path, repo_url: str, progressbar_postfix: str =
             logging.info(f'Repository {repo_name} already exists in {repos_directory}, skipping it')
             return repo_path
 
-        repo_size = get_github_repo_size(repo_url)
-
-        logging.info(f'Cloning Git Repository {repo_name} of size {repo_size} from {repo_url}')
+        logging.info(f'Cloning Git Repository {repo_name} from {repo_url}')
         Repo.clone_from(repo_url,
                         repo_path,
                         progress=CloneProgress(
@@ -137,20 +134,3 @@ def remove_repos(repo_urls: list[str]) -> None:
 
         else:
             logging.info(f'Could not find repository path. Will not try to remove non-existing repositories.')
-
-
-# TODO baka in i pipelinen och få ut i fil.
-# TODO denna kommer bli rate limit på, byt till Graphql
-def get_github_repo_size(url: str) -> str:
-    user = util.get_repo_owner_from_url(url)
-    repo = util.get_repo_name_from_url_or_path(url)
-    api_url = f"https://api.github.com/repos/{user}/{repo}"
-    response = requests.get(api_url)
-    if response.status_code == 200:
-        repo_data = response.json()
-        size_in_kb = repo_data['size']
-        formatted_size = util.format_size(size_in_kb)
-        return formatted_size
-    else:
-        logging.warning(f"Failed to fetch repository data from {api_url}. Status code: {response.status_code}")
-        return ""

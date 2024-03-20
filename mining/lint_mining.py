@@ -94,7 +94,7 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
 
     return result
 
-
+# TODO plocka fram Max komplexitet / min komplexitet per commit
 def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
     """Parses Pylint Messages and returns them in a formatted dictionary using strings"""
 
@@ -123,6 +123,7 @@ def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
         result[module]['total_messages'] += 1
         result[module]['categories'][category]['total'] += 1
 
+# TODO förtdyliga att det är avg function complexity
     result['avg_mccabe_complexity'] = get_average_complexity(messages)
     logging.info(f"Extracted {len(result)} modules")
     return result

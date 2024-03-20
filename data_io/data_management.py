@@ -1,21 +1,18 @@
 """This module provides functionality for data manipulation and processing."""
-import csv
+
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-
 import numpy as np
 from rich.pretty import pprint
 import pandas as pd
-
-import utility.util
 from utility import config, util
 from utility.progress_bars import RichIterableProgressBar
 
 
 class CustomEncoder(json.JSONEncoder):
-    """Custom JSON encoder to handle sets and datetime objects."""
+    """Custom JSON encoder to handle Path objects, sets and datetime objects produced by Pydriller and Pylint"""
 
     def default(self, obj):
         if isinstance(obj, set):
@@ -49,88 +46,83 @@ def write_json(new_data: dict, path: Path):
         json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
-# TODO fixa så att alla rader ligger i samma CSV, med repo/date som index
+# TODO mata in mer rådata
+# TODO progress
 def lint_data_to_csv(lint_data: dict, path: Path):
-    """
-    Processes lint data and writes it to CSV files, one per repository.
+    """Write lint data to a CSV file."""
 
-    Parameters:
-    - lint_data: A dictionary containing lint data for multiple repositories.
-    - output_dir: The directory where the CSV files will be saved.
-    """
-
-    for repo, repo_data in RichIterableProgressBar(lint_data.items(),
-                                                   description="Processing lint data",
-                                                   disable=config.DISABLE_PROGRESS_BARS):
+    flat_data = []
+    for repo, repo_data in lint_data.items():
         if repo_data is None:
+            logging.error(f"Repository {repo} has no valid commits. Skipping repo")
             continue
 
-        data_list = []
         for commit_hash, commit_data in repo_data.items():
             if commit_data is None:
+                logging.error(f"Commit {commit_hash} has no valid data. Skipping commit")
                 continue
 
-            commit_data.pop('messages', None)
-            flattened_data = _flatten_dict(commit_data)
+            commit_data.pop('messages')
+            flat_commit_data = _flatten_dict(commit_data)
 
-            for metric, value in flattened_data.items():
-                data_list.append({'commit_hash': commit_hash, 'metric': metric, 'value': value})
+            entry = {
+                'repo': repo,
+                'date': commit_data['date'],
+                'commit_hash': commit_hash
+            }
 
-        df = pd.DataFrame(data_list)
+            for data_point, value in flat_commit_data.items():
+                entry[data_point] = value
 
-        if df.empty:
-            logging.error(f"Repository {repo} has no valid commits. Skipping...")
-            continue
+            flat_data.append(entry)
 
-        df_formatted = df.pivot_table(index=['commit_hash'],
-                                      columns='metric',
-                                      values='value',
-                                      aggfunc='first').reset_index()
+    df = pd.DataFrame(flat_data)
 
-        df_formatted.columns.name = None
-        df_formatted.reset_index(drop=True, inplace=True)
+    if df.empty:
+        logging.warning("No data to process into DataFrame, skipping update")
+        return
 
-        df_formatted.drop(columns=[col for col in df_formatted.columns if
-                                   col.startswith('stats.by_module') or
-                                   col.startswith('stats.dependencies') or
-                                   col == 'stats.repository_name' or
-                                   col == 'stats.dependencies.util'],
-                          inplace=True,
-                          errors='ignore')
+    df['date'] = pd.to_datetime(df['date'], utc=True)
+    df.drop(columns=[col for col in df.columns if
+                     col.startswith('stats.by_module') or
+                     col.startswith('stats.dependencies') or
+                     col == 'stats.repository_name' or
+                     col == 'stats.dependencies.util'],
+            inplace=True,
+            errors='ignore')
 
-        if 'date' in df_formatted.columns:
-            df_formatted['date'] = pd.to_datetime(df_formatted['date'], utc=True)
-            df_formatted.sort_values(by='date', inplace=True)
-            cols = ['date', 'commit_hash'] + [col for col in df_formatted.columns if col not in ['date', 'commit_hash']]
-            df_formatted = df_formatted[cols]
-
-        df_formatted.to_csv(path / f'lint-{repo}.csv', index=False, na_rep='nan')
+    _update_csv(path, df, ['repo', 'date', 'commit_hash'])
 
 
+# TODO mata in mer rådata
+# TODO progress
 def git_data_to_csv(git_data: dict, path: Path):
-    """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
+    """Write git data to a CSV file."""
 
-    flat_data = [_flatten_dict(repo, prefix_separator=".") for repo in git_data.values()]
-    new_data_df = pd.DataFrame(flat_data)
-    if Path(path).exists():
-        existing_data_df = pd.read_csv(path)
-        updated_data_df = pd.concat([existing_data_df, new_data_df]).drop_duplicates('repo', keep='last')
+    flat_data = [_flatten_dict(repo) for repo in git_data.values()]
+
+    df = pd.DataFrame(flat_data)
+
+    if path.exists():
+        existing_df = pd.read_csv(path)
+        updated_df = pd.concat([existing_df, df]).drop_duplicates('repo', keep='last')
     else:
-        updated_data_df = new_data_df
+        updated_df = df
 
-    cols = ['repo'] + [col for col in sorted(updated_data_df.columns) if col != 'repo']
-    updated_data_df = updated_data_df[cols]
-    updated_data_df = updated_data_df.sort_values(by='repo')
+    cols = ['repo'] + [col for col in sorted(updated_df.columns) if col != 'repo']
+    updated_df = updated_df[cols]
+    updated_df.sort_values(by='repo', inplace=True)
 
-    updated_data_df.fillna('nan').to_csv(path, index=False)
+    updated_df.to_csv(path, index=False, na_rep='nan')
 
 
+# TODO få in commithashen också
+# TODO mata in mer rådata förrutom summeringarna
+# TODO progress
 def test_data_to_csv(test_data: dict, path: Path):
-    """Loads existing test CSV data and updates it with new data, or writes new data to a CSV file."""
+    """Write test data to a CSV file."""
 
-    # pprint(test_data)
-
-    flattened_data = [
+    flat_data = [
         {
             'repo': repo,
             'date': pd.to_datetime(data['date'], utc=True),
@@ -145,78 +137,77 @@ def test_data_to_csv(test_data: dict, path: Path):
         for commit_hash, data in commits.items()
     ]
 
-    new_df = pd.DataFrame(flattened_data)
+    df = pd.DataFrame(flat_data)
 
-    if new_df.empty:
+    if df.empty:
         logging.warning("No data to process into DataFrame.")
         return
 
-    new_df.sort_values(by=['repo', 'date'], inplace=True)
-    new_df.set_index(['repo', 'date'], inplace=True)
-
-    try:
-        existing_df = pd.read_csv(path, index_col=['repo', 'date'], parse_dates=['date'])
-    except FileNotFoundError:
-        existing_df = pd.DataFrame()
-
-    if not existing_df.empty:
-        existing_df = existing_df.reset_index()
-        new_df = new_df.reset_index()
-        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
-        updated_df.sort_values(by=['repo', 'date'], inplace=True)
-        updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
-        updated_df.set_index(['repo', 'date'], inplace=True)
-    else:
-        updated_df = new_df
-
-    updated_df.to_csv(path)
+    _update_csv(path, df, ['repo', 'date'])  # TODO commit hash också?
 
 
+# TODO progress
 def stargazers_data_to_csv(stargazers_data: dict, path: Path):
-    """Writes stargazers data to a CSV file. Needs to be filtered by repo creation date"""
+    """Write stargazers data to a CSV file."""
 
-    rows_list = []
-    for repo, data in stargazers_data.items():
-        edges = data.get("data", {}).get("repository", {}).get("stargazers", {}).get("edges", [])
-        for edge in edges:
-            if 'node' in edge and 'login' in edge['node'] and 'starredAt' in edge:
-                rows_list.append({'repo': repo, 'date': edge['starredAt'], 'user': edge['node']['login']})
+    flat_data = [
+        {
+            'repo': repo,
+            'date': edge['starredAt'],
+            'user': edge['node']['login']
+        }
+        for repo, data in stargazers_data.items()
+        for edge in data["data"]["repository"]["stargazers"]["edges"]
+        if 'node' in edge and 'login' in edge['node'] and 'starredAt' in edge
+    ]
 
-    df = pd.DataFrame(rows_list)
+    df = pd.DataFrame(flat_data)
+
     df['date'] = pd.to_datetime(df['date'], utc=True)
     df.sort_values(by='date', inplace=True)
     df['stargazers_count'] = df.groupby('repo').cumcount() + 1
-    df = df.pivot_table(index='date', columns='repo', values='stargazers_count', aggfunc='last').ffill()
+    df = df.pivot_table(index='date', columns='repo', values='stargazers_count', aggfunc='last')
+    df = df.ffill()
+    df = df.fillna(0).astype(int)
 
-    df.to_csv(path, mode='w', na_rep=0.0)
+    df.reset_index(inplace=True)
+
+    cols = ['date'] + [col for col in sorted(df.columns) if col != 'date']
+    df = df[cols]
+
+    df.to_csv(path, mode='w', index=False)
 
 
+# TODO progress
 def metadata_to_csv(metadata: dict, path: Path):
-    """Writes repo metadata to a CSV file."""
+    """Write repo metadata to a CSV file."""
 
-    data = [_flatten_dict(repo_metadata) for repo_metadata in metadata.values()]
+    flat_data = [_flatten_dict(repo_metadata) for repo_metadata in metadata.values()]
 
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(flat_data)
 
-    with pd.option_context('future.no_silent_downcasting', True):
-        df.replace('', np.nan, inplace=True)
-    df['repo'] = df['resourcePath'].apply(util.get_repo_name_from_url_or_path)
     date_fields = ['createdAt', 'pushedAt', 'updatedAt', 'archivedAt']
-    df['languages.nodes'] = df['languages.nodes'].apply(
-        lambda languages: tuple(sorted(lang['name'] for lang in languages)))
     for field in date_fields:
         if field in df.columns:
             df[field] = pd.to_datetime(df[field], utc=True, errors='coerce')
 
-    cols = sorted(col for col in df.columns if col != 'repo')
-    df = df[['repo'] + cols]
+    df['repo'] = df['resourcePath'].apply(util.get_repo_name_from_url_or_path)
+    df['diskUsage'] = df['diskUsage'].apply(util.kb_to_mb_gb)
+    df['languages.nodes'] = df['languages.nodes'].apply(
+        lambda languages: tuple(sorted(lang['name'] for lang in languages)))
+
+    with pd.option_context('future.no_silent_downcasting', True):
+        df.replace('', np.nan, inplace=True)
+
+    cols = ['repo'] + [col for col in sorted(df.columns) if col != 'repo']
+    df = df[cols]
     df.sort_values(by='repo', inplace=True)
 
-    df.to_csv(path, index=False, na_rep='nan')
+    df.to_csv(path, mode='w', index=False, na_rep='nan')
 
 
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
-    """Flatten a nested dict. Takes nested keys, and uses them as prefixes."""
+    """Flattens a nested dict. Takes nested keys, and uses them as prefixes."""
     items = []
     for key, value in dictionary.items():
 
@@ -227,3 +218,24 @@ def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str 
             items.append((new_key, value))
 
     return dict(items)
+
+
+def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
+    """Loads existing CSV data and updates it with new data, or writes new data to a CSV file."""
+
+    if path.exists():
+        existing_df = pd.read_csv(path, parse_dates=['date'])
+    else:
+        existing_df = pd.DataFrame()
+
+    if not existing_df.empty:
+        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+        updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
+    else:
+        updated_df = new_df
+
+    cols = fixed_cols + [col for col in sorted(updated_df.columns) if col not in fixed_cols]
+    updated_df = updated_df[cols]
+    updated_df.sort_values(by=['repo', 'date'], inplace=True)
+
+    updated_df.to_csv(path, index=False, na_rep='nan')

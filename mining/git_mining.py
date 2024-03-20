@@ -128,7 +128,7 @@ def check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
 
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
 
-    rate_limiting_query = {
+    query = {
         "query": """query {
         rateLimit {
             limit
@@ -139,7 +139,7 @@ def check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
         }"""
     }
 
-    response = requests.post(config.GRAPHQL_API, json=rate_limiting_query, headers=headers).json()
+    response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
 
     if "errors" in response:
         logging.error(f"\nError when when querying GraphQL API for rate limit info\n"
@@ -168,12 +168,12 @@ def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
     for repo_url in RichIterableProgressBar(repos,
-                                            description="Querying GraphQL API for lifespan data",
+                                            description="Querying GraphQL API for repo metadata",
                                             disable=config.DISABLE_PROGRESS_BARS):
         repo_owner = util.get_repo_owner_from_url(repo_url)
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
 
-        lifespan_query = {
+        query = {
             "query": """
                     query ($owner: String!, $repo: String!) {
                       repository(owner: $owner, name: $repo) {
@@ -231,7 +231,7 @@ def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
             }
         }
 
-        response = requests.post(config.GRAPHQL_API, json=lifespan_query, headers=headers).json()
+        response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
 
         if "errors" in response:
             logging.error(f"\nError when when querying GraphQL API for repo metadata\n"

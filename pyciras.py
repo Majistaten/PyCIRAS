@@ -60,7 +60,7 @@ def run_repo_cloner(repo_urls: list[str] = None,
     _process_chunk(repo_urls,
                    pyciras_functions=[_clone_repos],
                    stargazers=False,
-                   lifespan=False,
+                   metadata=False,
                    chunk_size=chunk_size,
                    multiprocessing=multiprocessing,
                    persist_repos=True)
@@ -76,7 +76,7 @@ def run_mining(repo_urls: list[str] = None,
                multiprocessing: bool = False,
                persist_repos: bool = True,
                stargazers: bool = True,
-               lifespan: bool = True,
+               metadata: bool = True,
                lint: bool = True,
                test: bool = True,
                git: bool = True):
@@ -84,7 +84,7 @@ def run_mining(repo_urls: list[str] = None,
     Executes a series of mining operations on a given list of repository URLs to analyze their code quality,
     testing practices, and other characteristics.
 
-    This function can perform several types of analyses, including linting, testing, stargazers, lifespan, and Git
+    This function can perform several types of analyses, including linting, testing, stargazers, metadata, and Git
     history analysis. The results of these analyses are stored in predefined directories, and the progress is logged
     for monitoring purposes. The mining process can be customized through a set of boolean flags that enable or disable
     specific analyses. Further functionalities can be applied or modified in the config.py file.
@@ -99,7 +99,7 @@ def run_mining(repo_urls: list[str] = None,
             Defaults to True.
         stargazers (bool, optional): If True, information about stargazers will be collected for each repository.
             Defaults to True.
-        lifespan (int, optional): Enable or disable the lifespan analysis. Defaults to True.
+        metadata (int, optional): Enable or disable the metadata analysis. Defaults to True.
         lint (bool, optional): Enables or disables linting analysis. Defaults to True.
         test (bool, optional): Enables or disables testing analysis. Defaults to True.
         git (bool, optional): Enables or disables Git history analysis. Defaults to True.
@@ -146,7 +146,7 @@ def run_mining(repo_urls: list[str] = None,
     _process_chunk(repo_urls,
                    mining_functions,
                    stargazers,
-                   lifespan,
+                   metadata,
                    chunk_size,
                    multiprocessing,
                    persist_repos)
@@ -168,7 +168,7 @@ def _mine_lint(repo_urls: list[str]):
         lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
 
         data_management.write_json(lint_data, data_directory / 'lint-raw.json')
-        data_management.lint_data_to_csv(lint_data, data_directory)
+        data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while linting repositories {repos}.', exc_info=True)
@@ -231,23 +231,23 @@ def _mine_metadata(repo_urls: list[str]):
         return
 
 
-# TODO lägg in så man kan skippa repos av viss size?
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
     return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls)
 
 
 # TODO heltäckande error handling i denna?
+# TODO kör API calls först
 def _process_chunk(repo_urls: list[str],
                    pyciras_functions: list[Callable[..., list[Path] | None]],
                    stargazers: bool,
-                   lifespan: bool,
+                   metadata: bool,
                    chunk_size: int = 1,
                    multiprocessing: bool = False,
                    persist_repos: bool = True):
     """Processes repos in chunks."""
 
-    if stargazers is False and lifespan is False and len(pyciras_functions) == 0:
+    if stargazers is False and metadata is False and len(pyciras_functions) == 0:
         logging.error('At least one PyCIRAS function must be selected!')
         return
 
@@ -267,7 +267,7 @@ def _process_chunk(repo_urls: list[str],
             repo_management.remove_repos(chunk_of_repos)
     if stargazers:
         _mine_stargazers(repo_urls)
-    if lifespan:
+    if metadata:
         _mine_metadata(repo_urls)
 
 
@@ -294,9 +294,9 @@ if __name__ == '__main__':
     run_mining(repo_urls=None,
                chunk_size=1,
                multiprocessing=False,
-               persist_repos=False,
-               stargazers=False,
-               lifespan=True,
+               persist_repos=True,
+               stargazers=True,
+               metadata=False,
                test=False,
                git=False,
                lint=False)

@@ -60,7 +60,7 @@ def sanitize_url(url: str) -> str:
     return url.strip().removesuffix('/')
 
 
-def format_size(size_in_kb: int) -> str:
+def kb_to_mb_gb(size_in_kb: int) -> str:
     """Convert size from KB to MB or GB if large enough."""
     if size_in_kb < 1024:
         return f"{size_in_kb} KB"
