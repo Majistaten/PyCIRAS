@@ -90,7 +90,7 @@ class MyModuleTests(unittest.TestCase):
             (3 * 1024 * 1024, "3.00 GB"),
         ]
         for size_in_kb, expected_output in test_cases:
-            formatted_size = util.format_size(size_in_kb)
+            formatted_size = util.kb_to_mb_gb(size_in_kb)
             self.assertEqual(expected_output, formatted_size)
 
 
