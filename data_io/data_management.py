@@ -50,69 +50,83 @@ def write_json(new_data: dict, path: Path):
 
 
 # TODO fixa så att alla rader ligger i samma CSV, med repo/date som index
+# TODO refactor
+# TODO mata in mer rådata
+# TODO progress
 def lint_data_to_csv(lint_data: dict, path: Path):
-    """
-    Processes lint data and writes it to CSV files, one per repository.
+    """Processes lint data and updates an existing CSV file with new data, or writes new data to a CSV file."""
 
-    Parameters:
-    - lint_data: A dictionary containing lint data for multiple repositories.
-    - output_dir: The directory where the CSV files will be saved.
-    """
-
-    for repo, repo_data in RichIterableProgressBar(lint_data.items(),
-                                                   description="Processing lint data",
-                                                   disable=config.DISABLE_PROGRESS_BARS):
+    flattened_data = []
+    for repo, repo_data in lint_data.items():
         if repo_data is None:
+            logging.error(f"Repository {repo} has no valid commits. Skipping repo")
             continue
 
-        data_list = []
         for commit_hash, commit_data in repo_data.items():
             if commit_data is None:
+                logging.error(f"Commit {commit_hash} has no valid data. Skipping commit")
                 continue
 
             commit_data.pop('messages', None)
-            flattened_data = _flatten_dict(commit_data)
+            flat_data = _flatten_dict(commit_data)
 
-            for metric, value in flattened_data.items():
-                data_list.append({'commit_hash': commit_hash, 'metric': metric, 'value': value})
+            entry = {
+                'repo': repo,
+                'date': commit_data['date'],
+                'commit_hash': commit_hash
+            }
 
-        df = pd.DataFrame(data_list)
+            # Add metrics to the entry
+            for metric, value in flat_data.items():
+                entry[metric] = value
 
-        if df.empty:
-            logging.error(f"Repository {repo} has no valid commits. Skipping...")
-            continue
+            flattened_data.append(entry)
 
-        df_formatted = df.pivot_table(index=['commit_hash'],
-                                      columns='metric',
-                                      values='value',
-                                      aggfunc='first').reset_index()
+    new_df = pd.DataFrame(flattened_data)
 
-        df_formatted.columns.name = None
-        df_formatted.reset_index(drop=True, inplace=True)
+    if new_df.empty:
+        logging.warning("No data to process into DataFrame, skipping update")
+        return
 
-        df_formatted.drop(columns=[col for col in df_formatted.columns if
-                                   col.startswith('stats.by_module') or
-                                   col.startswith('stats.dependencies') or
-                                   col == 'stats.repository_name' or
-                                   col == 'stats.dependencies.util'],
-                          inplace=True,
-                          errors='ignore')
+    if 'date' in new_df.columns:
+        new_df['date'] = pd.to_datetime(new_df['date'], utc=True)
 
-        if 'date' in df_formatted.columns:
-            df_formatted['date'] = pd.to_datetime(df_formatted['date'], utc=True)
-            df_formatted.sort_values(by='date', inplace=True)
-            cols = ['date', 'commit_hash'] + [col for col in df_formatted.columns if col not in ['date', 'commit_hash']]
-            df_formatted = df_formatted[cols]
+    new_df.drop(columns=[col for col in new_df.columns if
+                         col.startswith('stats.by_module') or
+                         col.startswith('stats.dependencies') or
+                         col == 'stats.repository_name' or
+                         col == 'stats.dependencies.util'],
+                inplace=True,
+                errors='ignore')
 
-        df_formatted.to_csv(path / f'lint-{repo}.csv', index=False, na_rep='nan')
+    # new_df.sort_values(by=['repo', 'date'], inplace=True)  # TODO redundant sortering?
 
+    if path.exists():
+        existing_df = pd.read_csv(path, parse_dates=['date'])
+    else:
+        existing_df = pd.DataFrame()
 
+    if not existing_df.empty:
+        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+        updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
+    else:
+        updated_df = new_df
+
+    fixed_cols = ['repo', 'date', 'commit_hash']
+    cols = fixed_cols + [col for col in updated_df.columns if col not in fixed_cols]
+    updated_df = updated_df[cols]
+    updated_df.sort_values(by=['repo', 'date'], inplace=True)
+
+    updated_df.to_csv(path, index=False, na_rep='nan')
+
+# TODO mata in mer rådata
+# TODO progress
 def git_data_to_csv(git_data: dict, path: Path):
     """Loads existing git CSV data and updates it with new data, or writes new data to a CSV file."""
 
     flat_data = [_flatten_dict(repo, prefix_separator=".") for repo in git_data.values()]
     new_data_df = pd.DataFrame(flat_data)
-    if Path(path).exists():
+    if path.exists():
         existing_data_df = pd.read_csv(path)
         updated_data_df = pd.concat([existing_data_df, new_data_df]).drop_duplicates('repo', keep='last')
     else:
@@ -122,9 +136,13 @@ def git_data_to_csv(git_data: dict, path: Path):
     updated_data_df = updated_data_df[cols]
     updated_data_df = updated_data_df.sort_values(by='repo')
 
-    updated_data_df.fillna('nan').to_csv(path, index=False)
+    updated_data_df.to_csv(path, index=False, na_rep='nan')
 
 
+# TODO få in commithashen också
+# TODO mata in mer rådata förrutom summeringarna
+# TODO sortera columner
+# TODO progress
 def test_data_to_csv(test_data: dict, path: Path):
     """Loads existing test CSV data and updates it with new data, or writes new data to a CSV file."""
 
@@ -149,27 +167,26 @@ def test_data_to_csv(test_data: dict, path: Path):
         logging.warning("No data to process into DataFrame.")
         return
 
-    new_df.sort_values(by=['repo', 'date'], inplace=True)
-    new_df.set_index(['repo', 'date'], inplace=True)
-
-    try:
-        existing_df = pd.read_csv(path, index_col=['repo', 'date'], parse_dates=['date'])
-    except FileNotFoundError:
+    if path.exists():
+        existing_df = pd.read_csv(path, parse_dates=['date'])
+    else:
         existing_df = pd.DataFrame()
 
     if not existing_df.empty:
-        existing_df = existing_df.reset_index()
-        new_df = new_df.reset_index()
         updated_df = pd.concat([existing_df, new_df], ignore_index=True)
-        updated_df.sort_values(by=['repo', 'date'], inplace=True)
         updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
-        updated_df.set_index(['repo', 'date'], inplace=True)
     else:
         updated_df = new_df
 
-    updated_df.to_csv(path)
+    fixed_cols = ['repo', 'date'] # TODO commit hash också
+    cols = fixed_cols + [col for col in updated_df.columns if col not in fixed_cols]
+    updated_df = updated_df[cols]
+    updated_df.sort_values(by=['repo', 'date'], inplace=True)
+
+    updated_df.to_csv(path, index=False, na_rep='nan')
 
 
+# TODO progress
 def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     """Writes stargazers data to a CSV file. Needs to be filtered by repo creation date"""
 
