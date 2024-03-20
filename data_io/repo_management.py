@@ -5,7 +5,11 @@ from datetime import datetime
 from pydriller import Repository
 from utility import util, config, ntfyer
 import requests
+from git import Repo, RemoteProgress, rmtree
 from pathlib import Path
+import logging
+from utility import util, config
+from utility.progress_bars import CloneProgress
 
 
 def prepare_repositories(destination_folder: Path, repo_urls: list[str]) -> list[Path]:

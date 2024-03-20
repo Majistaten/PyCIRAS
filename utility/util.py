@@ -70,3 +70,12 @@ def format_size(size_in_kb: int) -> str:
     else:
         size_in_gb = size_in_kb / (1024 * 1024)
         return f"{size_in_gb:.2f} GB"
+
+
+def format_duration(seconds):
+    """Formats the duration from seconds to a string in HH:MM:SS format."""
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+
