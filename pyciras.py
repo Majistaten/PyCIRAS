@@ -202,13 +202,13 @@ def _mine_stargazers(repo_urls: list[str]):
     data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
 
 
-def _mine_lifespan(repo_urls: list[str]):
-    """ Mine dates from the project lifespan from a list of repositories."""
+def _mine_metadata(repo_urls: list[str]):
+    """Mine repo metadata from a list of repositories."""
 
-    lifespan_data = git_mining.mine_repo_lifespans(repo_urls)
+    metadata = git_mining.mine_repo_metadata(repo_urls)
 
-    data_management.write_json(lifespan_data, data_directory / 'lifespan-raw.json')
-    data_management.lifespan_data_to_csv(lifespan_data, data_directory / 'lifespan.csv')
+    data_management.write_json(metadata, data_directory / 'metadata-raw.json')
+    data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
 
 
 # TODO lägg in så man kan skippa repos av viss size?
@@ -248,7 +248,7 @@ def _process_chunk(repo_urls: list[str],
     if stargazers:
         _mine_stargazers(repo_urls)
     if lifespan:
-        _mine_lifespan(repo_urls)
+        _mine_metadata(repo_urls)
 
 
 def _execute_in_parallel(args_list: list, workers: int = 4):
@@ -275,8 +275,8 @@ if __name__ == '__main__':
                chunk_size=1,
                multiprocessing=False,
                persist_repos=False,
-               stargazers=True,
+               stargazers=False,
                lifespan=True,
-               test=True,
-               git=True,
-               lint=True)
+               test=False,
+               git=False,
+               lint=False)

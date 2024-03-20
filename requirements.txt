@@ -12,3 +12,4 @@ rich
 scipy
 seaborn
 requests
+numpy

@@ -18,6 +18,7 @@ from pathlib import Path
 from utility.progress_bars import RichIterableProgressBar
 import pandas as pd
 from data_io import repo_management
+from rich.pretty import pprint
 
 
 def mine_git_data(repo_directory: Path,
@@ -139,6 +140,12 @@ def check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
     }
 
     response = requests.post(config.GRAPHQL_API, json=rate_limiting_query, headers=headers).json()
+
+    if "errors" in response:
+        logging.error(f"\nError when when querying GraphQL API for rate limit info\n"
+                      f"Error message: {response['errors'][0]['message']}")
+        return 0, pd.to_datetime(datetime.now(), utc=True)
+
     remaining = int(response['data']['rateLimit']['remaining'])
     reset_at = pd.to_datetime(response['data']['rateLimit']['resetAt'], utc=True)
 
@@ -153,8 +160,8 @@ def send_graphql_rate_limit_warning(remaining: int, reset_at: pd.Timestamp):
     logging.error(message)
 
 
-def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
-    """Mine the lifespan of a list of repositories and return a dictionary with the data."""
+def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
+    """Mine the metadata of a list of repositories and return a dictionary with the data."""
 
     load_dotenv()
 
@@ -172,6 +179,49 @@ def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
                       repository(owner: $owner, name: $repo) {
                         createdAt
                         pushedAt
+                        updatedAt
+                        archivedAt
+                        description
+                        forkCount
+                        stargazerCount
+                        hasDiscussionsEnabled
+                        hasIssuesEnabled
+                        hasProjectsEnabled
+                        hasSponsorshipsEnabled
+                        fundingLinks {
+                            platform
+                        }
+                        hasWikiEnabled
+                        homepageUrl
+                        isArchived
+                        isEmpty
+                        isFork
+                        isInOrganization
+                        isLocked
+                        isMirror
+                        isPrivate
+                        isTemplate
+                        licenseInfo {
+                            name
+                            body
+                            description
+                        }
+                        lockReason
+                        visibility
+                        url
+                        owner {
+                            login
+                        }
+                        resourcePath
+                        diskUsage
+                        languages(first: 10) {
+                            nodes { 
+                                name
+                            }
+                        }
+                        primaryLanguage {
+                            name
+                        }
                       }
                     }
                     """,
@@ -183,11 +233,23 @@ def mine_repo_lifespans(repos: list[str]) -> dict[str, any]:
 
         response = requests.post(config.GRAPHQL_API, json=lifespan_query, headers=headers).json()
 
+        if "errors" in response:
+            logging.error(f"\nError when when querying GraphQL API for repo metadata\n"
+                          f"repo: {repo_owner}/{repo_name}"
+                          f"Error message: {response['errors'][0]['message']}")
+            continue
+
+        metadata = response['data']['repository']
+
         data.update({
-            repo_name: {
-                "created_at": response['data']['repository']['createdAt'],
-                "pushed_at": response['data']['repository']['pushedAt']
-            }})
+            repo_name: metadata
+        })
+
+        remaining, reset_at = check_graphql_rate_limit()
+        if remaining in [250, 100, 10, 1]:
+            send_graphql_rate_limit_warning(remaining, reset_at)
+        elif remaining <= 0:
+            break
 
     return data
 

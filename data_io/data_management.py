@@ -4,9 +4,13 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
+
+import numpy as np
 from rich.pretty import pprint
 import pandas as pd
-from utility import config
+
+import utility.util
+from utility import config, util
 from utility.progress_bars import RichIterableProgressBar
 
 
@@ -187,18 +191,28 @@ def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     df.to_csv(path, mode='w', na_rep=0.0)
 
 
-def lifespan_data_to_csv(lifespan_data: dict, path: Path):
-    """Writes lifespan data to a CSV file."""
-    data = [{
-        'repository': repo,
-        'created_at': pd.to_datetime(details['created_at'], utc=True),
-        'pushed_at': pd.to_datetime(details['pushed_at'], utc=True),
-    } for repo, details in lifespan_data.items()]
+def metadata_to_csv(metadata: dict, path: Path):
+    """Writes repo metadata to a CSV file."""
+
+    data = [_flatten_dict(repo_metadata) for repo_metadata in metadata.values()]
 
     df = pd.DataFrame(data)
-    df = df.sort_values(by='repository')
 
-    df.to_csv(path, index=False)
+    with pd.option_context('future.no_silent_downcasting', True):
+        df.replace('', np.nan, inplace=True)
+    df['repo'] = df['resourcePath'].apply(util.get_repo_name_from_url_or_path)
+    date_fields = ['createdAt', 'pushedAt', 'updatedAt', 'archivedAt']
+    df['languages.nodes'] = df['languages.nodes'].apply(
+        lambda languages: tuple(sorted(lang['name'] for lang in languages)))
+    for field in date_fields:
+        if field in df.columns:
+            df[field] = pd.to_datetime(df[field], utc=True, errors='coerce')
+
+    cols = sorted(col for col in df.columns if col != 'repo')
+    df = df[['repo'] + cols]
+    df.sort_values(by='repo', inplace=True)
+
+    df.to_csv(path, index=False, na_rep='nan')
 
 
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
