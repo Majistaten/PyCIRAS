@@ -128,8 +128,6 @@ def git_data_to_csv(git_data: dict, path: Path):
 def test_data_to_csv(test_data: dict, path: Path):
     """Loads existing test CSV data and updates it with new data, or writes new data to a CSV file."""
 
-    # pprint(test_data)
-
     flattened_data = [
         {
             'repo': repo,
@@ -201,6 +199,7 @@ def metadata_to_csv(metadata: dict, path: Path):
     with pd.option_context('future.no_silent_downcasting', True):
         df.replace('', np.nan, inplace=True)
     df['repo'] = df['resourcePath'].apply(util.get_repo_name_from_url_or_path)
+    df['diskUsage'] = df['diskUsage'].apply(util.kb_to_mb_gb)
     date_fields = ['createdAt', 'pushedAt', 'updatedAt', 'archivedAt']
     df['languages.nodes'] = df['languages.nodes'].apply(
         lambda languages: tuple(sorted(lang['name'] for lang in languages)))
