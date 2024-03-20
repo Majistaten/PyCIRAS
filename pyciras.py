@@ -160,55 +160,75 @@ def run_mining(repo_urls: list[str] = None,
 
 def _mine_lint(repo_urls: list[str]):
     """ Mine lint data from a list of repositories. """
+    try:
+        repo_paths = _clone_repos(repo_urls)
 
-    repo_paths = _clone_repos(repo_urls)
+        repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
+                                                                                       repo_paths)
+        lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
 
-    repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
-                                                                                   repo_paths)
-    lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
-
-    data_management.write_json(lint_data, data_directory / 'lint-raw.json')
-    data_management.lint_data_to_csv(lint_data, data_directory)
+        data_management.write_json(lint_data, data_directory / 'lint-raw.json')
+        data_management.lint_data_to_csv(lint_data, data_directory)
+    except Exception:
+        repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
+        logging.error(f'Error while linting repositories {repos}.', exc_info=True)
+        return
 
 
 def _mine_git(repo_urls: list[str]):
     """ Mine git data from a list of repositories. """
+    try:
+        git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
 
-    git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
-
-    data_management.write_json(git_data, data_directory / 'git-raw.json')
-    data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
+        data_management.write_json(git_data, data_directory / 'git-raw.json')
+        data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
+    except Exception:
+        repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
+        logging.error(f'Error while mining git repositories {repos}.', exc_info=True)
+        return
 
 
 def _mine_test(repo_urls: list[str]):
     """ Mine test data from a list of repositories. """
+    try:
+        repo_paths = _clone_repos(repo_urls)
 
-    repo_paths = _clone_repos(repo_urls)
+        repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
+                                                                                       repo_paths)
+        test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
-    repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
-                                                                                   repo_paths)
-    test_data = test_mining.mine_test_data(repos_and_commit_metadata)
-
-    data_management.write_json(test_data, data_directory / 'test-raw.json')
-    data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+        data_management.write_json(test_data, data_directory / 'test-raw.json')
+        data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+    except Exception:
+        repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
+        logging.error(f'Error while mining test data from repositories {repos}.', exc_info=True)
+        return
 
 
 def _mine_stargazers(repo_urls: list[str]):
     """ Mine stargazers data from a list of repositories. """
+    try:
+        stargazers_data = git_mining.mine_stargazers_data(repo_urls)
 
-    stargazers_data = git_mining.mine_stargazers_data(repo_urls)
-
-    data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
-    data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
+        data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
+        data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
+    except Exception:
+        repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
+        logging.error(f'Error while fetching stargazer data for {repos}.', exc_info=True)
+        return
 
 
 def _mine_metadata(repo_urls: list[str]):
     """Mine repo metadata from a list of repositories."""
+    try:
+        metadata = git_mining.mine_repo_metadata(repo_urls)
 
-    metadata = git_mining.mine_repo_metadata(repo_urls)
-
-    data_management.write_json(metadata, data_directory / 'metadata-raw.json')
-    data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
+        data_management.write_json(metadata, data_directory / 'metadata-raw.json')
+        data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
+    except Exception:
+        repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
+        logging.error(f'Error while mining metadata data for repositories {repos}.', exc_info=True)
+        return
 
 
 # TODO lägg in så man kan skippa repos av viss size?
