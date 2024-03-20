@@ -168,7 +168,7 @@ def _mine_lint(repo_urls: list[str]):
     lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
 
     data_management.write_json(lint_data, data_directory / 'lint-raw.json')
-    data_management.lint_data_to_csv(lint_data, data_directory)
+    data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
 
 
 def _mine_git(repo_urls: list[str]):
@@ -217,6 +217,7 @@ def _clone_repos(repo_urls: list[str]) -> list[Path]:
 
 
 # TODO heltäckande error handling i denna?
+# TODO kör API calls först
 def _process_chunk(repo_urls: list[str],
                    pyciras_functions: list[Callable[..., list[Path] | None]],
                    stargazers: bool,
@@ -275,7 +276,7 @@ if __name__ == '__main__':
                multiprocessing=False,
                persist_repos=True,
                stargazers=True,
-               metadata=True,
-               test=True,
-               git=True,
-               lint=True)
+               metadata=False,
+               test=False,
+               git=False,
+               lint=False)
