@@ -196,7 +196,9 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
 
             edges = response["data"]["repository"]["stargazers"]["edges"]
 
-            if not edges:
+            if not edges or len(edges) == 0:
+                logging.info(f"{repo_name} Has no stargazers\n"
+                             f"Skipping this repo")
                 break
 
             stargazers.extend(edges)
