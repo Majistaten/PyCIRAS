@@ -19,9 +19,9 @@ def setup_root_logger():
         file_handler.setLevel(config.FILE_LOGGING_LEVEL)
 
         rich_handler = RichHandler(console=console, rich_tracebacks=True)
-        rich_handler.setLevel(config.VERBOSE_LOGGING_LEVEL)
+        rich_handler.setLevel(config.CONSOLE_LOGGING_LEVEL)
 
-        console_format = "%(name)s - %(message)s"
+        console_format = "%(message)s"
         console_formatter = logging.Formatter(console_format)
         rich_handler.setFormatter(console_formatter)
 

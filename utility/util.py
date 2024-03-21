@@ -12,9 +12,12 @@ def get_python_files_from_directory(directory: Path) -> list[str]:
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith(".py"):
-                logging.info(f"Found python file: {str(os.path.join(root, file))}")
+                logging.debug(f"Found python file: {str(os.path.join(root, file))}")
                 python_files.append(str(os.path.join(root, file)))
-    logging.info(f"Found {len(python_files)} python files in {directory}")
+
+    if len(python_files) != 0:
+        logging.info(f"Found {len(python_files)} python files in {directory}")
+
     return python_files
 
 
