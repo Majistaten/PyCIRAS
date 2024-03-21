@@ -24,9 +24,12 @@ from rich.progress import Progress, TaskID
 
 def mine_git_data(repo_directory: Path,
                   repo_urls: list[str],
+                  progress: Progress,
                   since: datetime = datetime.now(),
                   to: datetime = datetime.now() - relativedelta(years=20)) -> dict[str, dict[str, any]]:
     """Mine git data from a list of repositories and return a dictionary with the data"""
+
+    mining_task = progress.add_task(description="Mining git data", total=len(repo_urls), start=True)
 
     data = {}
     repo_urls = repo_management.load_repos(repo_directory, repo_urls)
@@ -36,6 +39,7 @@ def mine_git_data(repo_directory: Path,
         data[repo_name].update(_mine_process_data(repo_directory / repo_name, since, to))
         data[repo_name]['repo'] = repo_name
         data[repo_name]['repo_url'] = repo_url
+        progress.update(mining_task, advance=1, refresh=True)
 
     return data
 
@@ -52,10 +56,10 @@ def _mine_commit_data(repo: Repository) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    for commit in RichIterableProgressBar(repo.traverse_commits(),
-                                          description="Traversing commits, mining git data",
-                                          disable=config.DISABLE_PROGRESS_BARS):
-
+    # for commit in RichIterableProgressBar(repo.traverse_commits(),
+    #                                       description="Traversing commits, mining git data",
+    #                                       disable=config.DISABLE_PROGRESS_BARS):
+    for commit in repo.traverse_commits():
         data["total_commits"] += 1
         data["files_modified"] += len(commit.modified_files)
 
@@ -138,7 +142,6 @@ def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
 def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, [dict]]:
     """Mine stargazers data from a list of repositories and return a dictionary with the data"""
 
-    mining_task = progress.add_task(description="Mining Stargazers", total=len(repo_urls), start=True)
 
     load_dotenv()
 
@@ -149,7 +152,7 @@ def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, 
     #         description="Querying GraphQL API for stargazers data",
     #         disable=config.DISABLE_PROGRESS_BARS):
 
-    progress.start_task(mining_task)  # TODO ska tasken läggas till starta här istället?
+    mining_task = progress.add_task(description="Mining Stargazers", total=len(repo_urls), start=True)
     for url in repo_urls:
 
         repo_owner = util.get_repo_owner_from_url(url)

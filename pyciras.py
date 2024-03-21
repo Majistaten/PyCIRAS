@@ -190,7 +190,7 @@ def run_mining(repo_urls: list[str] = None,
                     title='PyCIRAS Mining Completed')
         logging.info(f"PyCIRAS Mining completed - Duration: {duration}.")
 
-
+@timed
 def _mine_lint(repo_urls: list[str]):
     """ Mine lint data from a list of repositories. """
     try:
@@ -215,7 +215,7 @@ def _mine_lint(repo_urls: list[str]):
 def _mine_git(repo_urls: list[str]):
     """ Mine git data from a list of repositories. """
     try:
-        git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
+        git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls, progress)
 
         if config.WRITE_JSON:
             data_management.write_json(git_data, data_directory / 'git-raw.json')
@@ -265,6 +265,7 @@ def _mine_stargazers(repo_urls: list[str]):
         return
 
 
+@timed
 def _mine_metadata(repo_urls: list[str]):
     """Mine repo metadata from a list of repositories."""
     try:
@@ -343,11 +344,11 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=1,
-               multiprocessing=False,
+               chunk_size=3,
+               multiprocessing=True,
                persist_repos=True,
-               stargazers=True,
-               metadata=True,
-               test=True,
+               stargazers=False,
+               metadata=False,
+               test=False,
                git=True,
-               lint=True)
+               lint=False)
