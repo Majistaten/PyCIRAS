@@ -183,6 +183,8 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
 
             response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
 
+            pprint(response)
+
             if "message" in response and response["message"] == "Bad credentials":
                 logging.error(f"\nBad credentials when querying the GraphQL API for stargazers\n"
                               f"Skipping repo: {repo_owner}/{repo_name}")
@@ -196,9 +198,7 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
 
             edges = response["data"]["repository"]["stargazers"]["edges"]
 
-            if not edges or len(edges) == 0:
-                logging.info(f"{repo_name} Has no stargazers\n"
-                             f"Skipping this repo")
+            if not edges:
                 break
 
             stargazers.extend(edges)
