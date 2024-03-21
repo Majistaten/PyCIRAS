@@ -27,6 +27,8 @@ def setup_root_logger():
 
         logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, rich_handler])
 
+# TODO försök komma åt pylints logger        logging.getLogger('pylint').setLevel(logging.INFO)
+
         return console
 
 

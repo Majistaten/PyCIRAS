@@ -19,12 +19,12 @@ def clone_repos(repo_directory: Path, repo_urls: list[str]) -> list[Path]:
         A list of repository paths.
     """
 
-    logging.info(f'Cloning {len(repo_urls)} repositories')
+    logging.debug(f'Cloning {len(repo_urls)} repositories')
 
     repo_paths = []
     for i, repo_url in enumerate(repo_urls):
 
-        logging.info(f'Downloading repository {i + 1} of {len(repo_urls)}')
+        logging.debug(f'Downloading repository {i + 1} of {len(repo_urls)}')
 
         path = _clone_repo(repo_directory, repo_url, progressbar_postfix=f'({i + 1}/{len(repo_urls)})')
         if path is None:
@@ -32,7 +32,7 @@ def clone_repos(repo_directory: Path, repo_urls: list[str]) -> list[Path]:
         else:
             repo_paths.append(path)
 
-    logging.info('Finished downloading repositories.')
+    logging.info('Finished downloading repositories')
 
     return repo_paths
 

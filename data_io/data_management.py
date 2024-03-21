@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import numpy as np
+import rich.progress
 from rich.pretty import pprint
 import pandas as pd
 from utility import config, util
@@ -36,20 +37,23 @@ def make_data_directory() -> Path:
 def write_json(new_data: dict, path: Path):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
     try:
-        with open(path, 'r') as file:
+        with rich.progress.open(path, 'r', description=f'Reading {path}') as file:
             data = json.load(file)
     except FileNotFoundError:
         data = {}
 
     data.update(new_data)
+
+    logging.info(f'Writing JSON: {path}')
     with open(path, 'w') as file:
         json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
 # TODO mata in mer rådata
-# TODO progress
 def lint_data_to_csv(lint_data: dict, path: Path):
     """Write lint data to a CSV file."""
+
+    logging.info(f'Processing lint data: {util.get_repo_name_from_url_or_path(path)}')
 
     flat_data = []
     for repo, repo_data in lint_data.items():
@@ -79,7 +83,7 @@ def lint_data_to_csv(lint_data: dict, path: Path):
     df = pd.DataFrame(flat_data)
 
     if df.empty:
-        logging.warning("No data to process into DataFrame, skipping update")
+        logging.info("No lint data to process into DataFrame")
         return
 
     df['date'] = pd.to_datetime(df['date'], utc=True)
@@ -91,36 +95,46 @@ def lint_data_to_csv(lint_data: dict, path: Path):
             inplace=True,
             errors='ignore')
 
+    logging.info(f'Done processing lint data: {util.get_repo_name_from_url_or_path(path)}')
+
     _update_csv(path, df, ['repo', 'date', 'commit_hash'])
 
 
 # TODO mata in mer rådata
-# TODO progress
 def git_data_to_csv(git_data: dict, path: Path):
     """Write git data to a CSV file."""
+
+    logging.info(f'Processing git data: {util.get_repo_name_from_url_or_path(path)}')
 
     flat_data = [_flatten_dict(repo) for repo in git_data.values()]
 
     df = pd.DataFrame(flat_data)
 
+    if df.empty:
+        logging.info("No git data to process into DataFrame.")
+        return
+
     if path.exists():
+        logging.info(f'Loading CSV: {path}')
         existing_df = pd.read_csv(path)
+        logging.info(f'Done loading CSV: {path}')
         updated_df = pd.concat([existing_df, df]).drop_duplicates('repo', keep='last')
     else:
         updated_df = df
 
-    cols = ['repo'] + [col for col in sorted(updated_df.columns) if col != 'repo']
-    updated_df = updated_df[cols]
-    updated_df.sort_values(by='repo', inplace=True)
+    updated_df = _sort_rows_and_cols(updated_df, ['repo'], ['repo'])
 
-    updated_df.to_csv(path, index=False, na_rep='nan')
+    logging.info(f'Done processing git data: {util.get_repo_name_from_url_or_path(path)}')
+    logging.info(f'Writing CSV: {path}')
+    updated_df.to_csv(path, mode='w', index=False, na_rep='nan')
 
 
 # TODO få in commithashen också
 # TODO mata in mer rådata förrutom summeringarna
-# TODO progress
 def test_data_to_csv(test_data: dict, path: Path):
     """Write test data to a CSV file."""
+
+    logging.info(f'Processing test data: {util.get_repo_name_from_url_or_path(path)}')
 
     flat_data = [
         {
@@ -140,15 +154,18 @@ def test_data_to_csv(test_data: dict, path: Path):
     df = pd.DataFrame(flat_data)
 
     if df.empty:
-        logging.warning("No data to process into DataFrame.")
+        logging.info("No test data to process into DataFrame.")
         return
+
+    logging.info(f'Done processing test data: {util.get_repo_name_from_url_or_path(path)}')
 
     _update_csv(path, df, ['repo', 'date'])  # TODO commit hash också?
 
 
-# TODO progress
 def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     """Write stargazers data to a CSV file."""
+
+    logging.info(f'Processing stargazers data: {util.get_repo_name_from_url_or_path(path)}')
 
     flat_data = [
         {
@@ -163,6 +180,10 @@ def stargazers_data_to_csv(stargazers_data: dict, path: Path):
 
     df = pd.DataFrame(flat_data)
 
+    if df.empty:
+        logging.info("No stargazers data to process into DataFrame.")
+        return
+
     df['date'] = pd.to_datetime(df['date'], utc=True)
     df.sort_values(by='date', inplace=True)
     df['stargazers_count'] = df.groupby('repo').cumcount() + 1
@@ -171,20 +192,25 @@ def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     df = df.fillna(0).astype(int)
 
     df.reset_index(inplace=True)
+    df = _sort_cols(df, ['date'])
 
-    cols = ['date'] + [col for col in sorted(df.columns) if col != 'date']
-    df = df[cols]
-
+    logging.info(f'Done processing test data: {util.get_repo_name_from_url_or_path(path)}')
+    logging.info(f'Writing CSV: {path}')
     df.to_csv(path, mode='w', index=False)
 
 
-# TODO progress
 def metadata_to_csv(metadata: dict, path: Path):
     """Write repo metadata to a CSV file."""
+
+    logging.info(f'Processing metadata: {util.get_repo_name_from_url_or_path(path)}')
 
     flat_data = [_flatten_dict(repo_metadata) for repo_metadata in metadata.values()]
 
     df = pd.DataFrame(flat_data)
+
+    if df.empty:
+        logging.info("No metadata to process into DataFrame.")
+        return
 
     date_fields = ['createdAt', 'pushedAt', 'updatedAt', 'archivedAt']
     for field in date_fields:
@@ -199,10 +225,10 @@ def metadata_to_csv(metadata: dict, path: Path):
     with pd.option_context('future.no_silent_downcasting', True):
         df.replace('', np.nan, inplace=True)
 
-    cols = ['repo'] + [col for col in sorted(df.columns) if col != 'repo']
-    df = df[cols]
-    df.sort_values(by='repo', inplace=True)
+    df = _sort_rows_and_cols(df, ['repo'], ['repo'])
 
+    logging.info(f'Done processing metadata: {util.get_repo_name_from_url_or_path(path)}')
+    logging.info(f'Writing CSV: {path}')
     df.to_csv(path, mode='w', index=False, na_rep='nan')
 
 
@@ -224,7 +250,9 @@ def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
     """Loads existing CSV data and updates it with new data, or writes new data to a CSV file."""
 
     if path.exists():
+        logging.info(f'Loading CSV: {path}')
         existing_df = pd.read_csv(path, parse_dates=['date'])
+        logging.info(f'Done loading CSV: {path}')
     else:
         existing_df = pd.DataFrame()
 
@@ -234,8 +262,19 @@ def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
     else:
         updated_df = new_df
 
-    cols = fixed_cols + [col for col in sorted(updated_df.columns) if col not in fixed_cols]
-    updated_df = updated_df[cols]
-    updated_df.sort_values(by=['repo', 'date'], inplace=True)
+    updated_df = _sort_rows_and_cols(updated_df, ['repo', 'date'], fixed_cols)
 
+    logging.info(f'Writing CSV: {path}')
     updated_df.to_csv(path, index=False, na_rep='nan')
+
+
+def _sort_rows_and_cols(df: pd.DataFrame, sort_rows_by: list[str], fixed_cols: list[str]):
+    """Sorts rows and columns in a DataFrame."""
+    df = _sort_cols(df, fixed_cols)
+    df.sort_values(sort_rows_by, inplace=True)
+    return df
+
+
+def _sort_cols(df: pd.DataFrame, fixed_cols: list[str]):
+    """Sorts columns in a DataFrame, with fixed columns first."""
+    return df[fixed_cols + [col for col in sorted(df.columns) if col not in fixed_cols]]

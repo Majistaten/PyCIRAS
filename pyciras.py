@@ -10,6 +10,8 @@
 # TODO fixa bättre docstrings som förklarar parametrar
 # TODO Sätt ut logging.info överallt, se över så det är samma format överallt
 # TODO kolla igenom git mining så vi får med exakt alla metrics vi vill ha
+# TODO flytta datamappen utanför projekt-directory
+# TODO mina och skriv per commit istället för per repo, mindre minnesanvändning
 
 import concurrent.futures
 import logging
@@ -20,6 +22,7 @@ from typing import Callable
 from mining import lint_mining, git_mining, test_mining
 from data_io import data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
+from utility.timer import timed
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -87,13 +90,13 @@ def run_repo_cloner(repo_urls: list[str] = None,
 
         logging.info(f'Cloning {len(repo_urls)} repositories')
 
-        _process_chunks(repo_urls,
-                        pyciras_functions=[_clone_repos],
-                        stargazers=False,
-                        metadata=False,
-                        chunk_size=chunk_size,
-                        multiprocessing=multiprocessing,
-                        persist_repos=True)
+        _process_chunk(repo_urls,
+                       pyciras_functions=[_clone_repos],
+                       stargazers=False,
+                       metadata=False,
+                       chunk_size=chunk_size,
+                       multiprocessing=multiprocessing,
+                       persist_repos=True)
 
         duration = util.format_duration(time.time() - start_time)
         ntfyer.ntfy(data=f'PyCIRAS cloning completed! Cloned {len(repo_urls)} repos in the duration of: {duration}',
@@ -142,9 +145,7 @@ def run_mining(repo_urls: list[str] = None,
         - Logs progress and results to predefined logging and results directories.
         - Notifies the user upon completion of the mining process via a notification system if correctly configured.
     """
-
     with progress:
-
         start_time = time.time()
         if repo_urls is None:
             repo_urls = util.get_repository_urls_from_file(config.REPOSITORY_URLS)
@@ -156,16 +157,16 @@ def run_mining(repo_urls: list[str] = None,
             return
 
         logging.info(f'Mining {len(repo_urls)} repositories')
-        logging.debug(f"The analysis will run with the current settings: "
-                      f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
-                      f"\n - persist_repos={persist_repos}, "
-                      f"\n - stagazers={stargazers}, "
-                      f"\n - lint={lint}, "
-                      f"\n - test={test}, "
-                      f"\n - git={git}."
-                      f"\n   Results will be stored in {data_directory}."
-                      f"\n   Logging will be stored in {config.LOGGING_FOLDER}."
-                      f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
+        logging.info(f"The analysis will run with the current settings: "
+                     f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
+                     f"\n - persist_repos={persist_repos}, "
+                     f"\n - stagazers={stargazers}, "
+                     f"\n - lint={lint}, "
+                     f"\n - test={test}, "
+                     f"\n - git={git}."
+                     f"\n   Results will be stored in {data_directory}."
+                     f"\n   Logging will be stored in {config.LOGGING_FOLDER}."
+                     f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
 
         mining_functions = []
         if lint:
@@ -175,13 +176,13 @@ def run_mining(repo_urls: list[str] = None,
         if test:
             mining_functions.append(_mine_test)
 
-        _process_chunks(repo_urls,
-                        mining_functions,
-                        stargazers,
-                        metadata,
-                        chunk_size,
-                        multiprocessing,
-                        persist_repos)
+        _process_chunk(repo_urls,
+                       mining_functions,
+                       stargazers,
+                       metadata,
+                       chunk_size,
+                       multiprocessing,
+                       persist_repos)
 
         duration = util.format_duration(time.time() - start_time)
 
@@ -198,28 +199,36 @@ def _mine_lint(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths)
         lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
+        if config.WRITE_JSON:
+            data_management.write_json(lint_data, data_directory / 'lint-raw.json')
 
-        data_management.write_json(lint_data, data_directory / 'lint-raw.json')
-        data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
+        if config.WRITE_CSV:
+            data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while linting repositories {repos}.', exc_info=True)
         return
 
 
+@timed
 def _mine_git(repo_urls: list[str]):
     """ Mine git data from a list of repositories. """
     try:
         git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
 
-        data_management.write_json(git_data, data_directory / 'git-raw.json')
-        data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(git_data, data_directory / 'git-raw.json')
+        if config.WRITE_CSV:
+            data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining git repositories {repos}.', exc_info=True)
         return
 
 
+@timed
 def _mine_test(repo_urls: list[str]):
     """ Mine test data from a list of repositories. """
     try:
@@ -229,8 +238,10 @@ def _mine_test(repo_urls: list[str]):
                                                                                        repo_paths)
         test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
-        data_management.write_json(test_data, data_directory / 'test-raw.json')
-        data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(test_data, data_directory / 'test-raw.json')
+        if config.WRITE_CSV:
+            data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -238,13 +249,16 @@ def _mine_test(repo_urls: list[str]):
         return
 
 
+@timed
 def _mine_stargazers(repo_urls: list[str]):
     """ Mine stargazers data from a list of repositories. """
     try:
         stargazers_data = git_mining.mine_stargazers_data(repo_urls, progress)
 
-        data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
-        data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
+        if config.WRITE_CSV:
+            data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while fetching stargazer data for {repos}.', exc_info=True)
@@ -256,41 +270,40 @@ def _mine_metadata(repo_urls: list[str]):
     try:
         metadata = git_mining.mine_repo_metadata(repo_urls)
 
-        data_management.write_json(metadata, data_directory / 'metadata-raw.json')
-        data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(metadata, data_directory / 'metadata-raw.json')
+        if config.WRITE_CSV:
+            data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining metadata data for repositories {repos}.', exc_info=True)
         return
 
 
+@timed
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
     return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls)
 
 
-# TODO få till med console log handler, multiprocessing
-# TODO kör API calls först
-# TODO fixa så det
-def _process_chunks(repo_urls: list[str],
-                    pyciras_functions: list[Callable[..., list[Path] | None]],
-                    stargazers: bool,
-                    metadata: bool,
-                    chunk_size: int = 1,
-                    multiprocessing: bool = False,
-                    persist_repos: bool = True):
+def _process_chunk(repo_urls: list[str],
+                   pyciras_functions: list[Callable[..., list[Path] | None]],
+                   stargazers: bool,
+                   metadata: bool,
+                   chunk_size: int = 1,
+                   multiprocessing: bool = False,
+                   persist_repos: bool = True):
     """Processes repos in chunks."""
 
     if stargazers is False and metadata is False and len(pyciras_functions) == 0:
         logging.error('At least one PyCIRAS function must be selected!')
         return
 
-    if stargazers:
-        logging.info(f'Running {_mine_stargazers.__name__}')
-        _mine_stargazers(repo_urls)
-
     if metadata:
         _mine_metadata(repo_urls)
+
+    if stargazers:
+        _mine_stargazers(repo_urls)
 
     for i in range(0, len(repo_urls), chunk_size):
         logging.debug(f'Processing repositories {i}-{i + chunk_size}')
@@ -305,6 +318,7 @@ def _process_chunks(repo_urls: list[str],
                 logging.info(f'Running {str(function.__name__)}')
                 function(chunk_of_repos)
         if len(pyciras_functions) != 0 and not persist_repos:
+            logging.debug(f'Deleting Repos')
             repo_management.remove_repos(chunk_of_repos)
 
 
@@ -331,9 +345,9 @@ if __name__ == '__main__':
     run_mining(repo_urls=None,
                chunk_size=1,
                multiprocessing=False,
-               persist_repos=False,
+               persist_repos=True,
                stargazers=True,
-               metadata=False,
-               test=False,
-               git=False,
-               lint=False)
+               metadata=True,
+               test=True,
+               git=True,
+               lint=True)
