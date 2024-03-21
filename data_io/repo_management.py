@@ -1,11 +1,10 @@
+import logging
 from datetime import datetime
 from pydriller import Repository
-from git import Repo, rmtree
 from pathlib import Path
-import logging
-from utility import util, config
 from utility.progress_bars import CloneProgress
-from rich.pretty import pprint
+from git import Repo, rmtree
+from utility import util, config
 
 
 def clone_repos(repo_directory: Path, repo_urls: list[str]) -> list[Path]:
@@ -58,7 +57,7 @@ def _clone_repo(repos_directory: Path, repo_url: str, progressbar_postfix: str =
         repo_path = repos_directory / repo_name
 
         if repo_path.exists():
-            logging.info(f'Repository {repo_name} already exists in {repos_directory}, skipping it')
+            logging.info(f'Repository {repo_name} already exists in {repos_directory}, skipping clone.')
             return repo_path
 
         logging.info(f'Cloning Git Repository {repo_name} from {repo_url}')
@@ -74,7 +73,7 @@ def _clone_repo(repos_directory: Path, repo_url: str, progressbar_postfix: str =
         return repo_path
 
     except Exception as ex:
-        logging.error('Something went wrong when cloning the repository!\n' + str(ex))
+        logging.error('Something went wrong when cloning the repository!\n', exc_info=ex)
         return None
 
 
@@ -126,7 +125,7 @@ def remove_repos(repo_urls: list[str]) -> None:
     for url in repo_urls:
         path = util.get_path_to_repo(url)
         if path.exists():
-            logging.info(f'Removing: {path}')
+            logging.debug(f'Removing: {path}')
 
             rmtree(path)
             if path.exists():

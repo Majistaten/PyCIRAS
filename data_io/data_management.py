@@ -2,14 +2,12 @@
 
 import json
 import logging
+import rich.progress
+import numpy as np
+import pandas as pd
 from datetime import datetime
 from pathlib import Path
-import numpy as np
-import rich.progress
-from rich.pretty import pprint
-import pandas as pd
 from utility import config, util
-from utility.progress_bars import RichIterableProgressBar
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -218,7 +216,7 @@ def metadata_to_csv(metadata: dict, path: Path):
             df[field] = pd.to_datetime(df[field], utc=True, errors='coerce')
 
     df['repo'] = df['resourcePath'].apply(util.get_repo_name_from_url_or_path)
-    df['diskUsage'] = df['diskUsage'].apply(util.kb_to_mb_gb)
+    df['diskUsage'] = df['diskUsage'].apply(util.kb_to_mb)
     df['languages.nodes'] = df['languages.nodes'].apply(
         lambda languages: tuple(sorted(lang['name'] for lang in languages)))
 

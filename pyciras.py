@@ -15,8 +15,8 @@
 import concurrent.futures
 import logging
 import time
-from pathlib import Path
 import rich.traceback
+from pathlib import Path
 from typing import Callable
 from mining import lint_mining, git_mining, test_mining
 from data_io import data_management, repo_management
@@ -280,21 +280,22 @@ def _process_chunk(repo_urls: list[str],
     if stargazers:
         _mine_stargazers(repo_urls)
 
-    for i in range(0, len(repo_urls), chunk_size):
-        logging.debug(f'Processing repositories {i}-{i + chunk_size}')
-        chunk_of_repos = repo_urls[i:i + chunk_size]
-        if multiprocessing:
-            logging.debug(f'Processing in parallel')
-            _execute_in_parallel(args_list=[(pyciras_functions, [repo]) for repo in chunk_of_repos],
-                                 workers=chunk_size)
-        else:
-            logging.debug(f'Processing sequentially')
-            for function in pyciras_functions:
-                logging.debug(f'Running {str(function.__name__)}')
-                function(chunk_of_repos)
-        if len(pyciras_functions) != 0 and persist_repos:
-            logging.debug(f'Deleting Repos')
-            repo_management.remove_repos(chunk_of_repos)
+    if len(pyciras_functions) != 0:
+        for i in range(0, len(repo_urls), chunk_size):
+            logging.debug(f'Processing repositories {i}-{i + chunk_size}')
+            chunk_of_repos = repo_urls[i:i + chunk_size]
+            if multiprocessing:
+                logging.debug(f'Processing in parallel')
+                _execute_in_parallel(args_list=[(pyciras_functions, [repo]) for repo in chunk_of_repos],
+                                     workers=chunk_size)
+            else:
+                logging.debug(f'Processing sequentially')
+                for function in pyciras_functions:
+                    logging.debug(f'Running {str(function.__name__)}')
+                    function(chunk_of_repos)
+            if not persist_repos:
+                logging.debug(f'Deleting Repos')
+                repo_management.remove_repos(chunk_of_repos)
 
 
 def _execute_in_parallel(args_list: list, workers: int = 4):

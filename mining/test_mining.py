@@ -1,13 +1,10 @@
+import ast
+import logging
 from datetime import datetime
-
-import rich.progress
 from git import Repo
 from pathlib import Path
 from utility import util, config
-import ast
-import logging
 from utility.progress_bars import RichIterableProgressBar
-from rich.pretty import pprint
 
 
 class StatementVisitor(ast.NodeVisitor):
@@ -110,6 +107,7 @@ class StatementVisitor(ast.NodeVisitor):
 
 def mine_test_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, datetime]]]) -> dict[str, any]:
     """Mine unit-testing data from the commits of multiple git repositories"""
+
     data = {}
     for repo_path, commit_metadata in repo_paths_with_commit_metadata.items():
         logging.info(f"Mining test data: {repo_path}")
@@ -188,7 +186,7 @@ def _run_ast_mining(repository_path: Path, commit: str) -> dict[str, any] | None
                 total_production_statements += visitor.production_statements
 
         except SyntaxError as e:
-            logging.error(f"Syntax error when executing AST mining in file "
+            logging.info(f"Syntax error when executing AST mining in file "
                           f"{relative_path}: {e} \nSkipping this file.")
             continue
 
