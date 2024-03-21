@@ -144,7 +144,7 @@ def _run_ast_mining(repository_path: Path, commit: str) -> dict[str, any] | None
 
     target_files = util.get_python_files_from_directory(repository_path)
     if target_files is None or len(target_files) == 0:
-        logging.info(f"\nThis commit has no Python files"
+        logging.info(f"\nThis commit has no Python files\n"
                      f"Skipping commit: {commit}")
         return None
 
