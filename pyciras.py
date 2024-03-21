@@ -251,6 +251,12 @@ def _process_chunk(repo_urls: list[str],
         logging.error('At least one PyCIRAS function must be selected!')
         return
 
+    if metadata:
+        _mine_metadata(repo_urls)
+
+    if stargazers:
+        _mine_stargazers(repo_urls)
+
     for i in range(0, len(repo_urls), chunk_size):
         logging.info(f'Processing repositories {i}-{i + chunk_size}')
         chunk_of_repos = repo_urls[i:i + chunk_size]
@@ -263,12 +269,8 @@ def _process_chunk(repo_urls: list[str],
             for function in pyciras_functions:
                 logging.info(f'Running {str(function.__name__)}')
                 function(chunk_of_repos)
-        if not persist_repos:
+        if len(pyciras_functions) != 0 and persist_repos:
             repo_management.remove_repos(chunk_of_repos)
-    if stargazers:
-        _mine_stargazers(repo_urls)
-    if metadata:
-        _mine_metadata(repo_urls)
 
 
 def _execute_in_parallel(args_list: list, workers: int = 4):
@@ -296,7 +298,7 @@ if __name__ == '__main__':
                multiprocessing=False,
                persist_repos=True,
                stargazers=True,
-               metadata=False,
-               test=False,
-               git=False,
-               lint=False)
+               metadata=True,
+               test=True,
+               git=True,
+               lint=True)
