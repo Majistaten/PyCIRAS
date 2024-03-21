@@ -1,22 +1,20 @@
+from typing import Any, Iterable, Optional
+
 from git import RemoteProgress
 from rich import progress, console
 from rich.progress import Progress, Task, TextColumn, BarColumn, TimeRemainingColumn, ProgressColumn, TimeElapsedColumn, \
     SpinnerColumn, TaskProgressColumn
 
 
-# TODO passa in en generator utan att konsumera den -> total=none
-# TODO passa in en iterable med __len__ -> total=len(iterable)
-# TODO ska funka med notebook - manuellt kalla update?
-
-# TODO type annotations on parameters
+# TODO försvinner inte efter completion
 class IterableProgressWrapper:
     def __init__(self,
-                 iterable,
-                 progress,
-                 description="Processing",
-                 completion_description=None,
-                 type="iterable",
-                 postfix=""):
+                 iterable: Iterable[Any],
+                 progress: Progress,
+                 description: str = "Processing",
+                 completion_description: Optional[str] = None,
+                 type: str = "iterable",
+                 postfix: str = "") -> None:
         self.iterable = iterable
         self.progress = progress
         self.description = description
@@ -34,26 +32,28 @@ class IterableProgressWrapper:
         return self
 
     def __next__(self):
+
         try:
-            # Use the iterator for fetching the next item
             item = next(self.iterable_iterator)
             self.progress.advance(self.task_id)  # TODO update med refresh=True?
             return item
+
         except StopIteration:
             if self.completion_description:
                 self.progress.update(self.task_id,
                                      description=f"[green]{self.completion_description}",
                                      completed=self.progress.tasks[self.task_id].total)
-                self.progress.remove_task(self.task_id)
+            self.progress.stop_task(self.task_id)
+            self.progress.remove_task(self.task_id)
             raise
 
 
 class PycirasIterableColumn(ProgressColumn):
-    """A custom column for displaying iterable progress within a unified Progress instance."""
+    """A custom column for displaying iterable progress. Only visible when the task is an iterable."""
 
     # Override the render method to define custom rendering
     def render(self, task: Task):
-        # Check if the task is of the type intended for this column
+
         if task.fields.get("type") == "iterable":
             completed = int(task.completed)
             total = task.total
@@ -71,19 +71,20 @@ class PycirasIterableColumn(ProgressColumn):
             else:
                 # Otherwise, display the current progress
                 return TextColumn(f"{progress_text} {postfix}").render(task)
+
         else:
-            # For tasks not of the 'iterable' type, render nothing
             return TextColumn("").render(task)
 
 
 class PycirasCloneColumn:
+    # TODO implement
     pass
 
 
 # Example of adding an iterable task to the Progress instance
 # progress.add_task("Processing items...", total=100, type="iterable", postfix="Items", completion_description="Processing completed")
 
-
+# TODO remove
 class RichProgressColumn(ProgressColumn):
     """ A custom column to display as 'current/total'."""
 
@@ -94,6 +95,7 @@ class RichProgressColumn(ProgressColumn):
             return TextColumn(f"{int(task.completed)}/?").render(task)
 
 
+# TODO remove after replacing all uses
 class RichIterableProgressBar:
     """ A progress bar for an iterable that uses the rich library.
 
@@ -160,11 +162,11 @@ class RichIterableProgressBar:
             if self.completion_description:
                 self.progress.update(self.task, description=f"[green]{self.completion_description}",
                                      completed=self.progress.tasks[self.task].total)
-
             self.progress.stop()
             raise
 
 
+# TODO remove after implementing the new progress bar
 class CloneProgress(RemoteProgress):
     """Progressbar for git cloning process.
 

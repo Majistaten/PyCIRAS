@@ -29,22 +29,22 @@ def mine_git_data(repo_directory: Path,
                   to: datetime = datetime.now() - relativedelta(years=20)) -> dict[str, dict[str, any]]:
     """Mine git data from a list of repositories and return a dictionary with the data"""
 
-    mining_task = progress.add_task(description="Mining git data", total=len(repo_urls), start=True)
-
     data = {}
     repo_urls = repo_management.load_repos(repo_directory, repo_urls)
-    for repo_url, repo in repo_urls.items():
+    for repo_url, repo in IterableProgressWrapper(repo_urls.items(),
+                                                  progress,
+                                                  description="Git",
+                                                  postfix="Repos"):
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
-        data[repo_name] = _mine_commit_data(repo)
+        data[repo_name] = _mine_commit_data(repo, progress)
         data[repo_name].update(_mine_process_data(repo_directory / repo_name, since, to))
         data[repo_name]['repo'] = repo_name
         data[repo_name]['repo_url'] = repo_url
-        progress.update(mining_task, advance=1, refresh=True)
 
     return data
 
 
-def _mine_commit_data(repo: Repository) -> dict[str, any]:
+def _mine_commit_data(repo: Repository, progress: Progress) -> dict[str, any]:
     """Mine commit data from a repository."""
 
     data = {
@@ -56,10 +56,14 @@ def _mine_commit_data(repo: Repository) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    for commit in RichIterableProgressBar(repo.traverse_commits(),
+    # for commit in RichIterableProgressBar(repo.traverse_commits(),
+    #                                       description="Traversing commits, mining git data",
+    #                                       disable=config.DISABLE_PROGRESS_BARS):
+
+    for commit in IterableProgressWrapper(repo.traverse_commits(),
+                                          progress,
                                           description="Traversing commits, mining git data",
-                                          disable=config.DISABLE_PROGRESS_BARS):
-    # for commit in repo.traverse_commits():
+                                          postfix="Commits"):
         data["total_commits"] += 1
         data["files_modified"] += len(commit.modified_files)
 
@@ -141,7 +145,6 @@ def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
 
 def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, [dict]]:
     """Mine stargazers data from a list of repositories and return a dictionary with the data"""
-
 
     load_dotenv()
 

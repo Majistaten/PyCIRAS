@@ -12,6 +12,7 @@
 # TODO kolla igenom git mining så vi får med exakt alla metrics vi vill ha
 # TODO flytta datamappen utanför projekt-directory
 # TODO mina och skriv per commit istället för per repo, mindre minnesanvändning
+# TODO byt ut alla any type annotations till Any
 
 import concurrent.futures
 import logging
@@ -39,7 +40,6 @@ rich.traceback.install()
 data_directory = data_management.make_data_directory()
 logger, rich_console = logger_setup.get_logger('pyciras_logger')
 
-# TODO bygg custom columns som går att disabla/ändra beroende på vilken typ av task
 # progress = Progress(
 #     SpinnerColumn(),
 #     TextColumn("[bold blue]{task.description}", justify='right'),
@@ -357,11 +357,11 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=3,
-               multiprocessing=False,
+               chunk_size=16,
+               multiprocessing=True,
                persist_repos=True,
-               stargazers=True,
+               stargazers=False,
                metadata=False,
                test=False,
-               git=False,
+               git=True,
                lint=False)
