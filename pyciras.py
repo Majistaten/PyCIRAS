@@ -28,32 +28,45 @@ from rich.progress import (
     DownloadColumn,
     Progress,
     ProgressColumn, SpinnerColumn, TaskID,
-    TextColumn,
+    TaskProgressColumn, TextColumn,
     TimeElapsedColumn, TimeRemainingColumn,
     TransferSpeedColumn,
 )
 
-from utility.progress_bars import RichProgressColumn
+from utility.progress_bars import PycirasIterableColumn, RichProgressColumn
 
 rich.traceback.install()
 data_directory = data_management.make_data_directory()
 logger, rich_console = logger_setup.get_logger('pyciras_logger')
 
 # TODO bygg custom columns som går att disabla/ändra beroende på vilken typ av task
+# progress = Progress(
+#     SpinnerColumn(),
+#     TextColumn("[bold blue]{task.description}", justify='right'),
+#     BarColumn(bar_width=None),
+#     "[progress.percentage]{task.percentage:>3.1f}%",
+#     # "•",
+#     RichProgressColumn(),
+#     # DownloadColumn(),
+#     # "•",
+#     # TransferSpeedColumn(),
+#     # "•",
+#     # TimeRemainingColumn(),
+#     TimeElapsedColumn(),
+#     console=rich_console
+# )
+
 progress = Progress(
     SpinnerColumn(),
-    TextColumn("[bold blue]{task.description}", justify='right'),
+    TextColumn('[bold blue]{task.description}', justify='right'),
     BarColumn(bar_width=None),
-    "[progress.percentage]{task.percentage:>3.1f}%",
-    # "•",
-    RichProgressColumn(),
-    # DownloadColumn(),
-    # "•",
-    # TransferSpeedColumn(),
-    # "•",
-    # TimeRemainingColumn(),
+    PycirasIterableColumn(),
+    # PycirasCloneColumn(),
+    TaskProgressColumn(),
+    TimeRemainingColumn(),
     TimeElapsedColumn(),
-    console=rich_console
+    console=rich_console,
+    disable=util.config.DISABLE_PROGRESS_BARS
 )
 
 
@@ -345,10 +358,10 @@ if __name__ == '__main__':
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
                chunk_size=3,
-               multiprocessing=True,
+               multiprocessing=False,
                persist_repos=True,
-               stargazers=False,
+               stargazers=True,
                metadata=False,
                test=False,
-               git=True,
+               git=False,
                lint=False)

@@ -1,7 +1,87 @@
 from git import RemoteProgress
 from rich import progress, console
-from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, ProgressColumn, TimeElapsedColumn, \
+from rich.progress import Progress, Task, TextColumn, BarColumn, TimeRemainingColumn, ProgressColumn, TimeElapsedColumn, \
     SpinnerColumn, TaskProgressColumn
+
+
+# TODO passa in en generator utan att konsumera den -> total=none
+# TODO passa in en iterable med __len__ -> total=len(iterable)
+# TODO ska funka med notebook - manuellt kalla update?
+
+# TODO type annotations on parameters
+class IterableProgressWrapper:
+    def __init__(self,
+                 iterable,
+                 progress,
+                 description="Processing",
+                 completion_description=None,
+                 type="iterable",
+                 postfix=""):
+        self.iterable = iterable
+        self.progress = progress
+        self.description = description
+        self.completion_description = completion_description
+        self.postfix = postfix
+        self.type = type
+        self.iterable_iterator = iter(iterable)
+        self.total_steps = len(iterable) if hasattr(iterable, '__len__') else None
+        self.task_id = progress.add_task(self.description,
+                                         total=self.total_steps,
+                                         type=self.type,
+                                         postfix=self.postfix)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            # Use the iterator for fetching the next item
+            item = next(self.iterable_iterator)
+            self.progress.advance(self.task_id)  # TODO update med refresh=True?
+            return item
+        except StopIteration:
+            if self.completion_description:
+                self.progress.update(self.task_id,
+                                     description=f"[green]{self.completion_description}",
+                                     completed=self.progress.tasks[self.task_id].total)
+                self.progress.remove_task(self.task_id)
+            raise
+
+
+class PycirasIterableColumn(ProgressColumn):
+    """A custom column for displaying iterable progress within a unified Progress instance."""
+
+    # Override the render method to define custom rendering
+    def render(self, task: Task):
+        # Check if the task is of the type intended for this column
+        if task.fields.get("type") == "iterable":
+            completed = int(task.completed)
+            total = task.total
+            postfix = task.fields.get("postfix", "")
+            completion_description = task.fields.get("completion_description", "")
+
+            if total is not None:
+                progress_text = f"{completed}/{int(total)}"
+            else:
+                progress_text = f"{completed}/?"
+
+            if task.finished and completion_description:
+                # If the task is finished and a completion description is provided, use it
+                return TextColumn(f"[green]{completion_description} {postfix}").render(task)
+            else:
+                # Otherwise, display the current progress
+                return TextColumn(f"{progress_text} {postfix}").render(task)
+        else:
+            # For tasks not of the 'iterable' type, render nothing
+            return TextColumn("").render(task)
+
+
+class PycirasCloneColumn:
+    pass
+
+
+# Example of adding an iterable task to the Progress instance
+# progress.add_task("Processing items...", total=100, type="iterable", postfix="Items", completion_description="Processing completed")
 
 
 class RichProgressColumn(ProgressColumn):

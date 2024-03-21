@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 import os
 import requests
 from pathlib import Path
-from utility.progress_bars import RichIterableProgressBar
+from utility.progress_bars import IterableProgressWrapper, RichIterableProgressBar
 import pandas as pd
 from data_io import repo_management
 from rich.pretty import pprint
@@ -56,10 +56,10 @@ def _mine_commit_data(repo: Repository) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    # for commit in RichIterableProgressBar(repo.traverse_commits(),
-    #                                       description="Traversing commits, mining git data",
-    #                                       disable=config.DISABLE_PROGRESS_BARS):
-    for commit in repo.traverse_commits():
+    for commit in RichIterableProgressBar(repo.traverse_commits(),
+                                          description="Traversing commits, mining git data",
+                                          disable=config.DISABLE_PROGRESS_BARS):
+    # for commit in repo.traverse_commits():
         data["total_commits"] += 1
         data["files_modified"] += len(commit.modified_files)
 
@@ -152,8 +152,9 @@ def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, 
     #         description="Querying GraphQL API for stargazers data",
     #         disable=config.DISABLE_PROGRESS_BARS):
 
-    mining_task = progress.add_task(description="Mining Stargazers", total=len(repo_urls), start=True)
-    for url in repo_urls:
+    # mining_task = progress.add_task(description="Mining Stargazers", total=len(repo_urls), start=True)
+
+    for url in IterableProgressWrapper(repo_urls, progress, "Mining Stargazers", postfix="Repos"):
 
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url_or_path(url)
@@ -164,7 +165,6 @@ def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, 
 
         stargazers = []
         end_cursor = None
-        query_task = progress.add_task(description="Querying GraphQL API", total=None, start=True)
         while True:
 
             query = {
@@ -220,13 +220,13 @@ def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, 
                 _send_graphql_rate_limit_warning(remaining, reset_at)
             elif remaining <= 0:
                 break
-        progress.remove_task(query_task)
+        # progress.remove_task(query_task)
 
         response["data"]["repository"]["name"] = repo_name
         response["data"]["repository"]["stargazers"]["edges"] = stargazers
         data[repo_name] = response
 
-        progress.update(mining_task, advance=1, refresh=True)
+        # progress.update(mining_task, advance=1, refresh=True)
 
     return data
 
