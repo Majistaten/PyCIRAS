@@ -225,7 +225,9 @@ def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
     """Loads existing CSV data and updates it with new data, or writes new data to a CSV file."""
 
     if path.exists():
+        logging.info(f'Loading existing CSV from {path}')
         existing_df = pd.read_csv(path, parse_dates=['date'])
+        logging.info(f'Done loading existing CSV from {path}')
     else:
         existing_df = pd.DataFrame()
 

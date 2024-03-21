@@ -39,221 +39,6 @@ def mine_git_data(repo_directory: Path,
     return data
 
 
-def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
-    """Mine stargazers data from a list of repositories and return a dictionary with the data"""
-
-    load_dotenv()
-
-    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
-    data = {}
-    for url in RichIterableProgressBar(
-            repo_urls,
-            description="Querying GraphQL API for stargazers data",
-            disable=config.DISABLE_PROGRESS_BARS):
-
-        repo_owner = util.get_repo_owner_from_url(url)
-        repo_name = util.get_repo_name_from_url_or_path(url)
-
-        if check_graphql_rate_limit()[0] == 0:
-            logging.error(f"Ratelimit exceeded, skipping {repo_owner}/{repo_name}")
-            continue
-
-        stargazers = []
-        end_cursor = None
-        while True:
-
-            query = {
-                "query": """
-                    query repository($owner: String!, $name: String!, $first: Int, $after: String) {
-                        repository(owner: $owner, name: $name) {
-                            stargazers(first: $first, after: $after) {
-                                edges {
-                                    cursor
-                                    starredAt
-                                    node {
-                                        login
-                                    }
-                                }
-                            }
-                        }
-                    }
-                """,
-                "variables": {
-                    "owner": repo_owner,
-                    "name": repo_name,
-                    "first": 100,
-                    "after": end_cursor if end_cursor else None
-                }
-            }
-
-            response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
-
-            if "message" in response and response["message"] == "Bad credentials":
-                logging.error(f"\nBad credentials when querying the GraphQL API for stargazers\n"
-                              f"Skipping repo: {repo_owner}/{repo_name}")
-                break
-
-            elif "errors" in response:
-                logging.error(f"\nError when when querying the GraphQL API for stargazers\n"
-                              f"repo: {repo_owner}/{repo_name}"
-                              f"Error message: {response['errors'][0]['message']}")
-                continue
-
-            edges = response["data"]["repository"]["stargazers"]["edges"]
-
-            if not edges:
-                break
-
-            stargazers.extend(edges)
-            end_cursor = edges[-1]["cursor"]
-
-            remaining, reset_at = check_graphql_rate_limit()
-
-            logging.info(f"Remaining GraphQL requests: {remaining}, reset at: {reset_at}")
-
-            if remaining in [250, 100, 10, 1]:
-                send_graphql_rate_limit_warning(remaining, reset_at)
-            elif remaining <= 0:
-                break
-
-        response["data"]["repository"]["name"] = repo_name
-        response["data"]["repository"]["stargazers"]["edges"] = stargazers
-        data[repo_name] = response
-
-    return data
-
-
-def check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
-    """Check the rate limit of the GraphQL API"""
-
-    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
-
-    query = {
-        "query": """query {
-        rateLimit {
-            limit
-            cost
-            remaining
-            resetAt
-        }
-        }"""
-    }
-
-    response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
-
-    if "errors" in response:
-        logging.error(f"\nError when when querying GraphQL API for rate limit info\n"
-                      f"Error message: {response['errors'][0]['message']}")
-        return 0, pd.to_datetime(datetime.now(), utc=True)
-
-    remaining = int(response['data']['rateLimit']['remaining'])
-    reset_at = pd.to_datetime(response['data']['rateLimit']['resetAt'], utc=True)
-
-    return remaining, reset_at
-
-
-def send_graphql_rate_limit_warning(remaining: int, reset_at: pd.Timestamp):
-    """Send a warning if the rate limit of GraphQL is getting low"""
-    message = f"You have {remaining} requests remaining. Reset at: {reset_at.date()} {reset_at.time()}"
-    title = "GraphQL API Rate Limit Low"
-    ntfyer.ntfy(message, title)
-    logging.error(message)
-
-
-def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
-    """Mine the metadata of a list of repositories and return a dictionary with the data."""
-
-    load_dotenv()
-
-    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
-    data = {}
-    for repo_url in RichIterableProgressBar(repos,
-                                            description="Querying GraphQL API for repo metadata",
-                                            disable=config.DISABLE_PROGRESS_BARS):
-        repo_owner = util.get_repo_owner_from_url(repo_url)
-        repo_name = util.get_repo_name_from_url_or_path(repo_url)
-
-        query = {
-            "query": """
-                    query ($owner: String!, $repo: String!) {
-                      repository(owner: $owner, name: $repo) {
-                        createdAt
-                        pushedAt
-                        updatedAt
-                        archivedAt
-                        description
-                        forkCount
-                        stargazerCount
-                        hasDiscussionsEnabled
-                        hasIssuesEnabled
-                        hasProjectsEnabled
-                        hasSponsorshipsEnabled
-                        fundingLinks {
-                            platform
-                        }
-                        hasWikiEnabled
-                        homepageUrl
-                        isArchived
-                        isEmpty
-                        isFork
-                        isInOrganization
-                        isLocked
-                        isMirror
-                        isPrivate
-                        isTemplate
-                        licenseInfo {
-                            name
-                            body
-                            description
-                        }
-                        lockReason
-                        visibility
-                        url
-                        owner {
-                            login
-                        }
-                        resourcePath
-                        diskUsage
-                        languages(first: 10) {
-                            nodes { 
-                                name
-                            }
-                        }
-                        primaryLanguage {
-                            name
-                        }
-                      }
-                    }
-                    """,
-            "variables": {
-                "owner": repo_owner,
-                "repo": repo_name
-            }
-        }
-
-        response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
-
-        if "errors" in response:
-            logging.error(f"\nError when when querying GraphQL API for repo metadata\n"
-                          f"repo: {repo_owner}/{repo_name}"
-                          f"Error message: {response['errors'][0]['message']}")
-            continue
-
-        metadata = response['data']['repository']
-
-        data.update({
-            repo_name: metadata
-        })
-
-        remaining, reset_at = check_graphql_rate_limit()
-        if remaining in [250, 100, 10, 1]:
-            send_graphql_rate_limit_warning(remaining, reset_at)
-        elif remaining <= 0:
-            break
-
-    return data
-
-
 def _mine_commit_data(repo: Repository) -> dict[str, any]:
     """Mine commit data from a repository."""
 
@@ -347,3 +132,221 @@ def _code_churn(repo_path: Path, since: datetime = None, to: datetime = None):
 def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
     change_set_metric = ChangeSet(path_to_repo=str(repo_path), since=since, to=to)
     return change_set_metric.max(), change_set_metric.avg()
+
+
+def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
+    """Mine stargazers data from a list of repositories and return a dictionary with the data"""
+
+    load_dotenv()
+
+    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
+    data = {}
+    for url in RichIterableProgressBar(
+            repo_urls,
+            description="Querying GraphQL API for stargazers data",
+            disable=config.DISABLE_PROGRESS_BARS):
+
+        repo_owner = util.get_repo_owner_from_url(url)
+        repo_name = util.get_repo_name_from_url_or_path(url)
+
+        if _check_graphql_rate_limit()[0] == 0:
+            logging.error(f"Ratelimit exceeded, skipping {repo_owner}/{repo_name}")
+            continue
+
+        stargazers = []
+        end_cursor = None
+        while True:
+
+            query = {
+                "query": """
+                    query repository($owner: String!, $name: String!, $first: Int, $after: String) {
+                        repository(owner: $owner, name: $name) {
+                            stargazers(first: $first, after: $after) {
+                                edges {
+                                    cursor
+                                    starredAt
+                                    node {
+                                        login
+                                    }
+                                }
+                            }
+                        }
+                    }
+                """,
+                "variables": {
+                    "owner": repo_owner,
+                    "name": repo_name,
+                    "first": 100,
+                    "after": end_cursor if end_cursor else None
+                }
+            }
+
+            response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
+
+            if "message" in response and response["message"] == "Bad credentials":
+                logging.error(f"\nBad credentials when querying the GraphQL API for stargazers\n"
+                              f"Skipping repo: {repo_owner}/{repo_name}")
+                break
+
+            elif "errors" in response:
+                logging.error(f"\nError when when querying the GraphQL API for stargazers\n"
+                              f"repo: {repo_owner}/{repo_name}"
+                              f"Error message: {response['errors'][0]['message']}")
+                continue
+
+            edges = response["data"]["repository"]["stargazers"]["edges"]
+
+            if not edges:
+                break
+
+            stargazers.extend(edges)
+            end_cursor = edges[-1]["cursor"]
+
+            remaining, reset_at = _check_graphql_rate_limit()
+
+            logging.debug(f"Remaining GraphQL requests: {remaining}, reset at: {reset_at}")
+
+            if remaining in [250, 100, 10, 1]:
+                _send_graphql_rate_limit_warning(remaining, reset_at)
+            elif remaining <= 0:
+                break
+
+        response["data"]["repository"]["name"] = repo_name
+        response["data"]["repository"]["stargazers"]["edges"] = stargazers
+        data[repo_name] = response
+
+    return data
+
+
+def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
+    """Mine the metadata of a list of repositories and return a dictionary with the data."""
+
+    load_dotenv()
+
+    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
+    data = {}
+    for repo_url in RichIterableProgressBar(repos,
+                                            description="Querying GraphQL API for repo metadata",
+                                            disable=config.DISABLE_PROGRESS_BARS):
+        repo_owner = util.get_repo_owner_from_url(repo_url)
+        repo_name = util.get_repo_name_from_url_or_path(repo_url)
+
+        query = {
+            "query": """
+                    query ($owner: String!, $repo: String!) {
+                      repository(owner: $owner, name: $repo) {
+                        createdAt
+                        pushedAt
+                        updatedAt
+                        archivedAt
+                        description
+                        forkCount
+                        stargazerCount
+                        hasDiscussionsEnabled
+                        hasIssuesEnabled
+                        hasProjectsEnabled
+                        hasSponsorshipsEnabled
+                        fundingLinks {
+                            platform
+                        }
+                        hasWikiEnabled
+                        homepageUrl
+                        isArchived
+                        isEmpty
+                        isFork
+                        isInOrganization
+                        isLocked
+                        isMirror
+                        isPrivate
+                        isTemplate
+                        licenseInfo {
+                            name
+                            body
+                            description
+                        }
+                        lockReason
+                        visibility
+                        url
+                        owner {
+                            login
+                        }
+                        resourcePath
+                        diskUsage
+                        languages(first: 10) {
+                            nodes { 
+                                name
+                            }
+                        }
+                        primaryLanguage {
+                            name
+                        }
+                      }
+                    }
+                    """,
+            "variables": {
+                "owner": repo_owner,
+                "repo": repo_name
+            }
+        }
+
+        response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
+
+        if "errors" in response:
+            logging.error(f"\nError when when querying GraphQL API for repo metadata\n"
+                          f"repo: {repo_owner}/{repo_name}"
+                          f"Error message: {response['errors'][0]['message']}")
+            continue
+
+        metadata = response['data']['repository']
+
+        data.update({
+            repo_name: metadata
+        })
+
+        remaining, reset_at = _check_graphql_rate_limit()
+
+        logging.debug(f"Remaining GraphQL requests: {remaining}, reset at: {reset_at}")
+
+        if remaining in [250, 100, 10, 1]:
+            _send_graphql_rate_limit_warning(remaining, reset_at)
+        elif remaining <= 0:
+            break
+
+    return data
+
+
+def _check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
+    """Check the rate limit of the GraphQL API"""
+
+    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
+
+    query = {
+        "query": """query {
+        rateLimit {
+            limit
+            cost
+            remaining
+            resetAt
+        }
+        }"""
+    }
+
+    response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
+
+    if "errors" in response:
+        logging.error(f"\nError when when querying GraphQL API for rate limit info\n"
+                      f"Error message: {response['errors'][0]['message']}")
+        return 0, pd.to_datetime(datetime.now(), utc=True)
+
+    remaining = int(response['data']['rateLimit']['remaining'])
+    reset_at = pd.to_datetime(response['data']['rateLimit']['resetAt'], utc=True)
+
+    return remaining, reset_at
+
+
+def _send_graphql_rate_limit_warning(remaining: int, reset_at: pd.Timestamp):
+    """Send a warning if the rate limit of GraphQL is getting low"""
+    message = f"You have {remaining} requests remaining. Reset at: {reset_at.date()} {reset_at.time()}"
+    title = "GraphQL API Rate Limit Low"
+    ntfyer.ntfy(message, title)
+    logging.error(message)

@@ -15,7 +15,7 @@ def timed(func):
         result = func(*args, **kwargs)
         end = time.time()
 
-        logging.info(f"{func.__name__} had the execution time: {util.format_duration(end - start)}")
+        logging.debug(f"{func.__name__} had the execution time: {util.format_duration(end - start)}")
         return result
 
     return wrapper

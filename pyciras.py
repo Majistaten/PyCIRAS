@@ -10,6 +10,7 @@
 # TODO fixa bättre docstrings som förklarar parametrar
 # TODO Sätt ut logging.info överallt, se över så det är samma format överallt
 # TODO kolla igenom git mining så vi får med exakt alla metrics vi vill ha
+# TODO flytta datamappen utanför projekt-directory
 
 import concurrent.futures
 import logging
@@ -57,7 +58,7 @@ def run_repo_cloner(repo_urls: list[str] = None,
             'Please provide a list of repository URLs or a file that is not empty.')
         return
 
-    logging.info(f'Cloning {len(repo_urls)} repositories')
+    logging.debug(f'Cloning {len(repo_urls)} repositories')
 
     _process_chunk(repo_urls,
                    pyciras_functions=[_clone_repos],
@@ -129,8 +130,8 @@ def run_mining(repo_urls: list[str] = None,
         logging.error('Enable either WRITE_JSON, WRITE_CSV or both in config.py to run.')
         return
 
-    logging.info(f'Mining {len(repo_urls)} repositories')
-    logging.info(f"The analysis will run with the current settings: "
+    logging.debug(f'Mining {len(repo_urls)} repositories')
+    logging.info(f"PyCIRAS will run with the current settings: "
                  f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
                  f"\n - persist_repos={persist_repos}, "
                  f"\n - stagazers={stargazers}, "
@@ -161,6 +162,7 @@ def run_mining(repo_urls: list[str] = None,
 
     ntfyer.ntfy(data=f'PyCIRAS mining completed! Analyzed {len(repo_urls)} repos in the duration of: {duration}',
                 title='PyCIRAS Mining Completed')
+
     logging.info(f"PyCIRAS Mining completed - Duration: {duration}.")
 
 
@@ -277,8 +279,6 @@ def _clone_repos(repo_urls: list[str]) -> list[Path]:
     return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls)
 
 
-# TODO heltäckande error handling i denna?
-# TODO kör API calls först
 def _process_chunk(repo_urls: list[str],
                    pyciras_functions: list[Callable[..., list[Path] | None]],
                    stargazers: bool,
@@ -299,18 +299,19 @@ def _process_chunk(repo_urls: list[str],
         _mine_stargazers(repo_urls)
 
     for i in range(0, len(repo_urls), chunk_size):
-        logging.info(f'Processing repositories {i}-{i + chunk_size}')
+        logging.debug(f'Processing repositories {i}-{i + chunk_size}')
         chunk_of_repos = repo_urls[i:i + chunk_size]
         if multiprocessing:
-            logging.info(f'Processing in parallel')
+            logging.debug(f'Processing in parallel')
             _execute_in_parallel(args_list=[(pyciras_functions, [repo]) for repo in chunk_of_repos],
                                  workers=chunk_size)
         else:
-            logging.info(f'Processing sequentially')
+            logging.debug(f'Processing sequentially')
             for function in pyciras_functions:
-                logging.info(f'Running {str(function.__name__)}')
+                logging.debug(f'Running {str(function.__name__)}')
                 function(chunk_of_repos)
         if len(pyciras_functions) != 0 and persist_repos:
+            logging.debug(f'Deleting Repos')
             repo_management.remove_repos(chunk_of_repos)
 
         gc.collect()
