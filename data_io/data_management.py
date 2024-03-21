@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import numpy as np
+import rich.progress
 from rich.pretty import pprint
 import pandas as pd
 from utility import config, util
@@ -36,7 +37,7 @@ def make_data_directory() -> Path:
 def write_json(new_data: dict, path: Path):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
     try:
-        with open(path, 'r') as file:
+        with rich.progress.open(path, 'r', description=f'Reading {path}') as file:
             data = json.load(file)
     except FileNotFoundError:
         data = {}
