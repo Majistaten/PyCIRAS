@@ -75,7 +75,9 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     out = StringIO()
     reporter = LintReporter(output=out)
 
-    logging.info(f"Analyzing {len(target_files)} files in {repository_path}")
+    logging.info(f"Mining {len(target_files)} files in "
+                 f"{util.get_repo_name_from_url_or_path(repository_path)}\n"
+                 f"Commit: {commit}")
 
     run = Run([f'--rcfile={config.PYLINT_CONFIG}'] + target_files, reporter=reporter, exit=False)
     stats = run.linter.stats
@@ -92,7 +94,7 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     data['stats']['avg_mccabe_complexity'] = data['messages']['avg_mccabe_complexity']
     data['stats']['repository_name'] = repo_name
 
-    logging.debug(f"Analyzed {len(target_files)} files in {repository_path}")
+    logging.debug(f"Mined {len(target_files)} files in {repository_path}")
 
     return data
 
