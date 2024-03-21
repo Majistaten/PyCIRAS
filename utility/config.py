@@ -14,7 +14,7 @@ PYLINT_CONFIG: Path = ROOT_DIR / 'mining' / '.pylintrc'
 DISABLE_PROGRESS_BARS: bool = False
 VERBOSE_LOGGING_LEVEL: int = logging.WARNING
 FILE_LOGGING_LEVEL: int = logging.DEBUG
-WRITE_JSON: bool = False
-WRITE_CSV: bool = False
+WRITE_JSON: bool = True
+WRITE_CSV: bool = True
 ENABLE_NTFYER: bool = False
 

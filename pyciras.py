@@ -14,8 +14,9 @@
 import concurrent.futures
 import logging
 import time
-from pathlib import Path
 import rich.traceback
+import gc
+from pathlib import Path
 from typing import Callable
 from mining import lint_mining, git_mining, test_mining
 from data_io import data_management, repo_management
@@ -178,6 +179,9 @@ def _mine_lint(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
 
+        # Release the resource
+        del repos_and_commit_metadata
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while linting repositories {repos}.', exc_info=True)
@@ -195,6 +199,8 @@ def _mine_git(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
 
+        # Release the resource
+        del git_data
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining git repositories {repos}.', exc_info=True)
@@ -215,6 +221,11 @@ def _mine_test(repo_urls: list[str]):
             data_management.write_json(test_data, data_directory / 'test-raw.json')
         if config.WRITE_CSV:
             data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+
+        # Release the resource
+        del repos_and_commit_metadata
+        del test_data
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining test data from repositories {repos}.', exc_info=True)
@@ -231,6 +242,10 @@ def _mine_stargazers(repo_urls: list[str]):
             data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
         if config.WRITE_CSV:
             data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
+
+        # Release the resource
+        del stargazers_data
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while fetching stargazer data for {repos}.', exc_info=True)
@@ -247,6 +262,9 @@ def _mine_metadata(repo_urls: list[str]):
             data_management.write_json(metadata, data_directory / 'metadata-raw.json')
         if config.WRITE_CSV:
             data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
+
+        # Release the resource
+        del metadata
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining metadata data for repositories {repos}.', exc_info=True)
@@ -295,6 +313,8 @@ def _process_chunk(repo_urls: list[str],
         if len(pyciras_functions) != 0 and persist_repos:
             repo_management.remove_repos(chunk_of_repos)
 
+        gc.collect()
+
 
 def _execute_in_parallel(args_list: list, workers: int = 4):
     """ Executes a function in parallel with arguments. """
@@ -320,8 +340,8 @@ if __name__ == '__main__':
                chunk_size=1,
                multiprocessing=False,
                persist_repos=True,
-               stargazers=True,
-               metadata=True,
+               stargazers=False,
+               metadata=False,
                test=True,
                git=True,
                lint=True)
