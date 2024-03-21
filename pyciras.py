@@ -20,6 +20,7 @@ from typing import Callable
 from mining import lint_mining, git_mining, test_mining
 from data_io import data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
+from utility.timer import timed
 
 rich.traceback.install()
 data_directory = data_management.make_data_directory()
@@ -123,6 +124,10 @@ def run_mining(repo_urls: list[str] = None,
             'Please provide a list of repository URLs or a file that is not empty.')
         return
 
+    if not config.WRITE_JSON and not config.WRITE_CSV:
+        logging.error('Enable either WRITE_JSON, WRITE_CSV or both in config.py to run.')
+        return
+
     logging.info(f'Mining {len(repo_urls)} repositories')
     logging.info(f"The analysis will run with the current settings: "
                  f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
@@ -158,6 +163,7 @@ def run_mining(repo_urls: list[str] = None,
     logging.info(f"PyCIRAS Mining completed - Duration: {duration}.")
 
 
+@timed
 def _mine_lint(repo_urls: list[str]):
     """ Mine lint data from a list of repositories. """
     try:
@@ -166,28 +172,36 @@ def _mine_lint(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths)
         lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
+        if config.WRITE_JSON:
+            data_management.write_json(lint_data, data_directory / 'lint-raw.json')
 
-        data_management.write_json(lint_data, data_directory / 'lint-raw.json')
-        data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
+        if config.WRITE_CSV:
+            data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while linting repositories {repos}.', exc_info=True)
         return
 
 
+@timed
 def _mine_git(repo_urls: list[str]):
     """ Mine git data from a list of repositories. """
     try:
         git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
 
-        data_management.write_json(git_data, data_directory / 'git-raw.json')
-        data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(git_data, data_directory / 'git-raw.json')
+        if config.WRITE_CSV:
+            data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining git repositories {repos}.', exc_info=True)
         return
 
 
+@timed
 def _mine_test(repo_urls: list[str]):
     """ Mine test data from a list of repositories. """
     try:
@@ -197,40 +211,49 @@ def _mine_test(repo_urls: list[str]):
                                                                                        repo_paths)
         test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
-        data_management.write_json(test_data, data_directory / 'test-raw.json')
-        data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(test_data, data_directory / 'test-raw.json')
+        if config.WRITE_CSV:
+            data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining test data from repositories {repos}.', exc_info=True)
         return
 
 
+@timed
 def _mine_stargazers(repo_urls: list[str]):
     """ Mine stargazers data from a list of repositories. """
     try:
         stargazers_data = git_mining.mine_stargazers_data(repo_urls)
 
-        data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
-        data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
+        if config.WRITE_CSV:
+            data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while fetching stargazer data for {repos}.', exc_info=True)
         return
 
 
+@timed
 def _mine_metadata(repo_urls: list[str]):
     """Mine repo metadata from a list of repositories."""
     try:
         metadata = git_mining.mine_repo_metadata(repo_urls)
 
-        data_management.write_json(metadata, data_directory / 'metadata-raw.json')
-        data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
+        if config.WRITE_JSON:
+            data_management.write_json(metadata, data_directory / 'metadata-raw.json')
+        if config.WRITE_CSV:
+            data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining metadata data for repositories {repos}.', exc_info=True)
         return
 
 
+@timed
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
     return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls)
@@ -296,7 +319,7 @@ if __name__ == '__main__':
                multiprocessing=False,
                persist_repos=True,
                stargazers=True,
-               metadata=False,
-               test=False,
-               git=False,
-               lint=False)
+               metadata=True,
+               test=True,
+               git=True,
+               lint=True)
