@@ -11,6 +11,7 @@
 # TODO Sätt ut logging.info överallt, se över så det är samma format överallt
 # TODO kolla igenom git mining så vi får med exakt alla metrics vi vill ha
 # TODO flytta datamappen utanför projekt-directory
+# TODO mina och skriv per commit istället för per repo, mindre minnesanvändning
 
 import concurrent.futures
 import logging
@@ -322,7 +323,7 @@ if __name__ == '__main__':
                multiprocessing=False,
                persist_repos=False,
                stargazers=True,
-               metadata=True,
-               test=True,
-               git=True,
-               lint=True)
+               metadata=False,
+               test=False,
+               git=False,
+               lint=False)
