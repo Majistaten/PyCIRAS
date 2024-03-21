@@ -130,7 +130,7 @@ def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
 
     data['avg_mccabe_complexity'] = _calculate_avg_mccabe_complexity(messages)
 
-    logging.info(f"Extracted {len(data)} modules")
+    logging.debug(f"Extracted {len(data)} pylint modules")
 
     return data
 
