@@ -79,6 +79,7 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
                  f"{util.get_repo_name_from_url_or_path(repository_path)}\n"
                  f"Commit: {commit}")
 
+    # TODO få ut logging från Pylint
     run = Run([f'--rcfile={config.PYLINT_CONFIG}'] + target_files, reporter=reporter, exit=False)
     stats = run.linter.stats
     if not isinstance(stats, dict):
