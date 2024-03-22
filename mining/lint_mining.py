@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -11,6 +12,10 @@ from git import Repo
 from utility import util, config
 from utility.progress_bars import RichIterableProgressBar
 
+
+# TODO fixa till det med en cache directory inom projektet
+# config.PYLINT_CACHE.mkdir(parents=True, exist_ok=True)
+# os.environ['PYLINTHOME'] = str(config.PYLINT_CACHE)
 
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
@@ -36,7 +41,7 @@ def mine_lint_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, da
     return data
 
 
-# TODO refaktorera till en gemensam funktion tillsammans med test-mining
+# TODO få ut logging från Pylint
 def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, datetime]]) -> dict[str, any]:
     """Mines lint data from the commits of a repository"""
 
@@ -46,6 +51,10 @@ def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, dateti
                                                      description=f"Traversing commits, mining lint data",
                                                      postfix=util.get_repo_name_from_url_or_path(str(repository_path)),
                                                      disable=config.DISABLE_PROGRESS_BARS):
+
+        # Ensure the repo is in a clean state
+        repo.git.reset('--hard')
+        repo.git.clean('-fdx')
 
         repo.git.checkout(commit_hash)
         lint_data = _run_pylint(repository_path, commit_hash)
@@ -57,30 +66,42 @@ def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, dateti
     return data
 
 
+# TODO testa om resultat blir olika för andra repos också
+# TODO vad returneras om pylint inte hittar några pythonfiler?
 def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     """Runs Pylint on Python files"""
 
-    target_files = util.get_python_files_from_directory(repository_path)
-    if target_files is None or len(target_files) == 0:
-        logging.info(f"\nThis commit has no Python files\n"
-                     f"Skipping commit: {commit}")
-        return None
-    elif len(target_files) > 1000:
-        logging.warning(
-            f"Found {len(target_files)} files in {repository_path}. "
-            f"This might take a while, consider skipping this repository.")
+    # target_files = util.get_python_files_from_directory(repository_path)
+    # if target_files is None or len(target_files) == 0:
+    #     logging.info(f"\nThis commit has no Python files\n"
+    #                  f"Skipping commit: {commit}")
+    #     return None
+    # elif len(target_files) > 1000:
+    #     logging.warning(
+    #         f"Found {len(target_files)} files in {repository_path}. "
+    #         f"This might take a while, consider skipping this repository.")
 
     data = {}
 
     out = StringIO()
     reporter = LintReporter(output=out)
 
-    logging.info(f"Mining {len(target_files)} files in "
-                 f"{util.get_repo_name_from_url_or_path(repository_path)}\n"
-                 f"Commit: {commit}")
+    # logging.info(f"Mining {len(target_files)} files in "
+    #              f"{util.get_repo_name_from_url_or_path(repository_path)}\n"
+    #              f"Commit: {commit}")
 
-    # TODO få ut logging från Pylint
-    run = Run([f'--rcfile={config.PYLINT_CONFIG}'] + target_files, reporter=reporter, exit=False)
+    pylint_options = [
+        f'--rcfile={config.PYLINT_CONFIG}',
+        str(repository_path),
+        '--j=2',
+        '--ignore=venv'
+        # f'--cache-dir={config.PYLINT_CACHE}',
+        # '--persistent=no',  # Add this line to disable persistent data
+        # '--jobs=1'  # disable any parallell processing
+    ]
+
+    run = Run(pylint_options, reporter=reporter, exit=False)
+
     stats = run.linter.stats
     if not isinstance(stats, dict):
         stats_dict = {str(attr): getattr(stats, attr) for attr in dir(stats) if
@@ -95,12 +116,13 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     data['stats']['avg_mccabe_complexity'] = data['messages']['avg_mccabe_complexity']
     data['stats']['repository_name'] = repo_name
 
-    logging.debug(f"Mined {len(target_files)} files in {repository_path}")
+    # logging.debug(f"Mined {len(target_files)} files in {repository_path}")
 
     return data
 
 
 # TODO plocka fram Max komplexitet / min komplexitet per commit
+# TODO Pylint bug, blir fler messages här
 def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
     """Parses Pylint Messages and returns them in a formatted dictionary using strings"""
 
