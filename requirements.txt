@@ -3,13 +3,12 @@ jupyter
 lizard
 matplotlib
 pandas
-pylint~=3.0.3
+pylint
 pytest
-python-dateutil~=2.8.2
-python-dotenv~=1.0.1
-pydriller~=2.6
+pydriller
 rich
 scipy
 seaborn
 requests
 numpy
+python-dotenv
