@@ -8,6 +8,22 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 from utility import config, util
+import threading
+
+meta_lock = threading.Lock()
+file_locks = {}
+
+
+def get_lock_for_file(file_path: Path) -> threading.Lock:
+    """Get a lock for a file path, creating one if it doesn't exist."""
+
+    global meta_lock, file_locks
+
+    with meta_lock:
+        if file_path not in file_locks:
+            file_locks[file_path] = threading.Lock()
+
+        return file_locks[file_path]
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -34,17 +50,20 @@ def make_data_directory() -> Path:
 
 def write_json(new_data: dict, path: Path):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
-    try:
-        with rich.progress.open(path, 'r', description=f'Reading {path}') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        data = {}
 
-    data.update(new_data)
+    lock = get_lock_for_file(path)
+    with lock:
+        try:
+            with rich.progress.open(path, 'r', description=f'Reading {path}') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = {}
 
-    logging.info(f'Writing JSON: {path}')
-    with open(path, 'w') as file:
-        json.dump(data, file, indent=4, cls=CustomEncoder)
+        data.update(new_data)
+
+        logging.info(f'Writing JSON: {path}')
+        with open(path, 'w') as file:
+            json.dump(data, file, indent=4, cls=CustomEncoder)
 
 
 # TODO mata in mer rådata
@@ -112,19 +131,21 @@ def git_data_to_csv(git_data: dict, path: Path):
         logging.info("No git data to process into DataFrame.")
         return
 
-    if path.exists():
-        logging.info(f'Loading CSV: {path}')
-        existing_df = pd.read_csv(path)
-        logging.info(f'Done loading CSV: {path}')
-        updated_df = pd.concat([existing_df, df]).drop_duplicates('repo', keep='last')
-    else:
-        updated_df = df
+    lock = get_lock_for_file(path)
+    with lock:
+        if path.exists():
+            logging.info(f'Loading CSV: {path}')
+            existing_df = pd.read_csv(path)
+            logging.info(f'Done loading CSV: {path}')
+            updated_df = pd.concat([existing_df, df]).drop_duplicates('repo', keep='last')
+        else:
+            updated_df = df
 
-    updated_df = _sort_rows_and_cols(updated_df, ['repo'], ['repo'])
+        updated_df = _sort_rows_and_cols(updated_df, ['repo'], ['repo'])
 
-    logging.info(f'Done processing git data: {util.get_repo_name_from_url_or_path(path)}')
-    logging.info(f'Writing CSV: {path}')
-    updated_df.to_csv(path, mode='w', index=False, na_rep='nan')
+        logging.info(f'Done processing git data: {util.get_repo_name_from_url_or_path(path)}')
+        logging.info(f'Writing CSV: {path}')
+        updated_df.to_csv(path, mode='w', index=False, na_rep='nan')
 
 
 # TODO få in commithashen också
@@ -247,23 +268,25 @@ def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str 
 def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
     """Loads existing CSV data and updates it with new data, or writes new data to a CSV file."""
 
-    if path.exists():
-        logging.info(f'Loading CSV: {path}')
-        existing_df = pd.read_csv(path, parse_dates=['date'])
-        logging.info(f'Done loading CSV: {path}')
-    else:
-        existing_df = pd.DataFrame()
+    lock = get_lock_for_file(path)
+    with lock:
+        if path.exists():
+            logging.info(f'Loading CSV: {path}')
+            existing_df = pd.read_csv(path, parse_dates=['date'])
+            logging.info(f'Done loading CSV: {path}')
+        else:
+            existing_df = pd.DataFrame()
 
-    if not existing_df.empty:
-        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
-        updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
-    else:
-        updated_df = new_df
+        if not existing_df.empty:
+            updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+            updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
+        else:
+            updated_df = new_df
 
-    updated_df = _sort_rows_and_cols(updated_df, ['repo', 'date'], fixed_cols)
+        updated_df = _sort_rows_and_cols(updated_df, ['repo', 'date'], fixed_cols)
 
-    logging.info(f'Writing CSV: {path}')
-    updated_df.to_csv(path, index=False, na_rep='nan')
+        logging.info(f'Writing CSV: {path}')
+        updated_df.to_csv(path, index=False, na_rep='nan')
 
 
 def _sort_rows_and_cols(df: pd.DataFrame, sort_rows_by: list[str], fixed_cols: list[str]):
