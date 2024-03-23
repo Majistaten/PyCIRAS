@@ -4,8 +4,11 @@ from datetime import datetime
 from pathlib import Path
 
 from git import Repo
+from rich.progress import (
+    Progress
+)
 
-from utility import config, util
+from utility import util
 from utility.progress_bars import IterableProgressWrapper
 
 
@@ -107,29 +110,36 @@ class StatementVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def mine_test_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, datetime]]]) -> dict[str, any]:
+def mine_test_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, datetime]]],
+                   progress: Progress) -> dict[str, any]:
     """Mine unit-testing data from the commits of multiple git repositories"""
     data = {}
-    for repo_path, commit_metadata in repo_paths_with_commit_metadata.items():
+    for repo_path, commit_metadata in IterableProgressWrapper(repo_paths_with_commit_metadata.items(),
+                                                              progress,
+                                                              description="Mining test data",
+                                                              postfix="Repos"):
         logging.info(f"Mining test data: {repo_path}")
-        data[util.get_repo_name_from_url_or_path(repo_path)] = _mine_commit_data(Path(repo_path), commit_metadata)
+        data[util.get_repo_name_from_url_or_path(repo_path)] = _mine_commit_data(Path(repo_path),
+                                                                                 commit_metadata,
+                                                                                 progress)
 
     return data
 
 
-# TODO refaktorera till en gemensam funktion tillsammans med lint-mining
-def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, datetime]]) -> dict[str, any]:
+def _mine_commit_data(repo_path: Path,
+                      commit_metadata: [tuple[str, datetime]],
+                      progress: Progress) -> dict[str, any]:
     """Mines test data from the commits of a repository"""
 
     data = {}
-    repo = Repo(repository_path)
+    repo = Repo(repo_path)
     for commit_hash, date in IterableProgressWrapper(commit_metadata,
-                                                     description=f"Traversing commits, mining test data",
-                                                     postfix=util.get_repo_name_from_url_or_path(str(repository_path)),
-                                                     disable=config.DISABLE_PROGRESS_BARS):
+                                                     progress,
+                                                     description=util.get_repo_name_from_url_or_path(repo_path),
+                                                     postfix='Commits'):
 
         repo.git.checkout(commit_hash)
-        test_data = _run_ast_mining(repository_path, commit_hash)
+        test_data = _run_ast_mining(repo_path, commit_hash, progress)
 
         if test_data is not None:
             data[commit_hash] = test_data
@@ -138,10 +148,12 @@ def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, dateti
     return data
 
 
-def _run_ast_mining(repository_path: Path, commit: str) -> dict[str, any] | None:
+def _run_ast_mining(repo_path: Path,
+                    commit: str,
+                    progress: Progress) -> dict[str, any] | None:
     """Runs AST mining on Python files"""
 
-    target_files = util.get_python_files_from_directory(repository_path)
+    target_files = util.get_python_files_from_directory(repo_path)
     if target_files is None or len(target_files) == 0:
         logging.info(f"\nThis commit has no Python files\n"
                      f"Skipping commit: {commit}")
@@ -152,14 +164,16 @@ def _run_ast_mining(repository_path: Path, commit: str) -> dict[str, any] | None
         'test-to-code-ratio': 0.0
     }
 
-    logging.info(f"Mining {len(target_files)} files in "
-                 f"{util.get_repo_name_from_url_or_path(repository_path)}\n"
-                 f"Commit: {commit}")
+    logging.info(f'[{util.get_repo_name_from_url_or_path(repo_path)}]: {commit}\n'
+                 f'Mining {len(target_files)} Python files')
 
     total_production_statements = 0
     total_test_statements = 0
     visitor = StatementVisitor()
-    for path in target_files:
+    for path in IterableProgressWrapper(target_files,
+                                        progress,
+                                        description=commit,
+                                        postfix='Python Files'):
 
         visitor.test_imports = []
         visitor.test_classes = []
@@ -168,7 +182,6 @@ def _run_ast_mining(repository_path: Path, commit: str) -> dict[str, any] | None
         visitor.production_statements = 0
 
         try:
-            # with rich.progress.open(path, 'r', encoding='utf-8') as file: # TODO integrera när progress bars funkar
             with open(path, 'r', encoding='utf-8') as file:
 
                 relative_path = util.absolute_repos_to_relative(path)
@@ -193,8 +206,6 @@ def _run_ast_mining(repository_path: Path, commit: str) -> dict[str, any] | None
 
     data['test-to-code-ratio'] = _calculate_test_to_code_ratio(total_test_statements,
                                                                total_production_statements)
-
-    logging.debug(f"Mined {len(target_files)} files in {repository_path}")
 
     return data
 
