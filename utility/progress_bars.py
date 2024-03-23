@@ -1,16 +1,55 @@
+import os
+from datetime import datetime
 from typing import (
     Any,
     Iterable,
-    Optional,
+    List, Optional,
     Union,
 )
 
-from git import RemoteProgress
+from git import RemoteProgress, Repo
+from pydriller import Repository
 from rich.progress import Progress, ProgressColumn, Task, TextColumn
+
+from pyciras import logger
 
 
 # TODO implementera disable
-# TODO overrida clone_from calls i Pydriller med GitProgress
+
+
+class RepositoryWithProgress(Repository):
+
+    def __init__(self, path_to_repo: Union[str, List[str]], single: Optional[str] = None,
+                 since: Optional[datetime] = None, since_as_filter: Optional[datetime] = None,
+                 to: Optional[datetime] = None, from_commit: Optional[str] = None, to_commit: Optional[str] = None,
+                 from_tag: Optional[str] = None, to_tag: Optional[str] = None, include_refs: bool = False,
+                 include_remotes: bool = False, num_workers: int = 1, only_in_branch: Optional[str] = None,
+                 only_modifications_with_file_types: Optional[List[str]] = None, only_no_merge: bool = False,
+                 only_authors: Optional[List[str]] = None, only_commits: Optional[List[str]] = None,
+                 only_releases: bool = False, filepath: Optional[str] = None, include_deleted_files: bool = False,
+                 histogram_diff: bool = False, skip_whitespaces: bool = False, clone_repo_to: Optional[str] = None,
+                 order: Optional[str] = None, progress: Progress = None):
+
+        super().__init__(path_to_repo, single, since, since_as_filter, to, from_commit, to_commit, from_tag, to_tag,
+                         include_refs, include_remotes, num_workers, only_in_branch, only_modifications_with_file_types,
+                         only_no_merge, only_authors, only_commits, only_releases, filepath, include_deleted_files,
+                         histogram_diff, skip_whitespaces, clone_repo_to, order)
+
+        self.progress = progress
+
+        def _clone_remote_repo(self, tmp_folder: str, repo: str) -> str:
+            repo_folder = os.path.join(tmp_folder, self._get_repo_name_from_url(repo))
+            if os.path.isdir(repo_folder):
+                logger.info(f"Reusing folder {repo_folder} for {repo}")
+            else:
+                logger.info(f"Cloning {repo} in temporary folder {repo_folder}")
+
+                Repo.clone_from(url=repo,
+                                to_path=repo_folder,
+                                progress=GitProgress(progress, description=repo))
+
+            return repo_folder
+
 
 class GitProgress(RemoteProgress):
     """Feeds progress info from git to a Progress instance"""
