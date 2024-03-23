@@ -7,7 +7,7 @@ from pydriller import Repository
 from rich.progress import Progress
 
 from utility import util
-from utility.progress_bars import GitProgress, IterableProgressWrapper
+from utility.progress_bars import GitProgress, IterableProgressWrapper, RepositoryWithProgress
 
 
 def clone_repos(repo_directory: Path, repo_urls: list[str], progress: Progress) -> list[Path]:
@@ -76,9 +76,10 @@ def _clone_repo(repos_directory: Path, repo_url: str, progress: Progress) -> Pat
 
 # TODO: Baka in i pipeline och skriv ut i fil.
 def get_repo_paths_and_commit_metadata(repos_directory: Path,
-                                       repo_paths: list[Path]) -> dict[str, list[tuple[str, datetime]]]:
+                                       repo_paths: list[Path],
+                                       progress: Progress) -> dict[str, list[tuple[str, datetime]]]:
     """Get a dict of repo paths with a list of tuples containing commit hashes and dates"""
-    repos: dict[str, Repository] = load_repos(repos_directory, repo_paths)
+    repos: dict[str, Repository] = load_repos(repos_directory, repo_paths, progress)
     repos_with_commit_hashes_and_dates = {}
     for repo_path, repo in repos.items():
         hashes_and_dates = []
@@ -90,7 +91,7 @@ def get_repo_paths_and_commit_metadata(repos_directory: Path,
     return repos_with_commit_hashes_and_dates
 
 
-def load_repos(repos_directory: Path, repos: list[Path | str]) -> (dict[str, Repository]):
+def load_repos(repos_directory: Path, repos: list[Path | str], progress: Progress) -> (dict[str, Repository]):
     """Load repos for mining, from an URL or a path."""
 
     repos_directory.mkdir(parents=True, exist_ok=True)
@@ -98,11 +99,11 @@ def load_repos(repos_directory: Path, repos: list[Path | str]) -> (dict[str, Rep
 
     return {
         str(repo_path_or_url):
-            _load_repo(repos_directory, repo_path_or_url) for repo_path_or_url in repos
+            _load_repo(repos_directory, repo_path_or_url, progress) for repo_path_or_url in repos
     }
 
 
-def _load_repo(repos_directory: Path, url_or_path: str) -> Repository:
+def _load_repo(repos_directory: Path, url_or_path: str, progress: Progress) -> Repository:
     """Load repository stored locally, or clone and load if not present"""
 
     repo_name = util.get_repo_name_from_url_or_path(url_or_path)
@@ -110,10 +111,10 @@ def _load_repo(repos_directory: Path, url_or_path: str) -> Repository:
 
     if repo_path.exists():
         logging.info(f'Loading {util.get_repo_name_from_url_or_path(url_or_path)} from disk')
-        return Repository(str(repo_path), num_workers=1)
+        return RepositoryWithProgress(str(repo_path), num_workers=1, progress=progress)
     else:
         logging.info(f'Cloning and loading {util.get_repo_name_from_url_or_path(url_or_path)}')
-        return Repository(url_or_path, clone_repo_to=str(repos_directory), num_workers=1)
+        return RepositoryWithProgress(url_or_path, clone_repo_to=str(repos_directory), num_workers=1, progress=progress)
 
 
 def remove_repos(repo_urls: list[str]) -> None:
