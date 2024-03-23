@@ -98,7 +98,7 @@ def load_repos(repos_directory: Path, repos: list[Path | str]) -> (dict[str, Rep
     """Load repos for mining, from an URL or a path."""
 
     repos_directory.mkdir(parents=True, exist_ok=True)
-    logging.info('Loading repositories')
+    logging.debug(f'Loading repositories {repos} from {repos_directory}')
 
     return {
         str(repo_path_or_url):
@@ -106,6 +106,7 @@ def load_repos(repos_directory: Path, repos: list[Path | str]) -> (dict[str, Rep
     }
 
 
+# TODO man kan specifiera workers till repo
 def _load_repo(repos_directory: Path, url_or_path: str) -> Repository:
     """Load repository stored locally, or clone and load if not present"""
 
@@ -113,9 +114,11 @@ def _load_repo(repos_directory: Path, url_or_path: str) -> Repository:
     repo_path = repos_directory / repo_name
 
     if repo_path.exists():
-        return Repository(str(repo_path))
+        logging.info(f'Loading {util.get_repo_name_from_url_or_path(url_or_path)} from disk')
+        return Repository(str(repo_path), num_workers=1)
     else:
-        return Repository(url_or_path, clone_repo_to=str(repos_directory))
+        logging.info(f'Cloning and loading {util.get_repo_name_from_url_or_path(url_or_path)}')
+        return Repository(url_or_path, clone_repo_to=str(repos_directory), num_workers=1)
 
 
 def remove_repos(repo_urls: list[str]) -> None:

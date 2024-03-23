@@ -33,7 +33,7 @@ def mine_git_data(repo_directory: Path,
     repo_urls = repo_management.load_repos(repo_directory, repo_urls)
     for repo_url, repo in IterableProgressWrapper(repo_urls.items(),
                                                   progress,
-                                                  description="Git",
+                                                  description=f'Mining Git Data',
                                                   postfix="Repos"):
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
         data[repo_name] = _mine_commit_data(repo, progress)
@@ -44,6 +44,7 @@ def mine_git_data(repo_directory: Path,
     return data
 
 
+# TODO fundera på hur beräkningarna på verkas om man kör flera workers
 def _mine_commit_data(repo: Repository, progress: Progress) -> dict[str, any]:
     """Mine commit data from a repository."""
 
@@ -56,13 +57,10 @@ def _mine_commit_data(repo: Repository, progress: Progress) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    # for commit in RichIterableProgressBar(repo.traverse_commits(),
-    #                                       description="Traversing commits, mining git data",
-    #                                       disable=config.DISABLE_PROGRESS_BARS):
-
     for commit in IterableProgressWrapper(repo.traverse_commits(),
                                           progress,
-                                          description="Traversing commits, mining git data",
+                                          description=util.get_repo_name_from_url_or_path(
+                                              repo._conf.get('path_to_repo')),
                                           postfix="Commits"):
         data["total_commits"] += 1
         data["files_modified"] += len(commit.modified_files)
