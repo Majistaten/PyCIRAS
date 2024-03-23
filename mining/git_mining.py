@@ -57,7 +57,7 @@ def _mine_commit_data(repo: Repository, progress: Progress) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    for commit in IterableProgressWrapper(repo.traverse_commits(),
+    for commit in IterableProgressWrapper(repo.traverse_commits(), # TODO disable if multiprocessing or config
                                           progress,
                                           description=
                                           util.get_repo_name_from_url_or_path(repo._conf.get('path_to_repo')),
