@@ -1,14 +1,16 @@
-from datetime import datetime
-from pydriller import Repository
-from git import Repo, rmtree
-from pathlib import Path
 import logging
-from utility import util, config
-from utility.progress_bars import CloneProgress
-from rich.pretty import pprint
+from datetime import datetime
+from pathlib import Path
+
+from git import Repo, rmtree
+from pydriller import Repository
+from rich.progress import Progress
+
+from utility import util
+from utility.progress_bars import GitProgress, IterableProgressWrapper
 
 
-def clone_repos(repo_directory: Path, repo_urls: list[str]) -> list[Path]:
+def clone_repos(repo_directory: Path, repo_urls: list[str], progress: Progress) -> list[Path]:
     """
     Clones repositories from a list of URLs, and returns the paths.
     Args:
@@ -19,32 +21,28 @@ def clone_repos(repo_directory: Path, repo_urls: list[str]) -> list[Path]:
         A list of repository paths.
     """
 
-    logging.debug(f'Cloning {len(repo_urls)} repositories')
-
     repo_paths = []
-    for i, repo_url in enumerate(repo_urls):
+    for repo_url in IterableProgressWrapper(repo_urls,  # TODO disable if multiprocessing or config is off
+                                            progress,
+                                            description="Cloning Repositories",
+                                            postfix="Repos"):
 
-        logging.debug(f'Downloading repository {i + 1} of {len(repo_urls)}')
+        path = _clone_repo(repo_directory, repo_url, progress)
 
-        path = _clone_repo(repo_directory, repo_url, progressbar_postfix=f'({i + 1}/{len(repo_urls)})')
         if path is None:
             logging.error(f'Failed to download repository from {repo_url}')
         else:
             repo_paths.append(path)
 
-    logging.info('Finished downloading repositories')
-
     return repo_paths
 
 
-def _clone_repo(repos_directory: Path, repo_url: str, progressbar_postfix: str = "") -> Path | None:
+def _clone_repo(repos_directory: Path, repo_url: str, progress: Progress) -> Path | None:
     """
     Clones a Git repository from a given URL to a given destination folder.
     Args:
         repo_url: The URL of the Git repository to clone.
         repos_directory: The folder where repos are stored.
-        progressbar_postfix: A postfix to add to the progress bar.
-
     Returns:
         The repository path.
     """
@@ -58,18 +56,16 @@ def _clone_repo(repos_directory: Path, repo_url: str, progressbar_postfix: str =
         repo_path = repos_directory / repo_name
 
         if repo_path.exists():
-            logging.info(f'Repository {repo_name} already exists in {repos_directory}, skipping it')
+            logging.info(f'{repo_name} already exists in {repos_directory}, skipping clone')
             return repo_path
 
-        logging.info(f'Cloning Git Repository {repo_name} from {repo_url}')
+        logging.info(f'Cloning Git Repository {repo_name} from {repo_url} to {repo_path}')
+
         Repo.clone_from(repo_url,
                         repo_path,
-                        progress=CloneProgress(
-                            description=repo_name,
-                            postfix=progressbar_postfix,
-                            disable=config.DISABLE_PROGRESS_BARS))
+                        progress=GitProgress(progress, description=repo_name))
 
-        logging.info(f'Finished cloning {repo_path}')
+        logging.info(f'Finished cloning {repo_name}')
 
         return repo_path
 
@@ -106,7 +102,6 @@ def load_repos(repos_directory: Path, repos: list[Path | str]) -> (dict[str, Rep
     }
 
 
-# TODO man kan specifiera workers till repo
 def _load_repo(repos_directory: Path, url_or_path: str) -> Repository:
     """Load repository stored locally, or clone and load if not present"""
 
