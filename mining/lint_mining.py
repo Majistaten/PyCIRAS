@@ -46,20 +46,20 @@ def mine_lint_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, da
     return data
 
 
-def _mine_commit_data(repository_path: Path,
+def _mine_commit_data(repo_path: Path,
                       commit_metadata: [tuple[str, datetime]],
                       progress: Progress) -> dict[str, any]:
     """Mines lint data from the commits of a repository"""
 
     data = {}
-    repo = Repo(repository_path)
+    repo = Repo(repo_path)
     for commit_hash, date in IterableProgressWrapper(commit_metadata,
                                                      progress,
-                                                     description=util.get_repo_name_from_url_or_path(repository_path),
+                                                     description=util.get_repo_name_from_url_or_path(repo_path),
                                                      postfix='Commits'):
 
         repo.git.checkout(commit_hash)
-        lint_data = _run_pylint(repository_path, commit_hash)
+        lint_data = _run_pylint(repo_path, commit_hash)
 
         if lint_data is not None:
             data[commit_hash] = lint_data
