@@ -108,8 +108,6 @@ class RepositoryWithProgress(Repository):
     def _clone_remote_repo(self, tmp_folder: str, repo: str) -> str:
         repo_folder = os.path.join(tmp_folder, self._get_repo_name_from_url(repo))
 
-        print("RepositoryWithProgress")
-
         Repo.clone_from(url=repo,
                         to_path=repo_folder,
                         progress=GitProgress(self.progress, description=repo))
