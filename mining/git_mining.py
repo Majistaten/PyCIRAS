@@ -1,8 +1,14 @@
 """This module contains the functions to mine git data from a repository. It uses Pydriller to extract the data."""
 
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import requests
 from dateutil.relativedelta import relativedelta
+from dotenv import load_dotenv
 from pydriller import Repository
 from pydriller.metrics.process.change_set import ChangeSet
 from pydriller.metrics.process.code_churn import CodeChurn
@@ -10,16 +16,11 @@ from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.contributors_experience import ContributorsExperience
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
-from utility import util, config, ntfyer
-from dotenv import load_dotenv
-import os
-import requests
-from pathlib import Path
-from utility.progress_bars import IterableProgressWrapper
-import pandas as pd
+from rich.progress import Progress
+
 from data_io import repo_management
-from rich.pretty import pprint
-from rich.progress import Progress, TaskID
+from utility import config, ntfyer, util
+from utility.progress_bars import IterableProgressWrapper
 
 
 def mine_git_data(repo_directory: Path,
@@ -30,7 +31,7 @@ def mine_git_data(repo_directory: Path,
     """Mine git data from a list of repositories and return a dictionary with the data"""
 
     data = {}
-    repo_urls = repo_management.load_repos(repo_directory, repo_urls)
+    repo_urls = repo_management.load_repos(repo_directory, repo_urls, progress)
     for repo_url, repo in IterableProgressWrapper(repo_urls.items(),
                                                   progress,
                                                   description=f'Mining Git Data',
@@ -57,7 +58,7 @@ def _mine_commit_data(repo: Repository, progress: Progress) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    for commit in IterableProgressWrapper(repo.traverse_commits(), # TODO disable if multiprocessing or config
+    for commit in IterableProgressWrapper(repo.traverse_commits(),  # TODO disable if multiprocessing or config
                                           progress,
                                           description=
                                           util.get_repo_name_from_url_or_path(repo._conf.get('path_to_repo')),
