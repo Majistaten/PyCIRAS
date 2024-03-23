@@ -14,6 +14,7 @@
 # TODO mina och skriv per commit istället för per repo, mindre minnesanvändning
 # TODO byt ut alla any type annotations till Any
 # TODO specifiera en config option för att sätta workers till både pylint och pydriller
+# TODO läs koden och dokumentation till Pydriller och Pylint och kolla alla options
 
 import concurrent.futures
 import logging
@@ -203,7 +204,8 @@ def _mine_lint(repo_urls: list[str]):
         repo_paths = _clone_repos(repo_urls)
 
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
-                                                                                       repo_paths)
+                                                                                       repo_paths,
+                                                                                       progress)
         lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
         if config.WRITE_JSON:
             data_management.write_json(lint_data, data_directory / 'lint-raw.json')
@@ -241,7 +243,8 @@ def _mine_test(repo_urls: list[str]):
         repo_paths = _clone_repos(repo_urls)
 
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
-                                                                                       repo_paths)
+                                                                                       repo_paths,
+                                                                                       progress)
         test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
         if config.WRITE_JSON:
