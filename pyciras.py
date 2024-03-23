@@ -13,6 +13,7 @@
 # TODO flytta datamappen utanför projekt-directory
 # TODO mina och skriv per commit istället för per repo, mindre minnesanvändning
 # TODO byt ut alla any type annotations till Any
+# TODO specifiera en config option för att sätta workers till både pylint och pydriller
 
 import concurrent.futures
 import logging
@@ -112,8 +113,10 @@ def run_repo_cloner(repo_urls: list[str] = None,
                        persist_repos=True)
 
         duration = util.format_duration(time.time() - start_time)
+
         ntfyer.ntfy(data=f'PyCIRAS cloning completed! Cloned {len(repo_urls)} repos in the duration of: {duration}',
                     title='PyCIRAS cloning Completed')
+
         logging.info(f"PyCIRAS cloning completed - Duration: {duration}.")
 
 
@@ -170,6 +173,7 @@ def run_mining(repo_urls: list[str] = None,
             return
 
         logging.info(f'Mining {len(repo_urls)} repositories')
+
         logging.info(f"The analysis will run with the current settings: "
                      f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
                      f"\n - persist_repos={persist_repos}, "
@@ -177,8 +181,8 @@ def run_mining(repo_urls: list[str] = None,
                      f"\n - lint={lint}, "
                      f"\n - test={test}, "
                      f"\n - git={git}."
-                     f"\n   Results will be stored in {data_directory}."
-                     f"\n   Logging will be stored in {config.LOGGING_FOLDER}."
+                     f"\n   Data will be stored in {data_directory}."
+                     f"\n   Logs will be stored in {config.LOGGING_FOLDER}."
                      f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
 
         mining_functions = []
@@ -329,7 +333,7 @@ def _process_chunk(repo_urls: list[str],
         else:
             logging.debug(f'Processing sequentially')
             for function in pyciras_functions:
-                logging.info(f'Running {str(function.__name__)}')
+                logging.debug(f'Running {str(function.__name__)}')
                 function(chunk_of_repos)
         if len(pyciras_functions) != 0 and not persist_repos:
             logging.debug(f'Deleting Repos')
@@ -357,8 +361,8 @@ if __name__ == '__main__':
     #                 chunk_size=3,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=16,
-               multiprocessing=True,
+               chunk_size=4,
+               multiprocessing=False,
                persist_repos=True,
                stargazers=False,
                metadata=False,
