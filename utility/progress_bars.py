@@ -1,23 +1,27 @@
+import concurrent.futures
 import os
+import shutil
+from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import (
     Any,
-    Iterable,
+    Generator, Iterable,
     List, Optional,
     Union,
 )
 
 from git import RemoteProgress, Repo
-from pydriller import Repository
+from pydriller import Commit, Repository
+from pydriller.git import Git
 from rich.progress import Progress, ProgressColumn, Task, TextColumn
-
-from pyciras import logger
 
 
 # TODO implementera disable
 
 
 class RepositoryWithProgress(Repository):
+    """Overrides the traverse_commits method to show a progress bar, and removes INFO level logs."""
 
     def __init__(self, path_to_repo: Union[str, List[str]], single: Optional[str] = None,
                  since: Optional[datetime] = None, since_as_filter: Optional[datetime] = None,
@@ -37,18 +41,80 @@ class RepositoryWithProgress(Repository):
 
         self.progress = progress
 
-        def _clone_remote_repo(self, tmp_folder: str, repo: str) -> str:
-            repo_folder = os.path.join(tmp_folder, self._get_repo_name_from_url(repo))
-            if os.path.isdir(repo_folder):
-                logger.info(f"Reusing folder {repo_folder} for {repo}")
-            else:
-                logger.info(f"Cloning {repo} in temporary folder {repo_folder}")
+    def traverse_commits(self) -> Generator[Commit, None, None]:
+        """
+        Analyze all the specified commits (all of them by default), returning
+        a generator of commits.
+        """
+        for path_repo in self._conf.get('path_to_repos'):
+            with self._prep_repo(path_repo=path_repo) as git:
+                # Get the commits that modified the filepath. In this case, we can not use
+                # git rev-list since it doesn't have the option --follow, necessary to follow
+                # the renames. Hence, we manually call git log instead
+                if self._conf.get('filepath') is not None:
+                    self._conf.set_value(
+                        'filepath_commits',
+                        git.get_commits_modified_file(self._conf.get('filepath'),
+                                                      self._conf.get('include_deleted_files'))
+                    )
 
-                Repo.clone_from(url=repo,
-                                to_path=repo_folder,
-                                progress=GitProgress(progress, description=repo))
+                # Gets only the commits that are tagged
+                if self._conf.get('only_releases'):
+                    self._conf.set_value('tagged_commits', git.get_tagged_commits())
 
-            return repo_folder
+                # Build the arguments to pass to git rev-list.
+                rev, kwargs = self._conf.build_args()
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self._conf.get("num_workers")) as executor:
+                    for job in executor.map(self._iter_commits, git.get_list_commits(rev, **kwargs)):
+
+                        for commit in job:
+                            yield commit
+
+    @contextmanager
+    def _prep_repo(self, path_repo: str) -> Generator[Git, None, None]:
+        local_path_repo = path_repo
+        if self._is_remote(path_repo):
+            local_path_repo = self._clone_remote_repo(self._clone_folder(), path_repo)
+        local_path_repo = str(Path(local_path_repo).expanduser().resolve())
+
+        # when multiple repos are given in input, this variable will serve as a reminder
+        # of which one we are currently analyzing
+        self._conf.set_value('path_to_repo', local_path_repo)
+
+        self.git = Git(local_path_repo, self._conf)
+        # saving the Git object for further use
+        self._conf.set_value("git", self.git)
+
+        # checking that the filters are set correctly
+        self._conf.sanity_check_filters()
+        yield self.git
+
+        # cleaning, this is necessary since GitPython issues on memory leaks
+        self._conf.set_value("git", None)
+        self.git.clear()
+        self.git = None  # type: ignore
+
+        # delete the temporary directory if created
+        if self._is_remote(path_repo) and self._cleanup is True:
+            assert self._tmp_dir is not None
+            try:
+                self._tmp_dir.cleanup()
+            except (PermissionError, OSError):
+                # On Windows there might be cleanup errors.
+                # Manually remove files
+                shutil.rmtree(self._tmp_dir.name, ignore_errors=True)
+
+    def _clone_remote_repo(self, tmp_folder: str, repo: str) -> str:
+        repo_folder = os.path.join(tmp_folder, self._get_repo_name_from_url(repo))
+
+        print("RepositoryWithProgress")
+
+        Repo.clone_from(url=repo,
+                        to_path=repo_folder,
+                        progress=GitProgress(self.progress, description=repo))
+
+        return repo_folder
 
 
 class GitProgress(RemoteProgress):
