@@ -218,7 +218,8 @@ def _mine_lint(repo_urls: list[str]):
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
-        logging.error(f'Error while linting repositories {repos}.', exc_info=True)
+        logging.error(f'Error while linting repositories {repos}'
+                      f'Skipping Mine Lint', exc_info=True)
         return
 
 
@@ -230,6 +231,7 @@ def _mine_git(repo_urls: list[str]):
 
         if config.WRITE_JSON:
             data_management.write_json(git_data, data_directory / 'git-raw.json', progress)
+
         if config.WRITE_CSV:
             data_management.git_data_to_csv(git_data, data_directory / 'git.csv'), progress
 
@@ -237,7 +239,8 @@ def _mine_git(repo_urls: list[str]):
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
-        logging.error(f'Error while mining git repositories {repos}.', exc_info=True)
+        logging.error(f'Error while mining git repositories {repos}'
+                      f'Skipping Mine Git', exc_info=True)
         return
 
 
@@ -250,18 +253,21 @@ def _mine_test(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths,
                                                                                        progress)
-        test_data = test_mining.mine_test_data(repos_and_commit_metadata)
+        test_data = test_mining.mine_test_data(repos_and_commit_metadata, progress)
 
         if config.WRITE_JSON:
-            data_management.write_json(test_data, data_directory / 'test-raw.json')
-        if config.WRITE_CSV:
-            data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+            data_management.write_json(test_data, data_directory / 'test-raw.json', progress)
 
-        logging.info(f'Mine Lint Completed for {repo_urls}\n\n')
+        if config.WRITE_CSV:
+            data_management.test_data_to_csv(test_data, data_directory / 'test.csv', progress)
+
+        logging.info(f'Mine Test Completed for {repo_urls}\n\n')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
-        logging.error(f'Error while mining test data from repositories {repos}.', exc_info=True)
+        logging.error(f'Error while mining test data from repositories {repos}\n'
+                      f'Skipping Mine Test', exc_info=True)
+
         return
 
 
@@ -272,12 +278,17 @@ def _mine_stargazers(repo_urls: list[str]):
         stargazers_data = git_mining.mine_stargazers_data(repo_urls, progress)
 
         if config.WRITE_JSON:
-            data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
+            data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json', progress)
+
         if config.WRITE_CSV:
-            data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
+            data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv', progress)
+
+        logging.info(f'Mine Stargazers Completed for {repo_urls}\n\n')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
-        logging.error(f'Error while fetching stargazer data for {repos}.', exc_info=True)
+        logging.error(f'Error while fetching stargazer data for {repos}'
+                      f'Skipping Mine Stargazers', exc_info=True)
         return
 
 
@@ -285,15 +296,20 @@ def _mine_stargazers(repo_urls: list[str]):
 def _mine_metadata(repo_urls: list[str]):
     """Mine repo metadata from a list of repositories."""
     try:
-        metadata = git_mining.mine_repo_metadata(repo_urls)
+        metadata = git_mining.mine_repo_metadata(repo_urls, progress)
 
         if config.WRITE_JSON:
-            data_management.write_json(metadata, data_directory / 'metadata-raw.json')
+            data_management.write_json(metadata, data_directory / 'metadata-raw.json', progress)
+
         if config.WRITE_CSV:
-            data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
+            data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv', progress)
+
+            logging.info(f'Mine Metadata Completed for {repo_urls}\n\n')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
-        logging.error(f'Error while mining metadata data for repositories {repos}.', exc_info=True)
+        logging.error(f'Error while mining metadata data for repositories {repos}'
+                      f'Skipping Mine Metadata', exc_info=True)
         return
 
 
@@ -365,6 +381,6 @@ if __name__ == '__main__':
                persist_repos=True,
                stargazers=False,
                metadata=False,
-               test=False,
+               test=True,
                git=False,
-               lint=True)
+               lint=False)
