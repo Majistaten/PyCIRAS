@@ -19,50 +19,33 @@ import concurrent.futures
 import logging
 import time
 from pathlib import Path
-import rich.traceback
 from typing import Callable
-from mining import lint_mining, git_mining, test_mining
-from data_io import data_management, repo_management
-from utility import util, config, logger_setup, ntfyer
-from utility.timer import timed
+
+import rich.traceback
 from rich.progress import (
     BarColumn,
-    DownloadColumn,
     Progress,
-    ProgressColumn, SpinnerColumn, TaskID,
-    TaskProgressColumn, TextColumn,
-    TimeElapsedColumn, TimeRemainingColumn,
-    TransferSpeedColumn,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
 )
 
-from utility.progress_bars import PycirasIterableColumn, RichProgressColumn
+from data_io import data_management, repo_management
+from mining import git_mining, lint_mining, test_mining
+from utility import config, logger_setup, ntfyer, util
+from utility.progress_bars import IterableColumn
+from utility.timer import timed
 
 rich.traceback.install()
 data_directory = data_management.make_data_directory()
 logger, rich_console = logger_setup.get_logger('pyciras_logger')
-
-# progress = Progress(
-#     SpinnerColumn(),
-#     TextColumn("[bold blue]{task.description}", justify='right'),
-#     BarColumn(bar_width=None),
-#     "[progress.percentage]{task.percentage:>3.1f}%",
-#     # "•",
-#     RichProgressColumn(),
-#     # DownloadColumn(),
-#     # "•",
-#     # TransferSpeedColumn(),
-#     # "•",
-#     # TimeRemainingColumn(),
-#     TimeElapsedColumn(),
-#     console=rich_console
-# )
-
 progress = Progress(
     SpinnerColumn(),
     TextColumn('[bold blue]{task.description}', justify='right'),
     BarColumn(bar_width=None),
-    PycirasIterableColumn(),
-    # PycirasCloneColumn(),
+    IterableColumn(),
     TaskProgressColumn(),
     TimeRemainingColumn(),
     TimeElapsedColumn(),
@@ -103,6 +86,11 @@ def run_repo_cloner(repo_urls: list[str] = None,
             return
 
         logging.info(f'Cloning {len(repo_urls)} repositories')
+
+        logging.info(f"Cloning will run with the current settings: "
+                     f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
+                     f"\n   Logs will be stored in {config.LOGGING_FOLDER}."
+                     f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
 
         _process_chunk(repo_urls,
                        pyciras_functions=[_clone_repos],
@@ -207,6 +195,7 @@ def run_mining(repo_urls: list[str] = None,
                     title='PyCIRAS Mining Completed')
         logging.info(f"PyCIRAS Mining completed - Duration: {duration}.")
 
+
 @timed
 def _mine_lint(repo_urls: list[str]):
     """ Mine lint data from a list of repositories. """
@@ -235,9 +224,9 @@ def _mine_git(repo_urls: list[str]):
         git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls, progress)
 
         if config.WRITE_JSON:
-            data_management.write_json(git_data, data_directory / 'git-raw.json')
+            data_management.write_json(git_data, data_directory / 'git-raw.json', progress)
         if config.WRITE_CSV:
-            data_management.git_data_to_csv(git_data, data_directory / 'git.csv')
+            data_management.git_data_to_csv(git_data, data_directory / 'git.csv'), progress
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -301,7 +290,7 @@ def _mine_metadata(repo_urls: list[str]):
 @timed
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
-    return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls)
+    return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls, progress)
 
 
 def _process_chunk(repo_urls: list[str],
@@ -357,15 +346,15 @@ def _execute_in_parallel(args_list: list, workers: int = 4):
 
 
 if __name__ == '__main__':
-    # run_repo_cloner(repo_urls=None,
-    #                 chunk_size=3,
-    #                 multiprocessing=True)
-    run_mining(repo_urls=None,
-               chunk_size=4,
-               multiprocessing=False,
-               persist_repos=True,
-               stargazers=False,
-               metadata=False,
-               test=False,
-               git=True,
-               lint=False)
+    run_repo_cloner(repo_urls=None,
+                    chunk_size=8,
+                    multiprocessing=True)
+    # run_mining(repo_urls=None,
+    #            chunk_size=1,
+    #            multiprocessing=False,
+    #            persist_repos=True,
+    #            stargazers=False,
+    #            metadata=False,
+    #            test=False,
+    #            git=True,
+    #            lint=False)
