@@ -346,15 +346,15 @@ def _execute_in_parallel(args_list: list, workers: int = 4):
 
 
 if __name__ == '__main__':
-    run_repo_cloner(repo_urls=None,
-                    chunk_size=8,
-                    multiprocessing=True)
-    # run_mining(repo_urls=None,
-    #            chunk_size=1,
-    #            multiprocessing=False,
-    #            persist_repos=True,
-    #            stargazers=False,
-    #            metadata=False,
-    #            test=False,
-    #            git=True,
-    #            lint=False)
+    # run_repo_cloner(repo_urls=None,
+    #                 chunk_size=8,
+    #                 multiprocessing=True)
+    run_mining(repo_urls=None,
+               chunk_size=1,
+               multiprocessing=False,
+               persist_repos=True,
+               stargazers=False,
+               metadata=False,
+               test=False,
+               git=True,
+               lint=False)
