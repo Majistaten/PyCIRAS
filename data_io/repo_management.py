@@ -91,7 +91,9 @@ def get_repo_paths_and_commit_metadata(repos_directory: Path,
     return repos_with_commit_hashes_and_dates
 
 
-def load_repos(repos_directory: Path, repos: list[Path | str], progress: Progress) -> (dict[str, Repository]):
+def load_repos(repos_directory: Path,
+               repos: list[Path | str],
+               progress: Progress) -> (dict[str, RepositoryWithProgress]):
     """Load repos for mining, from an URL or a path."""
 
     repos_directory.mkdir(parents=True, exist_ok=True)
@@ -103,7 +105,9 @@ def load_repos(repos_directory: Path, repos: list[Path | str], progress: Progres
     }
 
 
-def _load_repo(repos_directory: Path, url_or_path: str, progress: Progress) -> Repository:
+def _load_repo(repos_directory: Path,
+               url_or_path: str,
+               progress: Progress) -> RepositoryWithProgress:
     """Load repository stored locally, or clone and load if not present"""
 
     repo_name = util.get_repo_name_from_url_or_path(url_or_path)

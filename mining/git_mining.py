@@ -9,7 +9,6 @@ import pandas as pd
 import requests
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
-from pydriller import Repository
 from pydriller.metrics.process.change_set import ChangeSet
 from pydriller.metrics.process.code_churn import CodeChurn
 from pydriller.metrics.process.contributors_count import ContributorsCount
@@ -20,7 +19,7 @@ from rich.progress import Progress
 
 from data_io import repo_management
 from utility import config, ntfyer, util
-from utility.progress_bars import IterableProgressWrapper
+from utility.progress_bars import IterableProgressWrapper, RepositoryWithProgress
 
 
 def mine_git_data(repo_directory: Path,
@@ -46,7 +45,7 @@ def mine_git_data(repo_directory: Path,
 
 
 # TODO fundera på hur beräkningarna på verkas om man kör flera workers
-def _mine_commit_data(repo: Repository, progress: Progress) -> dict[str, any]:
+def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[str, any]:
     """Mine commit data from a repository."""
 
     data = {
