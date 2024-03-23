@@ -1,11 +1,3 @@
-https://github.com/smartbugs/smartbugs
-https://github.com/vitsalis/PyCG
-https://github.com/nevillegrech/gigahorse-toolchain
-https://github.com/Yuanyuan-Yuan/NeuraL-Coverage
-https://github.com/zhangj111/astnn
-https://github.com/S2-group/icse-seip-2020-replication-package
-https://github.com/mast-group/OpenVocabCodeNLM
-https://github.com/LeonYang95/PLELog
 https://github.com/conala-corpus/conala-baseline
 https://github.com/saltudelft/type4py
 https://github.com/lin-tan/clm

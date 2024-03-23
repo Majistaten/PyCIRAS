@@ -172,7 +172,7 @@ def _run_ast_mining(repository_path: Path, commit: str) -> dict[str, any] | None
             # with rich.progress.open(path, 'r', encoding='utf-8') as file: # TODO integrera när progress bars funkar
             with open(path, 'r', encoding='utf-8') as file:
 
-                relative_path = util.get_file_relative_path_from_absolute_path(path)
+                relative_path = util.absolute_repos_to_relative(path)
                 tree = ast.parse(file.read())
                 visitor.visit(tree)
 

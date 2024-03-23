@@ -47,10 +47,14 @@ def get_repository_urls_from_file(file_path: Path) -> list[str]:
     return urls
 
 
-def get_file_relative_path_from_absolute_path(absolute_path: str) -> str:
-    """Returns the relative path of a file from an absolute path"""
+def absolute_repos_to_relative(absolute_path: str) -> str:
+    """Returns the relative path of a repo from an absolute path"""
     return absolute_path.replace(str(config.REPOSITORIES_FOLDER), '').lstrip('/').strip()
 
+
+def absolute_data_path_to_relative(absolute_path: str) -> str:
+    """Returns the relative path of a file from an absolute path"""
+    return absolute_path.replace(str(config.DATA_FOLDER), '').lstrip('/').strip()
 
 def get_path_to_repo(repo_url: str) -> Path:
     """Returns the path to a repository based on the URL"""

@@ -6,6 +6,7 @@ import threading
 from datetime import datetime
 from multiprocessing import current_process
 from pathlib import Path
+from time import sleep
 
 import numpy as np
 import pandas as pd
@@ -59,23 +60,28 @@ def write_json(new_data: dict, path: Path, progress: Progress):
     lock = get_lock_for_file(path)
     with lock:
         try:
-            with open(path, 'r') as file:  # TODO  Progress
+            read_task = progress.add_task(f'Reading JSON: {util.absolute_data_path_to_relative(str(path))}', total=None)
+            with open(path, 'r') as file:
                 data = json.load(file)
         except FileNotFoundError:
             data = {}
+        progress.stop_task(read_task)
+        progress.remove_task(read_task)
 
         data.update(new_data)
 
-        logging.info(f'Writing JSON: {path}')
+        write_task = progress.add_task(f'Writing JSON: {util.absolute_data_path_to_relative(str(path))}', total=None)
         with open(path, 'w') as file:
             json.dump(data, file, indent=4, cls=CustomEncoder)
+        progress.stop_task(write_task)
+        progress.remove_task(write_task)
 
 
 # TODO mata in mer rådata
-def lint_data_to_csv(lint_data: dict, path: Path):
+def lint_data_to_csv(lint_data: dict, path: Path, progress: Progress):
     """Write lint data to a CSV file."""
 
-    logging.info(f'Processing lint data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = []
     for repo, repo_data in lint_data.items():
@@ -117,9 +123,10 @@ def lint_data_to_csv(lint_data: dict, path: Path):
             inplace=True,
             errors='ignore')
 
-    logging.info(f'Done processing lint data: {util.get_repo_name_from_url_or_path(path)}')
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
 
-    _update_csv(path, df, ['repo', 'date', 'commit_hash'])
+    _update_csv(path, df, ['repo', 'date', 'commit_hash'], progress)
 
 
 # TODO mata in mer rådata
@@ -270,18 +277,20 @@ def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str 
     return dict(items)
 
 
-def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
+def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str], progress):
     """Loads existing CSV data and updates it with new data, or writes new data to a CSV file."""
 
     lock = get_lock_for_file(path)
     with lock:
         if path.exists():
-            logging.info(f'Loading CSV: {path}')
+            read_task = progress.add_task(f'Reading CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
             existing_df = pd.read_csv(path, parse_dates=['date'])
-            logging.info(f'Done loading CSV: {path}')
+            progress.stop_task(read_task)
+            progress.remove_task(read_task)
         else:
             existing_df = pd.DataFrame()
 
+        write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
         if not existing_df.empty:
             updated_df = pd.concat([existing_df, new_df], ignore_index=True)
             updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
@@ -290,8 +299,9 @@ def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
 
         updated_df = _sort_rows_and_cols(updated_df, ['repo', 'date'], fixed_cols)
 
-        logging.info(f'Writing CSV: {path}')
         updated_df.to_csv(path, index=False, na_rep='nan')
+        progress.stop_task(write_task)
+        progress.remove_task(write_task)
 
 
 def _sort_rows_and_cols(df: pd.DataFrame, sort_rows_by: list[str], fixed_cols: list[str]):

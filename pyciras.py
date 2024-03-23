@@ -206,12 +206,15 @@ def _mine_lint(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths,
                                                                                        progress)
-        lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
+        lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata, progress)
+
         if config.WRITE_JSON:
-            data_management.write_json(lint_data, data_directory / 'lint-raw.json')
+            data_management.write_json(lint_data, data_directory / 'lint-raw.json', progress)
 
         if config.WRITE_CSV:
-            data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv')
+            data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv', progress)
+
+        logging.info(f'Mine Lint Completed for {repo_urls}\n\n')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -359,5 +362,5 @@ if __name__ == '__main__':
                stargazers=False,
                metadata=False,
                test=False,
-               git=True,
-               lint=False)
+               git=False,
+               lint=True)

@@ -61,7 +61,7 @@ def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[
                                           progress,
                                           description=
                                           util.get_repo_name_from_url_or_path(repo._conf.get('path_to_repo')),
-                                          postfix="Commits"):
+                                          postfix='Commits'):
         data["total_commits"] += 1
         data["files_modified"] += len(commit.modified_files)
 
