@@ -1,9 +1,7 @@
 import os
 import logging
-import re
 from pathlib import Path
 from utility import config
-from rich.pretty import pprint
 
 
 def get_python_files_from_directory(directory: Path) -> list[str]:
@@ -13,7 +11,8 @@ def get_python_files_from_directory(directory: Path) -> list[str]:
         for file in files:
             if file.endswith(".py"):
                 logging.debug(f"Found python file: {str(os.path.join(root, file))}")
-                python_files.append(str(os.path.join(root, file)))
+
+                python_files.append(str(Path(root) / file))
 
     if len(python_files) != 0:
         logging.debug(f"Found {len(python_files)} python files in {directory}")
@@ -54,6 +53,7 @@ def get_file_relative_path_from_absolute_path(absolute_path: str) -> str:
 
 
 def get_path_to_repo(repo_url: str) -> Path:
+    """Returns the path to a repository based on the URL"""
     name = get_repo_name_from_url_or_path(repo_url)
     return config.REPOSITORIES_FOLDER / name
 
@@ -62,7 +62,7 @@ def sanitize_url(url: str) -> str:
     """Removes any non-printable characters and whitespace"""
     return url.strip().removesuffix('/')
 
-# TODO formatera i MB istället utan postfix, bara siffror - för sortering
+
 def kb_to_mb_gb(size_in_kb: int) -> str:
     """Convert size from KB to MB or GB if large enough."""
     if size_in_kb < 1024:
@@ -75,10 +75,14 @@ def kb_to_mb_gb(size_in_kb: int) -> str:
         return f"{size_in_gb:.2f} GB"
 
 
+def kb_to_mb(size_in_kb: int) -> float:
+    """Convert size from KB to MB."""
+    return size_in_kb / 1024
+
+
 def format_duration(seconds):
     """Formats the duration from seconds to a string in HH:MM:SS format."""
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = seconds % 60
     return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-
