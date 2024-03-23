@@ -129,10 +129,10 @@ def lint_data_to_csv(lint_data: dict, path: Path, progress: Progress):
 
 
 # TODO mata in mer rådata
-def git_data_to_csv(git_data: dict, path: Path):
+def git_data_to_csv(git_data: dict, path: Path, progress: Progress):
     """Write git data to a CSV file."""
 
-    logging.info(f'Processing git data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [_flatten_dict(repo) for repo in git_data.values()]
 
@@ -142,29 +142,33 @@ def git_data_to_csv(git_data: dict, path: Path):
         logging.info("No git data to process into DataFrame.")
         return
 
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
+
     lock = get_lock_for_file(path)
     with lock:
         if path.exists():
-            logging.info(f'Loading CSV: {path}')
+            read_task = progress.add_task(f'Reading CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
             existing_df = pd.read_csv(path)
-            logging.info(f'Done loading CSV: {path}')
+            progress.stop_task(read_task)
+            progress.remove_task(read_task)
             updated_df = pd.concat([existing_df, df]).drop_duplicates('repo', keep='last')
         else:
             updated_df = df
 
+        write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
         updated_df = _sort_rows_and_cols(updated_df, ['repo'], ['repo'])
-
-        logging.info(f'Done processing git data: {util.get_repo_name_from_url_or_path(path)}')
-        logging.info(f'Writing CSV: {path}')
         updated_df.to_csv(path, mode='w', index=False, na_rep='nan')
+        progress.stop_task(write_task)
+        progress.remove_task(write_task)
 
 
 # TODO få in commithashen också
 # TODO mata in mer rådata förrutom summeringarna
-def test_data_to_csv(test_data: dict, path: Path):
+def test_data_to_csv(test_data: dict, path: Path, progress: Progress):
     """Write test data to a CSV file."""
 
-    logging.info(f'Processing test data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [
         {
@@ -187,15 +191,16 @@ def test_data_to_csv(test_data: dict, path: Path):
         logging.info("No test data to process into DataFrame.")
         return
 
-    logging.info(f'Done processing test data: {util.get_repo_name_from_url_or_path(path)}')
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
 
-    _update_csv(path, df, ['repo', 'date'])  # TODO commit hash också?
+    _update_csv(path, df, ['repo', 'date'], progress)  # TODO commit hash också?
 
 
-def stargazers_data_to_csv(stargazers_data: dict, path: Path):
+def stargazers_data_to_csv(stargazers_data: dict, path: Path, progress):
     """Write stargazers data to a CSV file."""
 
-    logging.info(f'Processing stargazers data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [
         {
@@ -224,15 +229,19 @@ def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     df.reset_index(inplace=True)
     df = _sort_cols(df, ['date'])
 
-    logging.info(f'Done processing test data: {util.get_repo_name_from_url_or_path(path)}')
-    logging.info(f'Writing CSV: {path}')
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
+
+    write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
     df.to_csv(path, mode='w', index=False)
+    progress.stop_task(write_task)
+    progress.remove_task(write_task)
 
 
-def metadata_to_csv(metadata: dict, path: Path):
+def metadata_to_csv(metadata: dict, path: Path, progress: Progress):
     """Write repo metadata to a CSV file."""
 
-    logging.info(f'Processing metadata: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [_flatten_dict(repo_metadata) for repo_metadata in metadata.values()]
 
@@ -259,7 +268,14 @@ def metadata_to_csv(metadata: dict, path: Path):
 
     logging.info(f'Done processing metadata: {util.get_repo_name_from_url_or_path(path)}')
     logging.info(f'Writing CSV: {path}')
+
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
+
+    write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
     df.to_csv(path, mode='w', index=False, na_rep='nan')
+    progress.stop_task(write_task)
+    progress.remove_task(write_task)
 
 
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
