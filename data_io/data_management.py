@@ -2,13 +2,16 @@
 
 import json
 import logging
-import rich.progress
+import threading
+from datetime import datetime
+from multiprocessing import current_process
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from pathlib import Path
+from rich.progress import Progress
+
 from utility import config, util
-import threading
 
 meta_lock = threading.Lock()
 file_locks = {}
@@ -21,8 +24,10 @@ def get_lock_for_file(file_path: Path) -> threading.Lock:
 
     with meta_lock:
         if file_path not in file_locks:
+            logging.debug(f'{current_process().name} creating lock for file {file_path}')
             file_locks[file_path] = threading.Lock()
 
+        logging.debug(f'{current_process().name} aquiring lock for file {file_path}')
         return file_locks[file_path]
 
 
@@ -48,13 +53,13 @@ def make_data_directory() -> Path:
     return data_dir
 
 
-def write_json(new_data: dict, path: Path):
+def write_json(new_data: dict, path: Path, progress: Progress):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
 
     lock = get_lock_for_file(path)
     with lock:
         try:
-            with rich.progress.open(path, 'r', description=f'Reading {path}') as file:
+            with open(path, 'r') as file:  # TODO  Progress
                 data = json.load(file)
         except FileNotFoundError:
             data = {}
