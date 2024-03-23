@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 import os
 import requests
 from pathlib import Path
-from utility.progress_bars import IterableProgressWrapper, RichIterableProgressBar
+from utility.progress_bars import IterableProgressWrapper
 import pandas as pd
 from data_io import repo_management
 from rich.pretty import pprint
@@ -59,8 +59,8 @@ def _mine_commit_data(repo: Repository, progress: Progress) -> dict[str, any]:
 
     for commit in IterableProgressWrapper(repo.traverse_commits(),
                                           progress,
-                                          description=util.get_repo_name_from_url_or_path(
-                                              repo._conf.get('path_to_repo')),
+                                          description=
+                                          util.get_repo_name_from_url_or_path(repo._conf.get('path_to_repo')),
                                           postfix="Commits"):
         data["total_commits"] += 1
         data["files_modified"] += len(commit.modified_files)
@@ -268,7 +268,7 @@ def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
 
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
-    for repo_url in RichIterableProgressBar(repos,
+    for repo_url in IterableProgressWrapper(repos,
                                             description="Querying GraphQL API for repo metadata",
                                             disable=config.DISABLE_PROGRESS_BARS):
         repo_owner = util.get_repo_owner_from_url(repo_url)

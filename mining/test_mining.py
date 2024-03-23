@@ -6,7 +6,7 @@ from pathlib import Path
 from utility import util, config
 import ast
 import logging
-from utility.progress_bars import RichIterableProgressBar
+from utility.progress_bars import IterableProgressWrapper
 from rich.pretty import pprint
 
 
@@ -124,7 +124,7 @@ def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, dateti
 
     data = {}
     repo = Repo(repository_path)
-    for commit_hash, date in RichIterableProgressBar(commit_metadata,
+    for commit_hash, date in IterableProgressWrapper(commit_metadata,
                                                      description=f"Traversing commits, mining test data",
                                                      postfix=util.get_repo_name_from_url_or_path(str(repository_path)),
                                                      disable=config.DISABLE_PROGRESS_BARS):
