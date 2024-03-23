@@ -6,7 +6,6 @@ import threading
 from datetime import datetime
 from multiprocessing import current_process
 from pathlib import Path
-from time import sleep
 
 import numpy as np
 import pandas as pd

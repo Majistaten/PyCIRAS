@@ -1,6 +1,7 @@
-import os
 import logging
+import os
 from pathlib import Path
+
 from utility import config
 
 
@@ -55,6 +56,7 @@ def absolute_repos_to_relative(absolute_path: str) -> str:
 def absolute_data_path_to_relative(absolute_path: str) -> str:
     """Returns the relative path of a file from an absolute path"""
     return absolute_path.replace(str(config.DATA_FOLDER), '').lstrip('/').strip()
+
 
 def get_path_to_repo(repo_url: str) -> Path:
     """Returns the path to a repository based on the URL"""

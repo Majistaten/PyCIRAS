@@ -233,6 +233,8 @@ def _mine_git(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.git_data_to_csv(git_data, data_directory / 'git.csv'), progress
 
+        logging.info(f'Mine Git Completed for {repo_urls}\n\n')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining git repositories {repos}.', exc_info=True)
@@ -254,6 +256,8 @@ def _mine_test(repo_urls: list[str]):
             data_management.write_json(test_data, data_directory / 'test-raw.json')
         if config.WRITE_CSV:
             data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+
+        logging.info(f'Mine Lint Completed for {repo_urls}\n\n')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]

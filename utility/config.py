@@ -1,5 +1,5 @@
-from pathlib import Path
 import logging
+from pathlib import Path
 
 # Determine the root directory of the project. Assuming `utility` is at the root.
 ROOT_DIR: Path = Path(__file__).parent.parent.resolve()

@@ -1,13 +1,12 @@
-from datetime import datetime
-
-import rich.progress
-from git import Repo
-from pathlib import Path
-from utility import util, config
 import ast
 import logging
+from datetime import datetime
+from pathlib import Path
+
+from git import Repo
+
+from utility import config, util
 from utility.progress_bars import IterableProgressWrapper
-from rich.pretty import pprint
 
 
 class StatementVisitor(ast.NodeVisitor):

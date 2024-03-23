@@ -1,13 +1,16 @@
 import logging
 from datetime import datetime
-from rich.logging import RichHandler
-from rich.console import Console
-from utility import config
 from pathlib import Path
+
+from rich.console import Console
+from rich.logging import RichHandler
+
+from utility import config
 
 LOG_DIR = Path(config.LOGGING_FOLDER)
 LOG_FILE = datetime.now().strftime('%Y-%m-%d_%H-%M.log')
 LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # TODO få ut pydriller och pylint logs på debug nivå in i loggen
 def setup_root_logger():
@@ -27,7 +30,7 @@ def setup_root_logger():
 
         logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, rich_handler])
 
-# TODO försök komma åt pylints logger        logging.getLogger('pylint').setLevel(logging.INFO)
+        # TODO försök komma åt pylints logger        logging.getLogger('pylint').setLevel(logging.INFO)
 
         logging.getLogger('pydriller.repository').setLevel(logging.WARNING)
 
