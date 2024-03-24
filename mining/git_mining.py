@@ -13,6 +13,7 @@ from pydriller.metrics.process.change_set import ChangeSet
 from pydriller.metrics.process.code_churn import CodeChurn
 from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.contributors_experience import ContributorsExperience
+from pydriller.metrics.process.history_complexity import HistoryComplexity
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
 from rich.progress import Progress
@@ -119,6 +120,13 @@ def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = N
     code_churn = _code_churn(repo_path, since, to)
     change_set_max, change_set_avg = _change_set(repo_path, since, to)
 
+    history_complexity = _history_complexity(repo_path, since, to)
+
+    logging.info(f'Contributors experience: {contributors_experience}')  # TODO {}
+    logging.info(f'Change set avg: {change_set_avg}, Change set max {change_set_max}')  # TODO blir 0
+    logging.info(f'History complexity: {history_complexity}')  # TODO blir {}
+    logging.info(f'Code churn: {code_churn}')  # TODO BLIR {'total': {}, 'max': {}, 'avg': {}}
+
     return {
         'lines_count': {
             'added': lines_count_added,
@@ -130,7 +138,7 @@ def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = N
             'total': contributors_count_total,
             'minor': contributors_count_minor
         },
-        'code_churn': code_churn,
+        'code_churn': code_churn,  # TODO code churn försvinner
         'change_set_max': change_set_max,
         'change_set_avg': change_set_avg
     }
@@ -148,6 +156,7 @@ def _hunks_count(repo_path: Path, since: datetime = None, to: datetime = None):
     return data.count()
 
 
+# TODO dyker inte upp i CSV
 def _contributor_experience(repo_path: Path, since: datetime = None, to: datetime = None):
     """Mine contribution experience data from a repository"""
     data = ContributorsExperience(path_to_repo=str(repo_path), since=since, to=to)
@@ -160,15 +169,25 @@ def _contributor_count(repo_path: Path, since: datetime = None, to: datetime = N
     return data.count(), data.count_minor()
 
 
+# TODO dyker inte upp i CSV
 def _code_churn(repo_path: Path, since: datetime = None, to: datetime = None):
     """"Mine code churn data from a repository"""
     data = CodeChurn(path_to_repo=str(repo_path), since=since, to=to)
     return {'total': data.count(), 'max': data.max(), 'avg': data.avg()}
 
 
+# TODO blir 0 på alla?
 def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine change set data from a repository"""
     change_set_metric = ChangeSet(path_to_repo=str(repo_path), since=since, to=to)
     return change_set_metric.max(), change_set_metric.avg()
+
+
+# TODO hur få in denna?
+def _history_complexity(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine history complexity data from a repository"""
+    data = HistoryComplexity(path_to_repo=str(repo_path), since=since, to=to)
+    return data.count()
 
 
 def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, [dict]]:
