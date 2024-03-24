@@ -7,7 +7,7 @@ from pydriller import Repository
 from rich.progress import Progress
 
 from utility import util
-from utility.progress_bars import GitProgress, IterableProgressWrapper, RepositoryWithProgress
+from utility.progress_bars import GitProgress, RepositoryWithProgress
 
 
 def clone_repos(repo_directory: Path, repo_urls: list[str], progress: Progress) -> list[Path]:
@@ -22,10 +22,7 @@ def clone_repos(repo_directory: Path, repo_urls: list[str], progress: Progress) 
     """
 
     repo_paths = []
-    for repo_url in IterableProgressWrapper(repo_urls,  # TODO disable if multiprocessing or config is off
-                                            progress,
-                                            description="Cloning Repositories",
-                                            postfix="Repos"):
+    for repo_url in repo_urls:
 
         path = _clone_repo(repo_directory, repo_url, progress)
 

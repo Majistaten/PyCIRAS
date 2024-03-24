@@ -16,9 +16,11 @@
 # TODO specifiera en config option för att sätta workers till både pylint och pydriller
 # TODO läs koden och dokumentation till Pydriller och Pylint och kolla alla options
 
-import concurrent.futures
+ # TODO testa progressbars i Jupyter, advance/update? refresh=true?
+
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
 
@@ -361,8 +363,7 @@ def _process_chunk(repo_urls: list[str],
         chunk_of_repos = repo_urls[i:i + chunk_size]
         if multiprocessing:
             logging.debug(f'Processing in parallel')
-            _execute_in_parallel(args_list=[(pyciras_functions, [repo]) for repo in chunk_of_repos],
-                                 workers=chunk_size)
+            _execute_in_parallel(args_list=[(pyciras_functions, [repo]) for repo in chunk_of_repos])
         else:
             logging.debug(f'Processing sequentially')
             for function in pyciras_functions:
@@ -373,7 +374,7 @@ def _process_chunk(repo_urls: list[str],
             repo_management.remove_repos(chunk_of_repos)
 
 
-def _execute_in_parallel(args_list: list, workers: int = 4):
+def _execute_in_parallel(args_list: list):
     """ Executes a function in parallel with arguments. """
 
     def run_all(pyricas_functions, urls):
@@ -382,24 +383,22 @@ def _execute_in_parallel(args_list: list, workers: int = 4):
             result[str(function.__name__)] = function(urls)
         return result
 
-# TODO nåt skumt med denna multi-threading? Eller är pylint helt jävla CP
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(run_all, *args) for args in args_list]
-        for future in concurrent.futures.as_completed(futures):
-            future.result()
+    with ThreadPoolExecutor() as pool:
+        for args in args_list:
+            pool.submit(run_all, *args)
 
 
 if __name__ == '__main__':
-    # run_repo_cloner(repo_urls=None,
-    #                 chunk_size=2,
-    #                 multiprocessing=True)
+    run_repo_cloner(repo_urls=None,
+                    chunk_size=100,
+                    multiprocessing=True)
+
     run_mining(repo_urls=None,
-               chunk_size=3,
-               multiprocessing=True,
-               persist_repos=True,
-               stargazers=False,
-               metadata=False,
+               chunk_size=1,
+               multiprocessing=False,
+               persist_repos=False,  # Testa false, tar den bort nedladdade?
+               stargazers=True,
+               metadata=True,
                test=True,
                git=True,
                lint=True)

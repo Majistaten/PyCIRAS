@@ -169,7 +169,8 @@ class GitProgress(RemoteProgress):
 
         self.progress.update(
             task_id=self.task_ids[self.current_operation],
-            completed=cur_count
+            completed=cur_count,
+            refresh=True
         )
 
         if op_code & self.END:
@@ -215,7 +216,8 @@ class IterableProgressWrapper:
             if self.completion_description:
                 self.progress.update(self.task_id,
                                      description=f"[green]{self.completion_description}",
-                                     completed=self.progress.tasks[self.task_id].total)
+                                     completed=self.progress.tasks[self.task_id].total,
+                                     refresh=True)
             self.progress.stop_task(self.task_id)
             self.progress.remove_task(self.task_id)
 
