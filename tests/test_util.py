@@ -60,7 +60,7 @@ class MyModuleTests(unittest.TestCase):
         """ Tests that the function returns a relative path, based on the absolute path provided by config.py """
         absolute_path = f'{config.REPOSITORIES_FOLDER}/subfolder/file.py'
         expected_relative_path = 'subfolder/file.py'
-        actual_relative_path = util.get_file_relative_path_from_absolute_path(absolute_path)
+        actual_relative_path = util.absolute_repos_to_relative(absolute_path)
         self.assertEqual(expected_relative_path, actual_relative_path)
 
     @patch('utility.config.REPOSITORIES_FOLDER', Path('/base/repo/'))

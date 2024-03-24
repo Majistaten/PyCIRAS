@@ -1,6 +1,7 @@
-import os
 import logging
+import os
 from pathlib import Path
+
 from utility import config
 
 
@@ -40,16 +41,20 @@ def get_repo_name_from_url_or_path(path_or_url: Path | str) -> str:
 def get_repository_urls_from_file(file_path: Path) -> list[str]:
     """Get a list of repository URLs from a file"""
     urls = []
-    logging.info(f"Getting repository urls from file: {file_path}")
     with open(file_path, 'r') as file:
         for line in file:
             urls.append(sanitize_url(line))
     return urls
 
 
-def get_file_relative_path_from_absolute_path(absolute_path: str) -> str:
-    """Returns the relative path of a file from an absolute path"""
+def absolute_repos_to_relative(absolute_path: str) -> str:
+    """Returns the relative path of a repo from an absolute path"""
     return absolute_path.replace(str(config.REPOSITORIES_FOLDER), '').lstrip('/').strip()
+
+
+def absolute_data_path_to_relative(absolute_path: str) -> str:
+    """Returns the relative path of a file from an absolute path"""
+    return absolute_path.replace(str(config.DATA_FOLDER), '').lstrip('/').strip()
 
 
 def get_path_to_repo(repo_url: str) -> Path:
