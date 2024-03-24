@@ -57,6 +57,12 @@ def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[
         "files_modified": 0,
     }
 
+    dmm_mloc_valid_changes = 0
+    dmm_mcc_valid_changes = 0
+    dmm_mnop_valid_changes = 0
+    dmm_mloc_sum = 0
+    dmm_mcc_sum = 0
+    dmm_mnop_sum = 0
     for commit in IterableProgressWrapper(repo.traverse_commits(),  # TODO disable if multiprocessing or config
                                           progress,
                                           description=
@@ -72,9 +78,33 @@ def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[
             data["lines_added"] += file.added_lines
             data["lines_deleted"] += file.deleted_lines
 
+        # TODO history complexity
+        # TODO samla in DMM per commit
+
+        if commit.dmm_unit_size:
+            dmm_mloc_valid_changes += 1
+            dmm_mloc_sum += commit.dmm_unit_size
+        if commit.dmm_unit_complexity:
+            dmm_mcc_valid_changes += 1
+            dmm_mcc_sum += commit.dmm_unit_complexity
+        if commit.dmm_unit_interfacing:
+            dmm_mnop_valid_changes += 1
+            dmm_mnop_sum += commit.dmm_unit_interfacing
+
     data["developer_count"] = len(data["developers"])
+
+    # Averages for commit-based metrics
     data["average_lines_added_per_commit"] = data["lines_added"] / data["total_commits"]
     data["average_lines_deleted_per_commit"] = data["lines_deleted"] / data["total_commits"]
+    data["average_files_modified_per_commit"] = data["files_modified"] / data["total_commits"]
+
+    # Averages for DMM metrics
+    data["average_dmm_method_lines_of_code"] = \
+        dmm_mloc_sum / dmm_mloc_valid_changes if dmm_mloc_valid_changes > 0 else 'nan'
+    data["average_dmm_method_cyclomatic_complexity"] = \
+        dmm_mcc_sum / dmm_mcc_valid_changes if dmm_mcc_valid_changes > 0 else 'nan'
+    data["average_dmm_method_number_of_parameters"] = \
+        dmm_mnop_sum / dmm_mnop_valid_changes if dmm_mnop_valid_changes > 0 else 'nan'
 
     return data
 
