@@ -1,28 +1,102 @@
-[MASTER]
+[MAIN]
+# disable=fixme
 
-load-plugins=
-    pylint.extensions.mccabe
+# Save no persistent cache
+persistent=no
 
-disable=fixme
+# In verbose mode, extra non-checker-related info will be displayed.
+verbose=no
+
+#TODO hitta fler
+ignore=venv,VCS,migrations
+
+# Processes, 0 for max
+jobs=2
+
+# Allow python 2 syntax
+analyse-fallback-blocks=yes
+
+# Clear in-memory caches upon conclusion of linting. Very slow
 clear-cache-post-run=no
 
-[MESSAGES CONTROL]
+# Extensions
+load-plugins=pylint.extensions.redefined_variable_type,
+             pylint.extensions.private_import,
+             pylint.extensions.comparison_placement,
+             pylint.extensions.check_elif,
+             pylint.extensions.mccabe,
+             pylint.extensions.code_style,
+             pylint.extensions.typing,
+             pylint.extensions.dunder,
+             pylint.extensions.while_used,
+             pylint.extensions.set_membership,
+             pylint.extensions.eq_without_hash,
+             pylint.extensions.broad_try_clause,
+             pylint.extensions.redefined_loop_name,
+             pylint.extensions.magic_value,
+             pylint.extensions.docparams,
+             pylint.extensions.empty_comment,
+             pylint.extensions.dict_init_mutate,
+             pylint.extensions.consider_refactoring_into_while_condition,
+             pylint.extensions.no_self_use,
+             pylint.extensions.confusing_elif,
+             pylint.extensions.docstyle,
+             pylint.extensions.for_any_all,
+             pylint.extensions.bad_builtin,
+             pylint.extensions.consider_ternary_expression,
+             pylint.extensions.overlapping_exceptions,
 
+
+
+[BASIC]
+
+[CLASSES]
 
 [DESIGN]
 
 # Change the sensitivity of complexity. Default 10
 max-complexity=1
 
+[EXCEPTIONS]
+
 [FORMAT]
 
 # Maximum number of characters on a single line. Default 100
-max-line-length=150
+# max-line-length=150
+max-line-length=120
 
 # Maximum number of lines in a module. Default 1000
 max-module-lines=1000
 
+[IMPORTS]
+
+[LOGGING]
+
+[MESSAGES CONTROL]
+
+[METHOD_ARGS]
+
 [MISCELLANEOUS]
 
-# List of note tags to take in consideration, separated by a comma.
-notes=XXX
+[REFACTORING]
+
+[REPORTS]
+
+# Template used to display messages. This is a python new-style format string
+# used to format the message information. See doc for all details. # TODO användbart?
+msg-template=
+
+[SIMILARITIES]
+
+[SPELLING]
+
+# Limits count of emitted suggestions for spelling mistakes.
+# TODO Testa 0 på denna och se om nån stavar helt sjukt lol
+# max-spelling-suggestions=4
+max-spelling-suggestions=0
+
+[STRING]
+
+[TYPECHECK]
+
+[VARIABLES]

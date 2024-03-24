@@ -16,7 +16,7 @@
 # TODO specifiera en config option för att sätta workers till både pylint och pydriller
 # TODO läs koden och dokumentation till Pydriller och Pylint och kolla alla options
 
- # TODO testa progressbars i Jupyter, advance/update? refresh=true?
+# TODO testa progressbars i Jupyter, advance/update? refresh=true?
 
 import logging
 import time
@@ -398,8 +398,8 @@ if __name__ == '__main__':
                chunk_size=1,
                multiprocessing=False,
                persist_repos=False,  # Testa false, tar den bort nedladdade?
-               stargazers=True,
-               metadata=True,
-               test=True,
-               git=True,
+               stargazers=False,
+               metadata=False,
+               test=False,
+               git=False,
                lint=True)

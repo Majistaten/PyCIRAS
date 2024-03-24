@@ -16,10 +16,6 @@ from utility import config, util
 from utility.progress_bars import IterableProgressWrapper
 
 
-# TODO fixa till det med en cache directory inom projektet
-# config.PYLINT_CACHE.mkdir(parents=True, exist_ok=True)
-# os.environ['PYLINTHOME'] = str(config.PYLINT_CACHE)
-
 class LintReporter(TextReporter):
     """Custom Pylint reporter, collects linting messages and allows for further processing"""
 
@@ -100,12 +96,7 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
 
     pylint_options = [
         f'--rcfile={config.PYLINT_CONFIG}',
-        str(repository_path),
-        '--j=1',
-        '--ignore=venv'
-        # f'--cache-dir={config.PYLINT_CACHE}',
-        # '--persistent=no',  # Add this line to disable persistent data
-        # '--jobs=1'  # disable any parallell processing
+        str(repository_path)
     ]
 
     run = Run(pylint_options, reporter=reporter, exit=False)
