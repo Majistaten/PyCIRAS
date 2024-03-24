@@ -1,203 +1,129 @@
-# Import necessary modules
-from datetime import datetime
+import json
 from pathlib import Path
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, Text, ForeignKey, JSON, Float, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship
-from utility import config
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-# Define the base class
-Base = declarative_base()
-
-
-class Repository(Base):
-    __tablename__ = 'repositories'
-    repo_name = Column(String, primary_key=True)
-    repo_metadata = relationship('Metadata', back_populates='repository', uselist=False)
-    tests = relationship('Test', back_populates='repository')
-    lints = relationship('Lint', back_populates='repository')
-    stargazers = relationship('Stargazers', back_populates='repository')
-    gits = relationship('Git', back_populates='repository')
+from data_io.data_management import CustomEncoder
+from utility import config, dummy_data
+from data_io.database_models import Base, Repository, Metadata, Stargazers, Test, Git, TestCommit, Lint, LintCommit
 
 
-class Metadata(Base):
-    __tablename__ = 'metadata'
-    id = Column(Integer, primary_key=True)
-    repository_name = Column(String, ForeignKey('repositories.repo_name'))
-    repository = relationship("Repository", back_populates="repo_metadata")
-    data = Column(JSON)
+class DatabaseManager:
+    def __init__(self, database_path: Path):
+        self.engine = create_engine(f'sqlite:///{database_path}', echo=False)
+        Base.metadata.create_all(self.engine)
+        self.session_maker = sessionmaker(bind=self.engine)
 
+    def __enter__(self):
+        self.session = self.session_maker()
+        return self
 
-class Stargazers(Base):
-    __tablename__ = 'stargazers'
-    id = Column(Integer, primary_key=True)
-    repository_name = Column(String, ForeignKey('repositories.repo_name'))
-    repository = relationship("Repository", back_populates="stargazers")
-    data = Column(JSON)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.session.close()
 
+    def insert_metadata(self, data: dict):
+        for repo_name, repo_info in data.items():
+            repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
+            if not repository:
+                repository = Repository(repo_name=repo_name)
+                self.session.add(repository)
 
-class Test(Base):
-    __tablename__ = 'tests'
-    id = Column(Integer, primary_key=True)
-    repository_name = Column(String, ForeignKey('repositories.repo_name'))
-    repository = relationship("Repository", back_populates="tests")
-    files = Column(JSON)
-    test_to_code_ratio = Column(Float)
-    date = Column(DateTime)
+            json_repo_info = json.dumps(repo_info, cls=CustomEncoder)
+            metadata_entry = Metadata(repository_name=repo_name, data=json_repo_info)
+            self.session.add(metadata_entry)
 
+        self.session.commit()
 
-class Lint(Base):
-    __tablename__ = 'lints'
-    id = Column(Integer, primary_key=True)
-    repository_name = Column(String, ForeignKey('repositories.repo_name'))
-    repository = relationship("Repository", back_populates="lints")
+    def insert_stargazers(self, data: dict):
+        for repo_name, repo_info in data.items():
+            repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
+            if not repository:
+                repository = Repository(repo_name=repo_name)
+                self.session.add(repository)
 
+            json_repo_info = json.dumps(repo_info, cls=CustomEncoder)
+            stargazers_entry = Stargazers(repository_name=repo_name, data=json_repo_info)
+            self.session.add(stargazers_entry)
 
-class LintCommit(Base):
-    __tablename__ = 'lint_commits'
-    id = Column(Integer, primary_key=True)
-    lint_id = Column(Integer, ForeignKey('lints.id'))
-    messages_id = Column(Integer, ForeignKey('lint_messages.id'))
-    stats_id = Column(Integer, ForeignKey('lint_stats.id'))
-    date = Column(DateTime)
+        self.session.commit()
 
+    def insert_tests(self, data: dict):
+        for repo_name, repo_info in data.items():
+            repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
+            if not repository:
+                repository = Repository(repo_name=repo_name)
+                self.session.add(repository)
 
-class LintMessages(Base):
-    __tablename__ = 'lint_messages'
-    id = Column(Integer, primary_key=True)
-    data = Column(JSON)
+            test_entry = Test(repository_name=repo_name)
 
+            self.session.add(test_entry)
+            self.session.commit()
 
-class LintStats(Base):
-    __tablename__ = 'lint_stats'
-    id = Column(Integer, primary_key=True)
-    data = Column(JSON)
+            for commit, commit_info in repo_info.items():
+                self.insert_test_commit(repo_name, commit, commit_info)
 
+    def insert_test_commit(self, repo_name: str, commit: str, commit_info: dict):
+        test = self.session.query(Test).filter_by(repository_name=repo_name).first()
 
-class Git(Base):
-    __tablename__ = 'gits'
-    id = Column(Integer, primary_key=True)
-    repository_name = Column(String, ForeignKey('repositories.repo_name'))
-    repository = relationship("Repository", back_populates="gits")
-    data = Column(JSON)
+        files = json.dumps(commit_info['files'], cls=CustomEncoder)
+        test_commit = TestCommit(hash=commit,
+                                 files=files,
+                                 test_to_code_ratio=commit_info['test-to-code-ratio'],
+                                 date=commit_info['date'])
+        test_commit.test = test
 
+        self.session.add(test_commit)
+        self.session.commit()
 
-def create_session(database_path: str):
-    engine = create_engine(f'sqlite:///{database_path}', echo=True)
-    Base.metadata.create_all(engine)
-    session = sessionmaker(bind=engine)
-    return session()
+    def insert_lints(self, data: dict):
+        for repo_name, repo_info in data.items():
+            repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
+            if not repository:
+                repository = Repository(repo_name=repo_name)
+                self.session.add(repository)
 
+            lint_entry = Lint(repository_name=repo_name)
+            self.session.add(lint_entry)
+            self.session.commit()
 
-def insert_metadata(database_path: Path, data: dict):
-    session = create_session(database_path)
+            for commit, commit_info in repo_info.items():
+                self.insert_lint_commit(repo_name, commit, commit_info)
 
-    for repo_name, repo_info in data.items():
-        repository = session.query(Repository).filter_by(repo_name=repo_name).first()
-        if not repository:
-            repository = Repository(repo_name=repo_name)
-            session.add(repository)
+    def insert_lint_commit(self, repo_name: str, commit: str, commit_info: dict):
+        lint = self.session.query(Lint).filter_by(repository_name=repo_name).first()
 
-        metadata_entry = Metadata(repository_name=repo_name, data=repo_info)
-        session.add(metadata_entry)
+        messages = json.dumps(commit_info['messages'], cls=CustomEncoder)
+        stats = json.dumps(commit_info['stats'], cls=CustomEncoder)
+        lint_commit = LintCommit(hash=commit,
+                                 date=commit_info['date'],
+                                 messages=messages,
+                                 stats=stats)
+        lint_commit.lint_id = lint.id
 
-    session.commit()
-    session.close()
+        self.session.add(lint_commit)
+        self.session.commit()
+
+    def insert_git(self, data: dict):
+        for repo_name, repo_info in data.items():
+            repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
+            if not repository:
+                repository = Repository(repo_name=repo_name)
+                self.session.add(repository)
+
+            json_repo_info = json.dumps(repo_info, cls=CustomEncoder)
+            git_entry = Git(repository_name=repo_name, data=json_repo_info)
+            self.session.add(git_entry)
+
+        self.session.commit()
 
 
 # Example usage:
 if __name__ == "__main__":
-    # Define your JSON data here
-    json_data = {
-        "TDD-Hangman": {
-            "createdAt": "2023-10-07T10:24:24Z",
-            "pushedAt": "2023-10-07T10:25:13Z",
-            "updatedAt": "2023-10-07T10:25:20Z",
-            "archivedAt": None,
-            "description": "This is a simple hangman game. It was built collaboratively using test-driven development, Kanban methodology and Git feature branch workflow, with pull requests and peer reviews.",
-            "forkCount": 0,
-            "stargazerCount": 0,
-            "hasDiscussionsEnabled": False,
-            "hasIssuesEnabled": True,
-            "hasProjectsEnabled": True,
-            "hasSponsorshipsEnabled": False,
-            "fundingLinks": [],
-            "hasWikiEnabled": True,
-            "homepageUrl": None,
-            "isArchived": False,
-            "isEmpty": False,
-            "isFork": False,
-            "isInOrganization": False,
-            "isLocked": False,
-            "isMirror": False,
-            "isPrivate": False,
-            "isTemplate": False,
-            "licenseInfo": None,
-            "lockReason": None,
-            "visibility": "PUBLIC",
-            "url": "https://github.com/SamuelThand/TDD-Hangman",
-            "owner": {
-                "login": "SamuelThand"
-            },
-            "resourcePath": "/SamuelThand/TDD-Hangman",
-            "diskUsage": 261,
-            "languages": {
-                "nodes": [
-                    {
-                        "name": "Python"
-                    }
-                ]
-            },
-            "primaryLanguage": {
-                "name": "Python"
-            }
-        },
-        "TDD-String-Calculator": {
-            "createdAt": "2023-10-07T10:24:24Z",
-            "pushedAt": "2023-10-07T10:25:13Z",
-            "updatedAt": "2023-10-07T10:25:20Z",
-            "archivedAt": None,
-            "description": "This is a simple string calculator. It was built collaboratively using test-driven development, Kanban methodology and Git feature branch workflow, with pull requests and peer reviews.",
-            "forkCount": 0,
-            "stargazerCount": 0,
-            "hasDiscussionsEnabled": False,
-            "hasIssuesEnabled": True,
-            "hasProjectsEnabled": True,
-            "hasSponsorshipsEnabled": False,
-            "fundingLinks": [],
-            "hasWikiEnabled": True,
-            "homepageUrl": None,
-            "isArchived": False,
-            "isEmpty": False,
-            "isFork": False,
-            "isInOrganization": False,
-            "isLocked": False,
-            "isMirror": False,
-            "isPrivate": False,
-            "isTemplate": False,
-            "licenseInfo": None,
-            "lockReason": None,
-            "visibility": "PUBLIC",
-            "url": "https://github.com/SamuelThand/TDD-String-Calculator",
-            "owner": {
-                "login": "SamuelThand"
-            },
-            "resourcePath": "/SamuelThand/TDD-String-Calculator",
-            "diskUsage": 261,
-            "languages": {
-                "nodes": [
-                    {
-                        "name": "Python"
-                    }
-                ]
-            },
-            "primaryLanguage": {
-                "name": "Python"
-            }
-        }
-    }
 
-    # Define the path to your database file
-    db_path = Path(config.OUTPUT_FOLDER / 'repositories.db')
+    with DatabaseManager(config.OUTPUT_FOLDER / 'database.db') as dbm:
+        dbm.insert_metadata(data=dummy_data.metadata)
+        dbm.insert_stargazers(data=dummy_data.stargazers)
+        dbm.insert_tests(data=dummy_data.test)
+        dbm.insert_git(data=dummy_data.git)
+        dbm.insert_lints(data=dummy_data.lint)
 
-    # Call the function to insert data
-    insert_metadata(database_path=db_path, data=json_data)

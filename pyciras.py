@@ -23,6 +23,7 @@ from mining import lint_mining, git_mining, test_mining
 from data_io import data_management, repo_management
 from utility import util, config, logger_setup, ntfyer
 from utility.timer import timed
+from data_io.database_manager import DatabaseManager
 
 rich.traceback.install()
 data_directory = data_management.make_data_directory()
@@ -175,6 +176,10 @@ def _mine_lint(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths)
         lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata)
+
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as db:
+                db.insert_lints(lint_data)
         if config.WRITE_JSON:
             data_management.write_json(lint_data, data_directory / 'lint-raw.json')
 
@@ -193,6 +198,9 @@ def _mine_git(repo_urls: list[str]):
     try:
         git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls)
 
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as db:
+                db.insert_git(git_data)
         if config.WRITE_JSON:
             data_management.write_json(git_data, data_directory / 'git-raw.json')
         if config.WRITE_CSV:
@@ -214,10 +222,14 @@ def _mine_test(repo_urls: list[str]):
                                                                                        repo_paths)
         test_data = test_mining.mine_test_data(repos_and_commit_metadata)
 
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as db:
+                db.insert_tests(test_data)
         if config.WRITE_JSON:
             data_management.write_json(test_data, data_directory / 'test-raw.json')
         if config.WRITE_CSV:
             data_management.test_data_to_csv(test_data, data_directory / 'test.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining test data from repositories {repos}.', exc_info=True)
@@ -230,10 +242,14 @@ def _mine_stargazers(repo_urls: list[str]):
     try:
         stargazers_data = git_mining.mine_stargazers_data(repo_urls)
 
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as db:
+                db.insert_stargazers(stargazers_data)
         if config.WRITE_JSON:
             data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json')
         if config.WRITE_CSV:
             data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while fetching stargazer data for {repos}.', exc_info=True)
@@ -246,10 +262,14 @@ def _mine_metadata(repo_urls: list[str]):
     try:
         metadata = git_mining.mine_repo_metadata(repo_urls)
 
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as db:
+                db.insert_metadata(metadata)
         if config.WRITE_JSON:
             data_management.write_json(metadata, data_directory / 'metadata-raw.json')
         if config.WRITE_CSV:
             data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv')
+
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
         logging.error(f'Error while mining metadata data for repositories {repos}.', exc_info=True)
@@ -324,7 +344,7 @@ if __name__ == '__main__':
                multiprocessing=False,
                persist_repos=False,
                stargazers=True,
-               metadata=False,
-               test=False,
-               git=False,
-               lint=False)
+               metadata=True,
+               test=True,
+               git=True,
+               lint=True)

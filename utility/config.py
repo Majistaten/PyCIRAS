@@ -12,8 +12,9 @@ GRAPHQL_API: str = 'https://api.github.com/graphql'
 PYLINT_CONFIG: Path = ROOT_DIR / 'mining' / '.pylintrc'
 
 DISABLE_PROGRESS_BARS: bool = False
-CONSOLE_LOGGING_LEVEL: int = logging.INFO
+CONSOLE_LOGGING_LEVEL: int = logging.WARNING
 FILE_LOGGING_LEVEL: int = logging.DEBUG
+WRITE_DATABASE: bool = True
 WRITE_JSON: bool = False
 WRITE_CSV: bool = True
 ENABLE_NTFYER: bool = False
