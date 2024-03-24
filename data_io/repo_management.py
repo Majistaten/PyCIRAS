@@ -50,22 +50,21 @@ def _clone_repo(repos_directory: Path, repo_url: str, progress: Progress) -> Pat
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
 
         if not repos_directory.exists() or not repos_directory.is_dir():
-            logging.info(f'{repos_directory} did not exist, creating it.')
             repos_directory.mkdir(parents=True, exist_ok=True)
 
         repo_path = repos_directory / repo_name
 
         if repo_path.exists():
-            logging.info(f'{repo_name} already exists in {repos_directory}, skipping clone')
+            logging.info(f'{repo_name} already exists in {repos_directory}, skipping clone\n')
             return repo_path
 
-        logging.info(f'Cloning Git Repository {repo_name} from {repo_url} to {repo_path}')
+        logging.info(f'Cloning Git Repository {repo_url}')
 
         Repo.clone_from(repo_url,
                         repo_path,
                         progress=GitProgress(progress, description=repo_name))
 
-        logging.info(f'Finished cloning {repo_name}')
+        logging.info(f'Finished cloning {repo_url}')
 
         return repo_path
 

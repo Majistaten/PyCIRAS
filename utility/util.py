@@ -41,7 +41,6 @@ def get_repo_name_from_url_or_path(path_or_url: Path | str) -> str:
 def get_repository_urls_from_file(file_path: Path) -> list[str]:
     """Get a list of repository URLs from a file"""
     urls = []
-    logging.info(f"Getting repository urls from file: {file_path}")
     with open(file_path, 'r') as file:
         for line in file:
             urls.append(sanitize_url(line))

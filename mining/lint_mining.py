@@ -38,7 +38,6 @@ def mine_lint_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, da
                                                               progress,
                                                               description="Mining lint data",
                                                               postfix="Repos"):
-        logging.info(f"Mining lint data: {repo_path}")
         data[util.get_repo_name_from_url_or_path(repo_path)] = _mine_commit_data(Path(repo_path),
                                                                                  commit_metadata,
                                                                                  progress)
@@ -57,6 +56,10 @@ def _mine_commit_data(repo_path: Path,
                                                      progress,
                                                      description=util.get_repo_name_from_url_or_path(repo_path),
                                                      postfix='Commits'):
+
+        # Ensure the repo is in a clean state
+        repo.git.reset('--hard')
+        repo.git.clean('-fdx')
 
         repo.git.checkout(commit_hash)
         lint_data = _run_pylint(repo_path, commit_hash)
@@ -89,8 +92,17 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     logging.info(f'[{util.get_repo_name_from_url_or_path(repository_path)}]: {commit}\n'
                  f'Mining {len(target_files)} Python files')
 
-    # TODO få ut logging från Pylint
-    run = Run([f'--rcfile={config.PYLINT_CONFIG}'] + target_files, reporter=reporter, exit=False)
+    pylint_options = [
+        f'--rcfile={config.PYLINT_CONFIG}',
+        str(repository_path),
+        '--j=1',
+        '--ignore=venv'
+        # f'--cache-dir={config.PYLINT_CACHE}',
+        # '--persistent=no',  # Add this line to disable persistent data
+        # '--jobs=1'  # disable any parallell processing
+    ]
+
+    run = Run(pylint_options, reporter=reporter, exit=False)
     stats = run.linter.stats
     if not isinstance(stats, dict):
         stats_dict = {str(attr): getattr(stats, attr) for attr in dir(stats) if

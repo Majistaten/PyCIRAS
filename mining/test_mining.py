@@ -138,6 +138,10 @@ def _mine_commit_data(repo_path: Path,
                                                      description=util.get_repo_name_from_url_or_path(repo_path),
                                                      postfix='Commits'):
 
+        # Ensure the repo is in a clean state
+        repo.git.reset('--hard')
+        repo.git.clean('-fdx')
+
         repo.git.checkout(commit_hash)
         test_data = _run_ast_mining(repo_path, commit_hash, progress)
 

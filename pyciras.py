@@ -86,12 +86,12 @@ def run_repo_cloner(repo_urls: list[str] = None,
                 'Please provide a list of repository URLs or a file that is not empty.')
             return
 
-        logging.info(f'Cloning {len(repo_urls)} repositories')
+        logging.info(f'Cloning {len(repo_urls)} repositories\n')
 
-        logging.info(f"Cloning will run with the current settings: "
-                     f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
-                     f"\n   Logs will be stored in {config.LOGGING_FOLDER}."
-                     f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
+        logging.info(f"Cloning will run with the current settings:"
+                     f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}\n\n"
+                     f"\nLog directory\n{config.LOGGING_FOLDER}\n"
+                     f"\nRepositories direvtory\n{config.REPOSITORIES_FOLDER}\n\n")
 
         _process_chunk(repo_urls,
                        pyciras_functions=[_clone_repos],
@@ -161,18 +161,18 @@ def run_mining(repo_urls: list[str] = None,
                 'Please provide a list of repository URLs or a file that is not empty.')
             return
 
-        logging.info(f'Mining {len(repo_urls)} repositories')
+        logging.info(f'Mining {len(repo_urls)} repositories\n')
 
-        logging.info(f"The analysis will run with the current settings: "
-                     f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}, "
-                     f"\n - persist_repos={persist_repos}, "
-                     f"\n - stagazers={stargazers}, "
-                     f"\n - lint={lint}, "
-                     f"\n - test={test}, "
-                     f"\n - git={git}."
-                     f"\n   Data will be stored in {data_directory}."
-                     f"\n   Logs will be stored in {config.LOGGING_FOLDER}."
-                     f"\n   Repositories will be stored in {config.REPOSITORIES_FOLDER}.")
+        logging.info(f"The analysis will run with the current settings:"
+                     f"\n - chunk_size={chunk_size}, multiprocessing={multiprocessing}"
+                     f"\n - persist_repos={persist_repos}"
+                     f"\n - stagazers={stargazers}"
+                     f"\n - lint={lint}"
+                     f"\n - test={test}"
+                     f"\n - git={git}\n\n"
+                     f"\nData directory\n{data_directory}\n"
+                     f"\nLog directory\n{config.LOGGING_FOLDER}\n"
+                     f"\nRepositories directory\n{config.REPOSITORIES_FOLDER}\n\n")
 
         mining_functions = []
         if lint:
@@ -206,6 +206,9 @@ def _mine_lint(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths,
                                                                                        progress)
+
+        logging.info(f'Mining Lint Data for {repo_urls}\n\n')
+
         lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata, progress)
 
         if config.WRITE_JSON:
@@ -227,13 +230,16 @@ def _mine_lint(repo_urls: list[str]):
 def _mine_git(repo_urls: list[str]):
     """ Mine git data from a list of repositories. """
     try:
+
+        logging.info(f'Mining Git Data for {repo_urls}\n\n')
+
         git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls, progress)
 
         if config.WRITE_JSON:
             data_management.write_json(git_data, data_directory / 'git-raw.json', progress)
 
         if config.WRITE_CSV:
-            data_management.git_data_to_csv(git_data, data_directory / 'git.csv'), progress
+            data_management.git_data_to_csv(git_data, data_directory / 'git.csv', progress)
 
         logging.info(f'Mine Git Completed for {repo_urls}\n\n')
 
@@ -253,6 +259,9 @@ def _mine_test(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths,
                                                                                        progress)
+
+        logging.info(f'Mining Test Data for {repo_urls}\n\n')
+
         test_data = test_mining.mine_test_data(repos_and_commit_metadata, progress)
 
         if config.WRITE_JSON:
@@ -275,6 +284,9 @@ def _mine_test(repo_urls: list[str]):
 def _mine_stargazers(repo_urls: list[str]):
     """ Mine stargazers data from a list of repositories. """
     try:
+
+        logging.info(f'Mining Stargazers for {repo_urls}\n\n')
+
         stargazers_data = git_mining.mine_stargazers_data(repo_urls, progress)
 
         if config.WRITE_JSON:
@@ -296,6 +308,9 @@ def _mine_stargazers(repo_urls: list[str]):
 def _mine_metadata(repo_urls: list[str]):
     """Mine repo metadata from a list of repositories."""
     try:
+
+        logging.info(f'Mining Metadata for {repo_urls}\n\n')
+
         metadata = git_mining.mine_repo_metadata(repo_urls, progress)
 
         if config.WRITE_JSON:
@@ -316,6 +331,9 @@ def _mine_metadata(repo_urls: list[str]):
 @timed
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
+
+    logging.info(f'Cloning Repos: {repo_urls}\n\n')
+
     return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls, progress)
 
 
@@ -361,9 +379,10 @@ def _execute_in_parallel(args_list: list, workers: int = 4):
     def run_all(pyricas_functions, urls):
         result = {}
         for function in pyricas_functions:
-            logging.info(f'Running {str(function.__name__)} on {urls}')
             result[str(function.__name__)] = function(urls)
         return result
+
+# TODO nåt skumt med denna multi-threading? Eller är pylint helt jävla CP
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         futures = [executor.submit(run_all, *args) for args in args_list]
@@ -373,14 +392,14 @@ def _execute_in_parallel(args_list: list, workers: int = 4):
 
 if __name__ == '__main__':
     # run_repo_cloner(repo_urls=None,
-    #                 chunk_size=8,
+    #                 chunk_size=2,
     #                 multiprocessing=True)
     run_mining(repo_urls=None,
-               chunk_size=1,
-               multiprocessing=False,
+               chunk_size=3,
+               multiprocessing=True,
                persist_repos=True,
                stargazers=False,
                metadata=False,
                test=True,
-               git=False,
-               lint=False)
+               git=True,
+               lint=True)

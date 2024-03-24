@@ -148,14 +148,7 @@ def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, 
 
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
-    # for url in RichIterableProgressBar(
-    #         repo_urls,
-    #         description="Querying GraphQL API for stargazers data",
-    #         disable=config.DISABLE_PROGRESS_BARS):
-
-    # mining_task = progress.add_task(description="Mining Stargazers", total=len(repo_urls), start=True)
-
-    for url in IterableProgressWrapper(repo_urls, progress, "Mining Stargazers", postfix="Repos"):
+    for url in IterableProgressWrapper(repo_urls, progress, "Querying GraphQL API for Stargazers", postfix="Repos"):
 
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url_or_path(url)
@@ -166,6 +159,8 @@ def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, 
 
         stargazers = []
         end_cursor = None
+
+        query_task = progress.add_task(f'{util.get_repo_name_from_url_or_path(url)}', total=None)
         while True:
 
             query = {
@@ -221,13 +216,13 @@ def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, 
                 _send_graphql_rate_limit_warning(remaining, reset_at)
             elif remaining <= 0:
                 break
-        # progress.remove_task(query_task)
+
+        progress.stop_task(query_task)
+        progress.remove_task(query_task)
 
         response["data"]["repository"]["name"] = repo_name
         response["data"]["repository"]["stargazers"]["edges"] = stargazers
         data[repo_name] = response
-
-        # progress.update(mining_task, advance=1, refresh=True)
 
     return data
 
@@ -261,7 +256,7 @@ def _check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
     return remaining, reset_at
 
 
-def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
+def mine_repo_metadata(repos: list[str], progress: Progress) -> dict[str, any]:
     """Mine the metadata of a list of repositories and return a dictionary with the data."""
 
     load_dotenv()
@@ -269,8 +264,10 @@ def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
     for repo_url in IterableProgressWrapper(repos,
-                                            description="Querying GraphQL API for repo metadata",
-                                            disable=config.DISABLE_PROGRESS_BARS):
+                                            progress,
+                                            description="Querying GraphQL API for metadata",
+                                            postfix='Repos'):
+
         repo_owner = util.get_repo_owner_from_url(repo_url)
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
 

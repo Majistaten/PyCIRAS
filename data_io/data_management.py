@@ -266,9 +266,6 @@ def metadata_to_csv(metadata: dict, path: Path, progress: Progress):
 
     df = _sort_rows_and_cols(df, ['repo'], ['repo'])
 
-    logging.info(f'Done processing metadata: {util.get_repo_name_from_url_or_path(path)}')
-    logging.info(f'Writing CSV: {path}')
-
     progress.stop_task(processing_task)
     progress.remove_task(processing_task)
 
