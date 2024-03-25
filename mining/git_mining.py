@@ -120,8 +120,7 @@ def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = N
     code_churn = _code_churn(repo_path, since, to)
     change_set_max, change_set_avg = _change_set(repo_path, since, to)
 
-    history_complexity = _history_complexity(repo_path, since, to)
-
+    history_complexity = _history_complexity(repo_path, since, to)  # TODO {}
     logging.info(f'Contributors experience: {contributors_experience}')  # TODO {}
     logging.info(f'Change set avg: {change_set_avg}, Change set max {change_set_max}')  # TODO blir 0
     logging.info(f'History complexity: {history_complexity}')  # TODO blir {}
@@ -138,7 +137,7 @@ def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = N
             'total': contributors_count_total,
             'minor': contributors_count_minor
         },
-        'code_churn': code_churn,  # TODO code churn försvinner
+        'code_churn': code_churn,
         'change_set_max': change_set_max,
         'change_set_avg': change_set_avg
     }
