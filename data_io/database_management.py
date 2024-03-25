@@ -8,9 +8,13 @@ from utility import config, dummy_data
 from data_io.database_models import Base, Repository, Metadata, Stargazers, Test, Git, TestCommit, Lint, LintCommit
 
 
+def dumps(data):
+    return json.dumps(data, cls=CustomEncoder)
+
+
 class DatabaseManager:
     def __init__(self, database_path: Path):
-        self.engine = create_engine(f'sqlite:///{database_path}', echo=False)
+        self.engine = create_engine(f'sqlite:///{database_path}', echo=False, json_serializer=dumps)
         Base.metadata.create_all(self.engine)
         self.session_maker = sessionmaker(bind=self.engine)
 
@@ -21,6 +25,7 @@ class DatabaseManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
 
+
     def insert_metadata(self, data: dict):
         for repo_name, repo_info in data.items():
             repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
@@ -28,8 +33,7 @@ class DatabaseManager:
                 repository = Repository(repo_name=repo_name)
                 self.session.add(repository)
 
-            json_repo_info = json.dumps(repo_info, cls=CustomEncoder)
-            metadata_entry = Metadata(repository_name=repo_name, data=json_repo_info)
+            metadata_entry = Metadata(repository_name=repo_name, data=repo_info)
             self.session.add(metadata_entry)
 
         self.session.commit()
@@ -41,8 +45,7 @@ class DatabaseManager:
                 repository = Repository(repo_name=repo_name)
                 self.session.add(repository)
 
-            json_repo_info = json.dumps(repo_info, cls=CustomEncoder)
-            stargazers_entry = Stargazers(repository_name=repo_name, data=json_repo_info)
+            stargazers_entry = Stargazers(repository_name=repo_name, data=repo_info)
             self.session.add(stargazers_entry)
 
         self.session.commit()
@@ -65,9 +68,8 @@ class DatabaseManager:
     def insert_test_commit(self, repo_name: str, commit: str, commit_info: dict):
         test = self.session.query(Test).filter_by(repository_name=repo_name).first()
 
-        files = json.dumps(commit_info['files'], cls=CustomEncoder)
         test_commit = TestCommit(hash=commit,
-                                 files=files,
+                                 files=commit_info['files'],
                                  test_to_code_ratio=commit_info['test-to-code-ratio'],
                                  date=commit_info['date'])
         test_commit.test = test
@@ -92,12 +94,10 @@ class DatabaseManager:
     def insert_lint_commit(self, repo_name: str, commit: str, commit_info: dict):
         lint = self.session.query(Lint).filter_by(repository_name=repo_name).first()
 
-        messages = json.dumps(commit_info['messages'], cls=CustomEncoder)
-        stats = json.dumps(commit_info['stats'], cls=CustomEncoder)
         lint_commit = LintCommit(hash=commit,
                                  date=commit_info['date'],
-                                 messages=messages,
-                                 stats=stats)
+                                 messages=commit_info['messages'],
+                                 stats=commit_info['stats'])
         lint_commit.lint_id = lint.id
 
         self.session.add(lint_commit)
@@ -110,8 +110,7 @@ class DatabaseManager:
                 repository = Repository(repo_name=repo_name)
                 self.session.add(repository)
 
-            json_repo_info = json.dumps(repo_info, cls=CustomEncoder)
-            git_entry = Git(repository_name=repo_name, data=json_repo_info)
+            git_entry = Git(repository_name=repo_name, data=repo_info)
             self.session.add(git_entry)
 
         self.session.commit()

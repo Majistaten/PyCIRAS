@@ -36,7 +36,7 @@ from rich.progress import (
 )
 
 from data_io import data_management, repo_management
-from data_io.database_manager import DatabaseManager
+from data_io.database_management import DatabaseManager
 from mining import git_mining, lint_mining, test_mining
 from utility import config, logger_setup, ntfyer, util
 from utility.progress_bars import IterableColumn
