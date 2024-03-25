@@ -2,12 +2,33 @@
 
 import json
 import logging
-import rich.progress
+import threading
+from datetime import datetime
+from multiprocessing import current_process
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from pathlib import Path
+from rich.progress import Progress
+
 from utility import config, util
+
+meta_lock = threading.Lock()
+file_locks = {}
+
+
+def get_lock_for_file(file_path: Path) -> threading.Lock:
+    """Get a lock for a file path, creating one if it doesn't exist."""
+
+    global meta_lock, file_locks
+
+    with meta_lock:
+        if file_path not in file_locks:
+            logging.debug(f'{current_process().name} creating lock for file {file_path}')
+            file_locks[file_path] = threading.Lock()
+
+        logging.debug(f'{current_process().name} aquiring lock for file {file_path}')
+        return file_locks[file_path]
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -32,26 +53,34 @@ def make_data_directory() -> Path:
     return data_dir
 
 
-def write_json(new_data: dict, path: Path):
+def write_json(new_data: dict, path: Path, progress: Progress):
     """Loads existing JSON data and updates it with new data, or writes new data to a JSON file."""
-    try:
-        with rich.progress.open(path, 'r', description=f'Reading {path}') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        data = {}
 
-    data.update(new_data)
+    lock = get_lock_for_file(path)
+    with lock:
+        try:
+            read_task = progress.add_task(f'Reading JSON: {util.absolute_data_path_to_relative(str(path))}', total=None)
+            with open(path, 'r') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = {}
+        progress.stop_task(read_task)
+        progress.remove_task(read_task)
 
-    logging.info(f'Writing JSON: {path}')
-    with open(path, 'w') as file:
-        json.dump(data, file, indent=4, cls=CustomEncoder)
+        data.update(new_data)
+
+        write_task = progress.add_task(f'Writing JSON: {util.absolute_data_path_to_relative(str(path))}', total=None)
+        with open(path, 'w') as file:
+            json.dump(data, file, indent=4, cls=CustomEncoder)
+        progress.stop_task(write_task)
+        progress.remove_task(write_task)
 
 
 # TODO mata in mer rådata
-def lint_data_to_csv(lint_data: dict, path: Path):
+def lint_data_to_csv(lint_data: dict, path: Path, progress: Progress):
     """Write lint data to a CSV file."""
 
-    logging.info(f'Processing lint data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = []
     for repo, repo_data in lint_data.items():
@@ -81,7 +110,7 @@ def lint_data_to_csv(lint_data: dict, path: Path):
     df = pd.DataFrame(flat_data)
 
     if df.empty:
-        logging.info("No lint data to process into DataFrame")
+        logging.info("\nNo lint data to process into DataFrame")
         return
 
     df['date'] = pd.to_datetime(df['date'], utc=True)
@@ -93,46 +122,53 @@ def lint_data_to_csv(lint_data: dict, path: Path):
             inplace=True,
             errors='ignore')
 
-    logging.info(f'Done processing lint data: {util.get_repo_name_from_url_or_path(path)}')
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
 
-    _update_csv(path, df, ['repo', 'date', 'commit_hash'])
+    _update_csv(path, df, ['repo', 'date', 'commit_hash'], progress)
 
 
 # TODO mata in mer rådata
-def git_data_to_csv(git_data: dict, path: Path):
+def git_data_to_csv(git_data: dict, path: Path, progress: Progress):
     """Write git data to a CSV file."""
 
-    logging.info(f'Processing git data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [_flatten_dict(repo) for repo in git_data.values()]
 
     df = pd.DataFrame(flat_data)
 
     if df.empty:
-        logging.info("No git data to process into DataFrame.")
+        logging.info("\nNo git data to process into DataFrame.")
         return
 
-    if path.exists():
-        logging.info(f'Loading CSV: {path}')
-        existing_df = pd.read_csv(path)
-        logging.info(f'Done loading CSV: {path}')
-        updated_df = pd.concat([existing_df, df]).drop_duplicates('repo', keep='last')
-    else:
-        updated_df = df
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
 
-    updated_df = _sort_rows_and_cols(updated_df, ['repo'], ['repo'])
+    lock = get_lock_for_file(path)
+    with lock:
+        if path.exists():
+            read_task = progress.add_task(f'Reading CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
+            existing_df = pd.read_csv(path)
+            progress.stop_task(read_task)
+            progress.remove_task(read_task)
+            updated_df = pd.concat([existing_df, df]).drop_duplicates('repo', keep='last')
+        else:
+            updated_df = df
 
-    logging.info(f'Done processing git data: {util.get_repo_name_from_url_or_path(path)}')
-    logging.info(f'Writing CSV: {path}')
-    updated_df.to_csv(path, mode='w', index=False, na_rep='nan')
+        write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
+        updated_df = _sort_rows_and_cols(updated_df, ['repo'], ['repo'])
+        updated_df.to_csv(path, mode='w', index=False, na_rep='nan')
+        progress.stop_task(write_task)
+        progress.remove_task(write_task)
 
 
 # TODO få in commithashen också
 # TODO mata in mer rådata förrutom summeringarna
-def test_data_to_csv(test_data: dict, path: Path):
+def test_data_to_csv(test_data: dict, path: Path, progress: Progress):
     """Write test data to a CSV file."""
 
-    logging.info(f'Processing test data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [
         {
@@ -152,18 +188,19 @@ def test_data_to_csv(test_data: dict, path: Path):
     df = pd.DataFrame(flat_data)
 
     if df.empty:
-        logging.info("No test data to process into DataFrame.")
+        logging.info("\nNo test data to process into DataFrame.")
         return
 
-    logging.info(f'Done processing test data: {util.get_repo_name_from_url_or_path(path)}')
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
 
-    _update_csv(path, df, ['repo', 'date'])  # TODO commit hash också?
+    _update_csv(path, df, ['repo', 'date'], progress)  # TODO commit hash också?
 
 
-def stargazers_data_to_csv(stargazers_data: dict, path: Path):
+def stargazers_data_to_csv(stargazers_data: dict, path: Path, progress):
     """Write stargazers data to a CSV file."""
 
-    logging.info(f'Processing stargazers data: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [
         {
@@ -179,7 +216,7 @@ def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     df = pd.DataFrame(flat_data)
 
     if df.empty:
-        logging.info("No stargazers data to process into DataFrame.")
+        logging.info("\nNo stargazers data to process into DataFrame.")
         return
 
     df['date'] = pd.to_datetime(df['date'], utc=True)
@@ -192,22 +229,26 @@ def stargazers_data_to_csv(stargazers_data: dict, path: Path):
     df.reset_index(inplace=True)
     df = _sort_cols(df, ['date'])
 
-    logging.info(f'Done processing test data: {util.get_repo_name_from_url_or_path(path)}')
-    logging.info(f'Writing CSV: {path}')
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
+
+    write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
     df.to_csv(path, mode='w', index=False)
+    progress.stop_task(write_task)
+    progress.remove_task(write_task)
 
 
-def metadata_to_csv(metadata: dict, path: Path):
+def metadata_to_csv(metadata: dict, path: Path, progress: Progress):
     """Write repo metadata to a CSV file."""
 
-    logging.info(f'Processing metadata: {util.get_repo_name_from_url_or_path(path)}')
+    processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
     flat_data = [_flatten_dict(repo_metadata) for repo_metadata in metadata.values()]
 
     df = pd.DataFrame(flat_data)
 
     if df.empty:
-        logging.info("No metadata to process into DataFrame.")
+        logging.info("\nNo metadata to process into DataFrame.")
         return
 
     date_fields = ['createdAt', 'pushedAt', 'updatedAt', 'archivedAt']
@@ -225,9 +266,13 @@ def metadata_to_csv(metadata: dict, path: Path):
 
     df = _sort_rows_and_cols(df, ['repo'], ['repo'])
 
-    logging.info(f'Done processing metadata: {util.get_repo_name_from_url_or_path(path)}')
-    logging.info(f'Writing CSV: {path}')
+    progress.stop_task(processing_task)
+    progress.remove_task(processing_task)
+
+    write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
     df.to_csv(path, mode='w', index=False, na_rep='nan')
+    progress.stop_task(write_task)
+    progress.remove_task(write_task)
 
 
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
@@ -244,26 +289,31 @@ def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str 
     return dict(items)
 
 
-def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str]):
+def _update_csv(path: Path, new_df: pd.DataFrame, fixed_cols: list[str], progress):
     """Loads existing CSV data and updates it with new data, or writes new data to a CSV file."""
 
-    if path.exists():
-        logging.info(f'Loading CSV: {path}')
-        existing_df = pd.read_csv(path, parse_dates=['date'])
-        logging.info(f'Done loading CSV: {path}')
-    else:
-        existing_df = pd.DataFrame()
+    lock = get_lock_for_file(path)
+    with lock:
+        if path.exists():
+            read_task = progress.add_task(f'Reading CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
+            existing_df = pd.read_csv(path, parse_dates=['date'])
+            progress.stop_task(read_task)
+            progress.remove_task(read_task)
+        else:
+            existing_df = pd.DataFrame()
 
-    if not existing_df.empty:
-        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
-        updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
-    else:
-        updated_df = new_df
+        write_task = progress.add_task(f'Writing CSV: {util.absolute_data_path_to_relative(str(path))}', total=None)
+        if not existing_df.empty:
+            updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+            updated_df = updated_df.drop_duplicates(subset=['repo', 'date'], keep='last')
+        else:
+            updated_df = new_df
 
-    updated_df = _sort_rows_and_cols(updated_df, ['repo', 'date'], fixed_cols)
+        updated_df = _sort_rows_and_cols(updated_df, ['repo', 'date'], fixed_cols)
 
-    logging.info(f'Writing CSV: {path}')
-    updated_df.to_csv(path, index=False, na_rep='nan')
+        updated_df.to_csv(path, index=False, na_rep='nan')
+        progress.stop_task(write_task)
+        progress.remove_task(write_task)
 
 
 def _sort_rows_and_cols(df: pd.DataFrame, sort_rows_by: list[str], fixed_cols: list[str]):

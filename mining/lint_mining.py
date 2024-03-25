@@ -1,15 +1,19 @@
+import logging
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 
+from git import Repo
 from pylint.lint import Run
+from pylint.message import Message
 from pylint.reporters.text import TextReporter
 from pylint.reporters.ureports.nodes import Section
-from pylint.message import Message
-from io import StringIO
-import logging
-from git import Repo
-from utility import util, config
-from utility.progress_bars import RichIterableProgressBar
+from rich.progress import (
+    Progress,
+)
+
+from utility import config, util
+from utility.progress_bars import IterableProgressWrapper
 
 
 class LintReporter(TextReporter):
@@ -26,29 +30,39 @@ class LintReporter(TextReporter):
         self.messages.append(msg)
 
 
-def mine_lint_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, datetime]]]) -> dict[str, any]:
+def mine_lint_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, datetime]]],
+                   progress: Progress) -> dict[str, any]:
     """Mine lint data from the commits of multiple git repositories"""
     data = {}
-    for repo_path, commit_metadata in repo_paths_with_commit_metadata.items():
-        logging.info(f"Mining lint data: {repo_path}")
-        data[util.get_repo_name_from_url_or_path(repo_path)] = _mine_commit_data(Path(repo_path), commit_metadata)
+    for repo_path, commit_metadata in IterableProgressWrapper(repo_paths_with_commit_metadata.items(),
+                                                              progress,
+                                                              description="Mining lint data",
+                                                              postfix="Repos"):
+        data[util.get_repo_name_from_url_or_path(repo_path)] = _mine_commit_data(Path(repo_path),
+                                                                                 commit_metadata,
+                                                                                 progress)
 
     return data
 
 
-# TODO refaktorera till en gemensam funktion tillsammans med test-mining
-def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, datetime]]) -> dict[str, any]:
+def _mine_commit_data(repo_path: Path,
+                      commit_metadata: [tuple[str, datetime]],
+                      progress: Progress) -> dict[str, any]:
     """Mines lint data from the commits of a repository"""
 
     data = {}
-    repo = Repo(repository_path)
-    for commit_hash, date in RichIterableProgressBar(commit_metadata,
-                                                     description=f"Traversing commits, mining lint data",
-                                                     postfix=util.get_repo_name_from_url_or_path(str(repository_path)),
-                                                     disable=config.DISABLE_PROGRESS_BARS):
+    repo = Repo(repo_path)
+    for commit_hash, date in IterableProgressWrapper(commit_metadata,
+                                                     progress,
+                                                     description=util.get_repo_name_from_url_or_path(repo_path),
+                                                     postfix='Commits'):
+
+        # Ensure the repo is in a clean state
+        repo.git.reset('--hard')
+        repo.git.clean('-fdx')
 
         repo.git.checkout(commit_hash)
-        lint_data = _run_pylint(repository_path, commit_hash)
+        lint_data = _run_pylint(repo_path, commit_hash)
 
         if lint_data is not None:
             data[commit_hash] = lint_data
@@ -57,6 +71,8 @@ def _mine_commit_data(repository_path: Path, commit_metadata: [tuple[str, dateti
     return data
 
 
+# TODO testa om resultat blir olika för andra repos också
+# TODO vad returneras om pylint inte hittar några pythonfiler?
 def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     """Runs Pylint on Python files"""
 
@@ -75,12 +91,16 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     out = StringIO()
     reporter = LintReporter(output=out)
 
-    logging.info(f"Mining {len(target_files)} files in "
-                 f"{util.get_repo_name_from_url_or_path(repository_path)}\n"
-                 f"Commit: {commit}")
+    logging.info(f'\n[{util.get_repo_name_from_url_or_path(repository_path)}]: {commit}\n'
+                 f'Mining {len(target_files)} Python files')
 
-    # TODO få ut logging från Pylint
-    run = Run([f'--rcfile={config.PYLINT_CONFIG}'] + target_files, reporter=reporter, exit=False)
+    pylint_options = [
+        f'--rcfile={config.PYLINT_CONFIG}',
+        str(repository_path)
+    ]
+
+    run = Run(pylint_options, reporter=reporter, exit=False)
+
     stats = run.linter.stats
     if not isinstance(stats, dict):
         stats_dict = {str(attr): getattr(stats, attr) for attr in dir(stats) if
@@ -89,22 +109,18 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
         stats_dict = stats
 
     repo_name = util.get_repo_name_from_url_or_path(str(repository_path))
-    data['messages'] = _parse_pylint_messages(reporter.messages)
+    data['messages'] = _parse_pylint_messages(reporter.messages, commit)
     data['messages']['repository_name'] = repo_name
     data['stats'] = stats_dict
     data['stats']['avg_mccabe_complexity'] = data['messages']['avg_mccabe_complexity']
     data['stats']['repository_name'] = repo_name
 
-    logging.debug(f"Mined {len(target_files)} files in {repository_path}")
-
     return data
 
 
 # TODO plocka fram Max komplexitet / min komplexitet per commit
-def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
+def _parse_pylint_messages(messages: list[Message], commit: str) -> dict[str, any]:
     """Parses Pylint Messages and returns them in a formatted dictionary using strings"""
-
-    logging.info(f"Parsing {len(messages)} pylint messages")
 
     data = {}
     for msg in messages:
@@ -131,7 +147,7 @@ def _parse_pylint_messages(messages: list[Message]) -> dict[str, any]:
 
     data['avg_mccabe_complexity'] = _calculate_avg_mccabe_complexity(messages)
 
-    logging.debug(f"Extracted {len(data)} pylint modules")
+    logging.info(f"Result: {len(messages)} Pylint messages\n")
 
     return data
 

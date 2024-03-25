@@ -1,37 +1,43 @@
 """This module contains the functions to mine git data from a repository. It uses Pydriller to extract the data."""
 
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import requests
 from dateutil.relativedelta import relativedelta
-from pydriller import Repository
+from dotenv import load_dotenv
 from pydriller.metrics.process.change_set import ChangeSet
 from pydriller.metrics.process.code_churn import CodeChurn
 from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.contributors_experience import ContributorsExperience
+from pydriller.metrics.process.history_complexity import HistoryComplexity
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
-from utility import util, config, ntfyer
-from dotenv import load_dotenv
-import os
-import requests
-from pathlib import Path
-from utility.progress_bars import RichIterableProgressBar
-import pandas as pd
+from rich.progress import Progress
+
 from data_io import repo_management
-from rich.pretty import pprint
+from utility import config, ntfyer, util
+from utility.progress_bars import IterableProgressWrapper, RepositoryWithProgress
 
 
 def mine_git_data(repo_directory: Path,
                   repo_urls: list[str],
+                  progress: Progress,
                   since: datetime = datetime.now(),
                   to: datetime = datetime.now() - relativedelta(years=20)) -> dict[str, dict[str, any]]:
     """Mine git data from a list of repositories and return a dictionary with the data"""
 
     data = {}
-    repo_urls = repo_management.load_repos(repo_directory, repo_urls)
-    for repo_url, repo in repo_urls.items():
+    repo_urls = repo_management.load_repos(repo_directory, repo_urls, progress)
+    for repo_url, repo in IterableProgressWrapper(repo_urls.items(),
+                                                  progress,
+                                                  description=f'Mining Git Data',
+                                                  postfix="Repos"):
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
-        data[repo_name] = _mine_commit_data(repo)
+        data[repo_name] = _mine_commit_data(repo, progress)
         data[repo_name].update(_mine_process_data(repo_directory / repo_name, since, to))
         data[repo_name]['repo'] = repo_name
         data[repo_name]['repo_url'] = repo_url
@@ -39,7 +45,8 @@ def mine_git_data(repo_directory: Path,
     return data
 
 
-def _mine_commit_data(repo: Repository) -> dict[str, any]:
+# TODO fundera på hur beräkningarna på verkas om man kör flera workers
+def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[str, any]:
     """Mine commit data from a repository."""
 
     data = {
@@ -51,10 +58,17 @@ def _mine_commit_data(repo: Repository) -> dict[str, any]:
         "files_modified": 0,
     }
 
-    for commit in RichIterableProgressBar(repo.traverse_commits(),
-                                          description="Traversing commits, mining git data",
-                                          disable=config.DISABLE_PROGRESS_BARS):
-
+    dmm_mloc_valid_changes = 0
+    dmm_mcc_valid_changes = 0
+    dmm_mnop_valid_changes = 0
+    dmm_mloc_sum = 0
+    dmm_mcc_sum = 0
+    dmm_mnop_sum = 0
+    for commit in IterableProgressWrapper(repo.traverse_commits(),  # TODO disable if multiprocessing or config
+                                          progress,
+                                          description=
+                                          util.get_repo_name_from_url_or_path(repo._conf.get('path_to_repo')),
+                                          postfix='Commits'):
         data["total_commits"] += 1
         data["files_modified"] += len(commit.modified_files)
 
@@ -65,9 +79,33 @@ def _mine_commit_data(repo: Repository) -> dict[str, any]:
             data["lines_added"] += file.added_lines
             data["lines_deleted"] += file.deleted_lines
 
+        # TODO history complexity
+        # TODO samla in DMM per commit
+
+        if commit.dmm_unit_size:
+            dmm_mloc_valid_changes += 1
+            dmm_mloc_sum += commit.dmm_unit_size
+        if commit.dmm_unit_complexity:
+            dmm_mcc_valid_changes += 1
+            dmm_mcc_sum += commit.dmm_unit_complexity
+        if commit.dmm_unit_interfacing:
+            dmm_mnop_valid_changes += 1
+            dmm_mnop_sum += commit.dmm_unit_interfacing
+
     data["developer_count"] = len(data["developers"])
+
+    # Averages for commit-based metrics
     data["average_lines_added_per_commit"] = data["lines_added"] / data["total_commits"]
     data["average_lines_deleted_per_commit"] = data["lines_deleted"] / data["total_commits"]
+    data["average_files_modified_per_commit"] = data["files_modified"] / data["total_commits"]
+
+    # Averages for DMM metrics
+    data["average_dmm_method_lines_of_code"] = \
+        dmm_mloc_sum / dmm_mloc_valid_changes if dmm_mloc_valid_changes > 0 else 'nan'
+    data["average_dmm_method_cyclomatic_complexity"] = \
+        dmm_mcc_sum / dmm_mcc_valid_changes if dmm_mcc_valid_changes > 0 else 'nan'
+    data["average_dmm_method_number_of_parameters"] = \
+        dmm_mnop_sum / dmm_mnop_valid_changes if dmm_mnop_valid_changes > 0 else 'nan'
 
     return data
 
@@ -82,6 +120,13 @@ def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = N
     code_churn = _code_churn(repo_path, since, to)
     change_set_max, change_set_avg = _change_set(repo_path, since, to)
 
+    history_complexity = _history_complexity(repo_path, since, to)
+
+    logging.info(f'Contributors experience: {contributors_experience}')  # TODO {}
+    logging.info(f'Change set avg: {change_set_avg}, Change set max {change_set_max}')  # TODO blir 0
+    logging.info(f'History complexity: {history_complexity}')  # TODO blir {}
+    logging.info(f'Code churn: {code_churn}')  # TODO BLIR {'total': {}, 'max': {}, 'avg': {}}
+
     return {
         'lines_count': {
             'added': lines_count_added,
@@ -93,7 +138,7 @@ def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = N
             'total': contributors_count_total,
             'minor': contributors_count_minor
         },
-        'code_churn': code_churn,
+        'code_churn': code_churn,  # TODO code churn försvinner
         'change_set_max': change_set_max,
         'change_set_avg': change_set_avg
     }
@@ -111,6 +156,7 @@ def _hunks_count(repo_path: Path, since: datetime = None, to: datetime = None):
     return data.count()
 
 
+# TODO dyker inte upp i CSV
 def _contributor_experience(repo_path: Path, since: datetime = None, to: datetime = None):
     """Mine contribution experience data from a repository"""
     data = ContributorsExperience(path_to_repo=str(repo_path), since=since, to=to)
@@ -123,28 +169,35 @@ def _contributor_count(repo_path: Path, since: datetime = None, to: datetime = N
     return data.count(), data.count_minor()
 
 
+# TODO dyker inte upp i CSV
 def _code_churn(repo_path: Path, since: datetime = None, to: datetime = None):
     """"Mine code churn data from a repository"""
     data = CodeChurn(path_to_repo=str(repo_path), since=since, to=to)
     return {'total': data.count(), 'max': data.max(), 'avg': data.avg()}
 
 
+# TODO blir 0 på alla?
 def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine change set data from a repository"""
     change_set_metric = ChangeSet(path_to_repo=str(repo_path), since=since, to=to)
     return change_set_metric.max(), change_set_metric.avg()
 
 
-def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
+# TODO hur få in denna?
+def _history_complexity(repo_path: Path, since: datetime = None, to: datetime = None):
+    """Mine history complexity data from a repository"""
+    data = HistoryComplexity(path_to_repo=str(repo_path), since=since, to=to)
+    return data.count()
+
+
+def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, [dict]]:
     """Mine stargazers data from a list of repositories and return a dictionary with the data"""
 
     load_dotenv()
 
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
-    for url in RichIterableProgressBar(
-            repo_urls,
-            description="Querying GraphQL API for stargazers data",
-            disable=config.DISABLE_PROGRESS_BARS):
+    for url in IterableProgressWrapper(repo_urls, progress, "Querying GraphQL API for Stargazers", postfix="Repos"):
 
         repo_owner = util.get_repo_owner_from_url(url)
         repo_name = util.get_repo_name_from_url_or_path(url)
@@ -155,6 +208,8 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
 
         stargazers = []
         end_cursor = None
+
+        query_task = progress.add_task(f'{util.get_repo_name_from_url_or_path(url)}', total=None)
         while True:
 
             query = {
@@ -182,8 +237,6 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
             }
 
             response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
-
-            pprint(response)
 
             if "message" in response and response["message"] == "Bad credentials":
                 logging.error(f"\nBad credentials when querying the GraphQL API for stargazers\n"
@@ -213,6 +266,9 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
             elif remaining <= 0:
                 break
 
+        progress.stop_task(query_task)
+        progress.remove_task(query_task)
+
         response["data"]["repository"]["name"] = repo_name
         response["data"]["repository"]["stargazers"]["edges"] = stargazers
         data[repo_name] = response
@@ -220,16 +276,47 @@ def mine_stargazers_data(repo_urls: list[str]) -> dict[str, [dict]]:
     return data
 
 
-def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
+def _check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
+    """Check the rate limit of the GraphQL API"""
+
+    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
+
+    query = {
+        "query": """query {
+        rateLimit {
+            limit
+            cost
+            remaining
+            resetAt
+        }
+        }"""
+    }
+
+    response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
+
+    if "errors" in response:
+        logging.error(f"\nError when when querying GraphQL API for rate limit info\n"
+                      f"Error message: {response['errors'][0]['message']}")
+        return 0, pd.to_datetime(datetime.now(), utc=True)
+
+    remaining = int(response['data']['rateLimit']['remaining'])
+    reset_at = pd.to_datetime(response['data']['rateLimit']['resetAt'], utc=True)
+
+    return remaining, reset_at
+
+
+def mine_repo_metadata(repos: list[str], progress: Progress) -> dict[str, any]:
     """Mine the metadata of a list of repositories and return a dictionary with the data."""
 
     load_dotenv()
 
     headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
     data = {}
-    for repo_url in RichIterableProgressBar(repos,
-                                            description="Querying GraphQL API for repo metadata",
-                                            disable=config.DISABLE_PROGRESS_BARS):
+    for repo_url in IterableProgressWrapper(repos,
+                                            progress,
+                                            description="Querying GraphQL API for metadata",
+                                            postfix='Repos'):
+
         repo_owner = util.get_repo_owner_from_url(repo_url)
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
 
@@ -315,35 +402,6 @@ def mine_repo_metadata(repos: list[str]) -> dict[str, any]:
             break
 
     return data
-
-
-def _check_graphql_rate_limit() -> tuple[int, pd.Timestamp]:
-    """Check the rate limit of the GraphQL API"""
-
-    headers = {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'}
-
-    query = {
-        "query": """query {
-        rateLimit {
-            limit
-            cost
-            remaining
-            resetAt
-        }
-        }"""
-    }
-
-    response = requests.post(config.GRAPHQL_API, json=query, headers=headers).json()
-
-    if "errors" in response:
-        logging.error(f"\nError when when querying GraphQL API for rate limit info\n"
-                      f"Error message: {response['errors'][0]['message']}")
-        return 0, pd.to_datetime(datetime.now(), utc=True)
-
-    remaining = int(response['data']['rateLimit']['remaining'])
-    reset_at = pd.to_datetime(response['data']['rateLimit']['resetAt'], utc=True)
-
-    return remaining, reset_at
 
 
 def _send_graphql_rate_limit_warning(remaining: int, reset_at: pd.Timestamp):
