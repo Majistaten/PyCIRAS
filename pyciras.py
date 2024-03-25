@@ -177,10 +177,10 @@ def run_mining(repo_urls: list[str] = None,
                      f"\nRepositories directory\n{config.REPOSITORIES_FOLDER}\n\n")
 
         mining_functions = []
-        if lint:
-            mining_functions.append(_mine_lint)
         if git:
             mining_functions.append(_mine_git)
+        if lint:
+            mining_functions.append(_mine_lint)
         if test:
             mining_functions.append(_mine_test)
 
@@ -397,9 +397,9 @@ if __name__ == '__main__':
     run_mining(repo_urls=None,
                chunk_size=1,
                multiprocessing=False,
-               persist_repos=False,  # Testa false, tar den bort nedladdade?
-               stargazers=False,
-               metadata=False,
-               test=False,
-               git=False,
+               persist_repos=True,  # Testa false, tar den bort nedladdade?
+               stargazers=True,
+               metadata=True,
+               test=True,
+               git=True,
                lint=True)

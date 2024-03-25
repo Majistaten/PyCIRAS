@@ -1,3 +1,5 @@
+https://github.com/SamuelThand/TDD-Hangman
+https://github.com/coinse/sadl
 https://github.com/conala-corpus/conala-baseline
-https://github.com/lin-tan/clm
-https://github.com/iris-42/CTRAS
+https://github.com/githubnext/amalfi-artifact
+https://github.com/jun-zeng/Tailor

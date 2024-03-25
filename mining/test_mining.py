@@ -12,6 +12,8 @@ from utility import util
 from utility.progress_bars import IterableProgressWrapper
 
 
+# TODO add exclusions for datasets/venv etc
+
 class StatementVisitor(ast.NodeVisitor):
     """Used to find unit-testing imports and count test/production statements in a Python file"""
 
