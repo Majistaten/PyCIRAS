@@ -8,7 +8,7 @@ persistent=no
 verbose=no
 
 #TODO hitta fler
-ignore=venv,VCS,migrations
+ignore=venv,VCS,migrations,lib
 
 # Processes, 0 for max
 jobs=2
