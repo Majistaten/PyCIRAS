@@ -36,6 +36,7 @@ from rich.progress import (
 )
 
 from data_io import data_management, repo_management
+from data_io.database_manager import DatabaseManager
 from mining import git_mining, lint_mining, test_mining
 from utility import config, logger_setup, ntfyer, util
 from utility.progress_bars import IterableColumn
@@ -213,6 +214,10 @@ def _mine_lint(repo_urls: list[str]):
 
         lint_data = lint_mining.mine_lint_data(repos_and_commit_metadata, progress)
 
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as dbm:
+                dbm.insert_lints(data=lint_data)
+
         if config.WRITE_JSON:
             data_management.write_json(lint_data, data_directory / 'lint-raw.json', progress)
 
@@ -236,6 +241,10 @@ def _mine_git(repo_urls: list[str]):
         logging.info(f'\nMining Git Data for {repo_urls}')
 
         git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls, progress)
+
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as dbm:
+                dbm.insert_git(data=git_data)
 
         if config.WRITE_JSON:
             data_management.write_json(git_data, data_directory / 'git-raw.json', progress)
@@ -266,6 +275,10 @@ def _mine_test(repo_urls: list[str]):
 
         test_data = test_mining.mine_test_data(repos_and_commit_metadata, progress)
 
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as dbm:
+                dbm.insert_tests(data=test_data)
+
         if config.WRITE_JSON:
             data_management.write_json(test_data, data_directory / 'test-raw.json', progress)
 
@@ -291,6 +304,10 @@ def _mine_stargazers(repo_urls: list[str]):
 
         stargazers_data = git_mining.mine_stargazers_data(repo_urls, progress)
 
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as dbm:
+                dbm.insert_stargazers(data=stargazers_data)
+
         if config.WRITE_JSON:
             data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json', progress)
 
@@ -314,6 +331,10 @@ def _mine_metadata(repo_urls: list[str]):
         logging.info(f'\nMining Metadata for {repo_urls}')
 
         metadata = git_mining.mine_repo_metadata(repo_urls, progress)
+
+        if config.WRITE_DATABASE:
+            with DatabaseManager(data_directory / 'database.db') as dbm:
+                dbm.insert_metadata(data=metadata)
 
         if config.WRITE_JSON:
             data_management.write_json(metadata, data_directory / 'metadata-raw.json', progress)
@@ -396,8 +417,8 @@ if __name__ == '__main__':
 
     run_mining(repo_urls=None,
                chunk_size=1,
-               multiprocessing=False,
-               persist_repos=True,  # Testa false, tar den bort nedladdade?
+               multiprocessing=True,
+               persist_repos=False,  # Testa false, tar den bort nedladdade?
                stargazers=True,
                metadata=True,
                test=True,
