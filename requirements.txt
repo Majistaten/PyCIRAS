@@ -14,3 +14,4 @@ numpy
 db-sqlite3
 SQLAlchemy
 python-dotenv
+python-dateutil
