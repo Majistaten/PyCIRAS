@@ -109,8 +109,13 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
         stats_dict = stats
 
     repo_name = util.get_repo_name_from_url_or_path(str(repository_path))
+
     data['messages'] = _parse_pylint_messages(reporter.messages, commit)
     data['messages']['repository_name'] = repo_name
+
+    # TODO gå igenom stats_dict som kommer från pylint, stäm av mot messages och byt ut symbol mot ID.symbol
+    # TODO (Så man kan se vilken kategori meddelandet hör till, t.ex I0101 -> information, samt symbolen)
+
     data['stats'] = stats_dict
     data['stats']['avg_mccabe_complexity'] = data['messages']['avg_mccabe_complexity']
     data['stats']['repository_name'] = repo_name
