@@ -19,7 +19,6 @@ from rich.progress import Progress, ProgressColumn, Task, TextColumn
 
 # TODO implementera disable
 
-
 class RepositoryWithProgress(Repository):
     """Overrides the traverse_commits method to show a progress bar, and removes INFO level logs."""
 
