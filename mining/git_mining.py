@@ -360,9 +360,13 @@ def mine_repo_metadata(repos: list[str], progress: Progress) -> dict[str, any]:
                         }
                         resourcePath
                         diskUsage
-                        languages(first: 10) {
-                            nodes { 
-                                name
+                        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+                            totalSize
+                            edges {
+                                size
+                                node {
+                                    name
+                                }
                             }
                         }
                         primaryLanguage {

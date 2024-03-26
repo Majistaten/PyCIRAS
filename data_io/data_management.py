@@ -258,8 +258,12 @@ def metadata_to_csv(metadata: dict, path: Path, progress: Progress):
 
     df['repo'] = df['resourcePath'].apply(util.get_repo_name_from_url_or_path)
     df['diskUsage'] = df['diskUsage'].apply(util.kb_to_mb)
-    df['languages.nodes'] = df['languages.nodes'].apply(
-        lambda languages: tuple(sorted(lang['name'] for lang in languages)))
+
+    df['languages.nodes'] = df.apply(
+        lambda row: _calculate_language_percentages(row['languages.edges'], row['languages.totalSize']), axis=1
+    )
+    df = df.rename(columns={'languages.nodes': 'languages'})
+    df = df.drop(['languages.edges', 'languages.totalSize'], axis=1)
 
     with pd.option_context('future.no_silent_downcasting', True):
         df.replace('', np.nan, inplace=True)
@@ -273,6 +277,12 @@ def metadata_to_csv(metadata: dict, path: Path, progress: Progress):
     df.to_csv(path, mode='w', index=False, na_rep='nan')
     progress.stop_task(write_task)
     progress.remove_task(write_task)
+
+
+def _calculate_language_percentages(languages_edges, total_size):
+    if total_size > 0:
+        return [(edge['node']['name'], round((edge['size'] / total_size) * 100, 1)) for edge in languages_edges]
+    return []
 
 
 def _flatten_dict(dictionary: dict, parent_key: str = '', prefix_separator: str = '.') -> dict:
