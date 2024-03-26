@@ -4,7 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from data_io.data_management import CustomEncoder
-from utility import config, dummy_data
 from data_io.database_models import Base, Repository, Metadata, Stargazers, Test, Git, TestCommit, Lint, LintCommit
 
 
@@ -114,15 +113,3 @@ class DatabaseManager:
             self.session.add(git_entry)
 
         self.session.commit()
-
-
-# Example usage:
-if __name__ == "__main__":
-
-    with DatabaseManager(config.OUTPUT_FOLDER / 'database.db') as dbm:
-        dbm.insert_metadata(data=dummy_data.metadata)
-        dbm.insert_stargazers(data=dummy_data.stargazers)
-        dbm.insert_tests(data=dummy_data.test)
-        dbm.insert_git(data=dummy_data.git)
-        dbm.insert_lints(data=dummy_data.lint)
-
