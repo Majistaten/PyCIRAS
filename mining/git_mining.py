@@ -26,8 +26,8 @@ from utility.progress_bars import IterableProgressWrapper, RepositoryWithProgres
 def mine_git_data(repo_directory: Path,
                   repo_urls: list[str],
                   progress: Progress,
-                  since: datetime = datetime.now(),
-                  to: datetime = datetime.now() - relativedelta(years=20)) -> dict[str, dict[str, any]]:
+                  since: datetime = datetime.now() - relativedelta(years=20),
+                  to: datetime = datetime.now()) -> dict[str, dict[str, any]]:
     """Mine git data from a list of repositories and return a dictionary with the data"""
 
     data = {}
@@ -38,7 +38,7 @@ def mine_git_data(repo_directory: Path,
                                                   postfix="Repos"):
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
         data[repo_name] = _mine_commit_data(repo, progress)
-        data[repo_name].update(_mine_process_data(repo_directory / repo_name, since, to))
+        data[repo_name].update(_mine_process_data(repo_directory / repo_name, since=since, to=to, progress=progress))
         data[repo_name]['repo'] = repo_name
         data[repo_name]['repo_url'] = repo_url
 
@@ -110,83 +110,135 @@ def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[
     return data
 
 
-def _mine_process_data(repo_path: Path, since: datetime = None, to: datetime = None):
+def _mine_process_data(repo_path: Path,
+                       since: datetime = None,
+                       to: datetime = None,
+                       progress: Progress = None) -> dict[str, any]:
     """Mine process data from a repository"""
+    repo = util.get_repo_name_from_url_or_path(repo_path)
 
-    lines_count_added, lines_count_removed = _lines_count(repo_path, since, to)
-    hunks_count = _hunks_count(repo_path, since, to)
-    contributors_experience = _contributor_experience(repo_path, since, to)
-    contributors_count_total, contributors_count_minor = _contributor_count(repo_path, since, to)
-    code_churn = _code_churn(repo_path, since, to)
+    task = progress.add_task(f'Processing lines: {repo}', total=6)
+    lines_avg, lines_count = _lines_count(repo_path, since, to)
+
+    progress.update(task, advance=1, description=f'Processing hunks: {repo}')
+    hunks_avg, hunks_count = _hunks_count(repo_path, since, to)
+
+    progress.update(task, advance=1, description=f'Processing contributors experience: {repo}')
+    contributors_exp_avg, contributors_experience = _contributor_experience(repo_path, since, to)
+
+    progress.update(task, advance=1, description=f'Processing contributors count: {repo}')
+    contributors_avg, contributors_count = _contributor_count(repo_path, since, to)
+
+    progress.update(task, advance=1, description=f'Processing code churn: {repo}')
+    churn_avg, code_churn = _code_churn(repo_path, since, to)
+
+    progress.update(task, advance=1, description=f'Processing change set: {repo}')
     change_set_max, change_set_avg = _change_set(repo_path, since, to)
 
-    history_complexity = _history_complexity(repo_path, since, to)  # TODO {}
-    logging.info(f'Contributors experience: {contributors_experience}')  # TODO {}
-    logging.info(f'Change set avg: {change_set_avg}, Change set max {change_set_max}')  # TODO blir 0
-    logging.info(f'History complexity: {history_complexity}')  # TODO blir {}
-    logging.info(f'Code churn: {code_churn}')  # TODO BLIR {'total': {}, 'max': {}, 'avg': {}}
+    progress.update(task, advance=1, description=f'Processing history complexity: {repo}')
+    history_avg, history_complexity = _history_complexity(repo_path, since, to)
 
-    return {
-        'lines_count': {
-            'added': lines_count_added,
-            'removed': lines_count_removed
-        },
+    progress.stop_task(task)
+    progress.remove_task(task)
+    result = {
+        'lines_count': lines_count,
         'hunks_count': hunks_count,
         'contributors_experience': contributors_experience,
-        'contributors_count': {
-            'total': contributors_count_total,
-            'minor': contributors_count_minor
-        },
+        'contributors_count': contributors_count,
+        'history_complexity': history_complexity,
         'code_churn': code_churn,
         'change_set_max': change_set_max,
         'change_set_avg': change_set_avg
     }
+    result.update(lines_avg)
+    result.update(hunks_avg)
+    result.update(contributors_exp_avg)
+    result.update(contributors_avg)
+    result.update(churn_avg)
+    result.update(history_avg)
+    return result
 
 
 def _lines_count(repo_path: Path, since: datetime = None, to: datetime = None):
-    """Mine lines count data from a repository"""
+    """Mine lines count data from a repository. The lines count is the number of lines added and removed in a file."""
     data = LinesCount(path_to_repo=str(repo_path), since=since, to=to)
-    return data.count_added(), data.count_removed()
+    avg_lines_added = sum([lines for lines in data.count_added().values()]) / len(data.count_added())
+    avg_lines_removed = sum([lines for lines in data.count_removed().values()]) / len(data.count_removed())
+    avg_avg_lines_added = sum([lines for lines in data.avg_added().values()]) / len(data.avg_added())
+    return ({
+        'average_lines_added_to_files': avg_lines_added,
+        'average_lines_deleted_from_files': avg_lines_removed,
+        'average_avg_lines_added_to_files': avg_avg_lines_added},
+            {
+        'added': data.count_added(),
+        'removed': data.count_removed(),
+        'avg_added': data.avg_added()
+            })
 
 
 def _hunks_count(repo_path: Path, since: datetime = None, to: datetime = None):
-    """Mine hunks count data from a repository"""
+    """
+    Mine hunks count data from a repository.
+    The hunks count is the number of hunks (block of changes in a diff) made to a commit file.
+    """
     data = HunksCount(path_to_repo=str(repo_path), since=since, to=to)
-    return data.count()
+    avg_hunks = sum([hunks for hunks in data.count().values()]) / len(data.count())
+    return {'average_hunks': avg_hunks}, data.count()
 
 
-# TODO dyker inte upp i CSV
 def _contributor_experience(repo_path: Path, since: datetime = None, to: datetime = None):
-    """Mine contribution experience data from a repository"""
+    """Mine contribution experience data from a repository. The experience is the percentage of lines authored by the
+    highest contributor of a file."""
     data = ContributorsExperience(path_to_repo=str(repo_path), since=since, to=to)
-    return data.count()
+    avg_contributor_experience = sum([experience for experience in data.count().values()]) / len(data.count())
+    return {'average_contributor_experience': avg_contributor_experience}, data.count()
 
 
 def _contributor_count(repo_path: Path, since: datetime = None, to: datetime = None):
-    """Mine contribution count data from a repository"""
+    """Mine contribution count data from a repository. The count is the number of contributors to a file."""
     data = ContributorsCount(path_to_repo=str(repo_path), since=since, to=to)
-    return data.count(), data.count_minor()
+    avg_contributors = sum([contributors for contributors in data.count().values()]) / len(data.count())
+    avg_contributors_minor = sum([contributors for contributors in data.count_minor().values()]) / len(
+        data.count_minor())
+    return ({
+        'average_contributors': avg_contributors,
+        'average_minor_contributors': avg_contributors_minor},
+            {
+        'total': data.count(),
+        'minor': data.count_minor()})
 
 
-# TODO dyker inte upp i CSV
 def _code_churn(repo_path: Path, since: datetime = None, to: datetime = None):
-    """"Mine code churn data from a repository"""
+    """"
+    Mine code churn data from a repository. The code churn is the number of lines added and removed in a commit.
+    The code churn is either the sum of, or the difference between the added and removed lines.
+    """
     data = CodeChurn(path_to_repo=str(repo_path), since=since, to=to)
-    return {'total': data.count(), 'max': data.max(), 'avg': data.avg()}
+    avg_code_churn_total = sum([churn for churn in data.count().values()]) / len(data.count())
+    avg_code_churn_max = sum([churn for churn in data.max().values()]) / len(data.max())
+    avg_code_churn_avg = sum([churn for churn in data.avg().values()]) / len(data.avg())
+    return ({
+        'average_code_churn_total': avg_code_churn_total,
+        'average_code_churn_max': avg_code_churn_max,
+        'average_code_churn_avg': avg_code_churn_avg},
+            {
+        'total': data.count(),
+        'max': data.max(),
+        'avg': data.avg()})
 
 
-# TODO blir 0 på alla?
 def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
-    """Mine change set data from a repository"""
+    """Mine change set data from a repository. The change set if files committed together in a commit."""
     change_set_metric = ChangeSet(path_to_repo=str(repo_path), since=since, to=to)
     return change_set_metric.max(), change_set_metric.avg()
 
 
-# TODO hur få in denna?
+# TODO: Make sure this works as intended, not included in the documentation
 def _history_complexity(repo_path: Path, since: datetime = None, to: datetime = None):
     """Mine history complexity data from a repository"""
     data = HistoryComplexity(path_to_repo=str(repo_path), since=since, to=to)
-    return data.count()
+    avg_history_complexity = sum([complexity for complexity in data.count().values()]) / len(data.count())
+    return {'average_history_complexity': avg_history_complexity}, data.count()
 
 
 def mine_stargazers_data(repo_urls: list[str], progress: Progress) -> dict[str, [dict]]:

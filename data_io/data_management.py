@@ -134,6 +134,12 @@ def git_data_to_csv(git_data: dict, path: Path, progress: Progress):
 
     processing_task = progress.add_task(f'Processing Data: {util.get_repo_name_from_url_or_path(path)}', total=None)
 
+    dict_nested_keys = ['lines_count', 'hunks_count', 'contributors_experience', 'contributors_count',
+                        'history_complexity', 'code_churn']
+    for repo, data in git_data.items():
+        for key in dict_nested_keys:
+            data.pop(key, None)
+
     flat_data = [_flatten_dict(repo) for repo in git_data.values()]
 
     df = pd.DataFrame(flat_data)
