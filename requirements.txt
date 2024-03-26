@@ -11,4 +11,6 @@ scipy
 seaborn
 requests
 numpy
+db-sqlite3
+SQLAlchemy
 python-dotenv

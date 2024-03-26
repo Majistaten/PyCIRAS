@@ -11,7 +11,7 @@ verbose=no
 ignore=venv,VCS,migrations,lib
 
 # Processes, 0 for max
-jobs=2
+jobs=1
 
 # Allow python 2 syntax
 analyse-fallback-blocks=yes
