@@ -5,7 +5,7 @@ from pathlib import Path
 
 from git import Repo
 from pylint.lint import Run
-from pylint.message import Message
+from pylint.message import Message, MessageIdStore
 from pylint.reporters.text import TextReporter
 from pylint.reporters.ureports.nodes import Section
 from rich.progress import (
@@ -113,8 +113,7 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     data['messages'] = _parse_pylint_messages(reporter.messages, commit)
     data['messages']['repository_name'] = repo_name
 
-    # TODO gå igenom stats_dict som kommer från pylint, stäm av mot messages och byt ut symbol mot ID.symbol
-    # TODO (Så man kan se vilken kategori meddelandet hör till, t.ex I0101 -> information, samt symbolen)
+    stats_dict = _append_message_ids(stats_dict, run.linter.msgs_store.message_id_store)
 
     data['stats'] = stats_dict
     data['stats']['avg_mccabe_complexity'] = data['messages']['avg_mccabe_complexity']
@@ -172,3 +171,20 @@ def _calculate_avg_mccabe_complexity(messages: list[Message]) -> float:
     average_complexity = total_complexity / complexity_count if complexity_count else 0
 
     return average_complexity
+
+
+def _append_message_ids(stats_dict: dict, message_id_store: MessageIdStore) -> dict[str, any]:
+    """Appends message IDs to the pylint messages"""
+
+    if 'by_msg' in stats_dict:
+        new_by_msg = {}
+        for symbol, count in stats_dict['by_msg'].items():
+            try:
+                msgid = message_id_store.get_msgid(symbol)
+                new_key = f"{msgid}.{symbol}"
+                new_by_msg[new_key] = count
+            except Exception as e:
+                logging.error(f"Could not find message ID for symbol '{symbol}': {e}")
+        stats_dict['by_msg'] = new_by_msg
+
+    return stats_dict
