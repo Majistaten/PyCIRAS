@@ -76,27 +76,23 @@ def _mine_commit_data(repo_path: Path,
 def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     """Runs Pylint on Python files"""
 
-    target_files = util.get_python_files_from_directory(repository_path)
-    if target_files is None or len(target_files) == 0:
-        logging.info(f"\nThis commit has no Python files\n"
-                     f"Skipping commit: {commit}")
-        return None
-    elif len(target_files) > 1000:
-        logging.warning(
-            f"Found {len(target_files)} files in {repository_path}. "
-            f"This might take a while, consider skipping this repository.")
-
     data = {}
 
     out = StringIO()
     reporter = LintReporter(output=out)
 
-    logging.info(f'\n[{util.get_repo_name_from_url_or_path(repository_path)}]: {commit}\n'
-                 f'Mining {len(target_files)} Python files')
+    escaped_chars = [f'\\{char}' if char in {'.', '^', '$', '*', '+', '?', '{', '}', '[', ']', '\\', '|', '(', ')'}
+                     else char for char in config.IGNORE_STARTSWITH]
+
+    # TODO denna kommer nypa om man har någon av symbolerna i sin working dir.
+    #  måste fixa så den bara tittar på directories från data/ och neråt
+    re_ignore = r'.*[/\\]' + r'[' + r'|'.join(escaped_chars) + r']' + r'.*[/\\].*$'
 
     pylint_options = [
+        str(repository_path),
         f'--rcfile={config.PYLINT_CONFIG}',
-        str(repository_path)
+        f'--ignore={",".join(util.generate_dir_name_variations(config.IGNORE_DIRECTORIES))}',
+        f"--ignore-paths={re_ignore}",
     ]
 
     run = Run(pylint_options, reporter=reporter, exit=False)
@@ -151,7 +147,8 @@ def _parse_pylint_messages(messages: list[Message], commit: str) -> dict[str, an
 
     data['avg_mccabe_complexity'] = _calculate_avg_mccabe_complexity(messages)
 
-    logging.info(f"Result: {len(messages)} Pylint messages\n")
+    # TODO räkna ihop files här också och logga
+    logging.info(f"{commit}: {len(messages)} Pylint messages\n")
 
     return data
 
