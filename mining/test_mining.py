@@ -209,6 +209,11 @@ def _run_ast_mining(repo_path: Path,
         except SyntaxError as e:
             logging.error(f"\nTest Mining Syntax Error: "
                           f"{relative_path}: \n[{e}]\n\nSkipping this file.\n")
+
+            # TODO refaktorera ut analysfunktionen
+            # TODO testa konvertera till python 2 syntax och kör funktionen igen, annars skippa om det inte funkar
+
+
             continue
 
     data['test-to-code-ratio'] = _calculate_test_to_code_ratio(total_test_statements,
