@@ -11,6 +11,11 @@ verbose=no
 ignore=venv,VCS,migrations,lib
 
 # Processes, 0 for max
+
+# for mining
+#jobs=2
+
+# for testing
 jobs=1
 
 # Allow python 2 syntax
@@ -63,10 +68,10 @@ max-complexity=1
 
 # Maximum number of characters on a single line. Default 100
 # max-line-length=150
-max-line-length=120
+# max-line-length=120
 
 # Maximum number of lines in a module. Default 1000
-max-module-lines=1000
+# max-module-lines=1000
 
 [IMPORTS]
 
@@ -93,7 +98,7 @@ msg-template=
 # Limits count of emitted suggestions for spelling mistakes.
 # TODO Testa 0 på denna och se om nån stavar helt sjukt lol
 # max-spelling-suggestions=4
-max-spelling-suggestions=0
+# max-spelling-suggestions=0
 
 [STRING]
 
