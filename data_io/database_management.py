@@ -1,15 +1,17 @@
 import json
 from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from data_io.data_management import CustomEncoder
-from data_io.database_models import Base, Repository, Metadata, Stargazers, Test, Git, TestCommit, Lint, LintCommit
+from data_io.database_models import Base, Git, Lint, LintCommit, Metadata, Repository, Stargazers, Test, TestCommit
 
 
 def dumps(data):
     return json.dumps(data, cls=CustomEncoder)
 
+# TODO progress
 
 class DatabaseManager:
     def __init__(self, database_path: Path):
@@ -23,7 +25,6 @@ class DatabaseManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
-
 
     def insert_metadata(self, data: dict):
         for repo_name, repo_info in data.items():
