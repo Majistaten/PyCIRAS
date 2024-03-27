@@ -8,7 +8,7 @@ from rich.progress import (
     Progress
 )
 
-from utility import util
+from utility import util, config
 from utility.progress_bars import IterableProgressWrapper
 
 
@@ -160,7 +160,9 @@ def _run_ast_mining(repo_path: Path,
                     progress: Progress) -> dict[str, any] | None:
     """Runs AST mining on Python files"""
 
-    target_files = util.get_python_files_from_directory(repo_path)
+    target_files = util.get_python_files_from_directory(repo_path,
+                                                        config.IGNORE_DIRECTORIES,
+                                                        config.IGNORE_STARTSWITH)
     if target_files is None or len(target_files) == 0:
         logging.info(f"\nThis commit has no Python files\n"
                      f"Skipping commit: {commit}")
@@ -209,10 +211,6 @@ def _run_ast_mining(repo_path: Path,
         except SyntaxError as e:
             logging.error(f"\nTest Mining Syntax Error: "
                           f"{relative_path}: \n[{e}]\n\nSkipping this file.\n")
-
-            # TODO refaktorera ut analysfunktionen
-            # TODO testa konvertera till python 2 syntax och kör funktionen igen, annars skippa om det inte funkar
-
 
             continue
 

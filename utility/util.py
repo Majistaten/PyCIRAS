@@ -5,20 +5,49 @@ from pathlib import Path
 from utility import config
 
 
-def get_python_files_from_directory(directory: Path) -> list[str]:
+def get_python_files_from_directory(directory: Path,
+                                    exclude_dirs: list[str] = None,
+                                    ignore_starts_with: tuple = None) -> list[str]:
     """Get a list of string paths to Python files from a directory"""
+
+    if exclude_dirs is None:
+        exclude_dirs = []
+
+    exclude_dirs = [Path(directory) / Path(exc_dir) for exc_dir in
+                    generate_dir_name_variations(exclude_dirs)]
+
     python_files = []
-    for root, dirs, files in os.walk(directory):
+    for root, dirs, files in os.walk(directory, topdown=True):
+
+        # Exclude specified directories
+        dirs[:] = [d for d in dirs if Path(root) / d not in exclude_dirs and
+                   not d.startswith(ignore_starts_with)]
+
         for file in files:
             if file.endswith(".py"):
-                logging.debug(f"Found python file: {str(os.path.join(root, file))}")
+                python_file_path = str(Path(root) / file)
+                logging.debug(f"Found python file: {python_file_path}")
+                python_files.append(python_file_path)
 
-                python_files.append(str(Path(root) / file))
-
-    if len(python_files) != 0:
-        logging.debug(f"Found {len(python_files)} python files in {directory}")
+    logging.info(f"Found {len(python_files)} Python files.")
 
     return python_files
+
+
+def generate_dir_name_variations(dirs: list[str]) -> list[str]:
+    """
+    Generate lowercase, uppercase, and capitalized variations for each directory name in dirs.
+
+    Args:
+        dirs (List[str]): A list of directory names to generate case variations for.
+
+    Returns:
+        List[str]: A list of directory names in all case variations.
+    """
+    expanded_dirs = []
+    for dir_name in dirs:
+        expanded_dirs.extend([dir_name.lower(), dir_name.upper(), dir_name.capitalize()])
+    return expanded_dirs
 
 
 def get_repo_owner_from_url(repo_url: str) -> str:
