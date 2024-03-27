@@ -76,7 +76,6 @@ def write_json(new_data: dict, path: Path, progress: Progress):
         progress.remove_task(write_task)
 
 
-# TODO mata in mer rådata
 def lint_data_to_csv(lint_data: dict, path: Path, progress: Progress):
     """Write lint data to a CSV file."""
 
@@ -117,15 +116,40 @@ def lint_data_to_csv(lint_data: dict, path: Path, progress: Progress):
     df.drop(columns=[col for col in df.columns if
                      col.startswith('stats.by_module') or
                      col.startswith('stats.dependencies') or
+                     col.startswith('stats.duplicated_lines') or
                      col == 'stats.repository_name' or
                      col == 'stats.dependencies.util'],
             inplace=True,
             errors='ignore')
 
+    df.columns = [col.replace('stats.', '') for col in df.columns]
+    df.columns = [col.replace('by_msg.', '') for col in df.columns]
+
     progress.stop_task(processing_task)
     progress.remove_task(processing_task)
 
-    _update_csv(path, df, ['repo', 'date', 'commit_hash'], progress)
+    fixed_columns = [
+        'repo',
+        'date',
+        'commit_hash',
+        'info',
+        'refactor',
+        'convention',
+        'warning',
+        'error',
+        'fatal',
+        'global_note',
+        'avg_mccabe_complexity',
+        'percent_duplicated_lines',
+        'nb_duplicated_lines',
+        'statement'
+    ]
+
+    prefixes_dynamic_fixed_columns = ['undocumented', 'bad_names', 'code_type', 'node_count']
+    fixed_dynamic_columns = sorted([col for col in df.columns if
+                                    any(col.startswith(prefix) for prefix in prefixes_dynamic_fixed_columns)])
+
+    _update_csv(path, df, fixed_columns + fixed_dynamic_columns, progress)
 
 
 # TODO mata in mer rådata
