@@ -209,6 +209,7 @@ def _mine_lint(repo_urls: list[str]):
         repos_and_commit_metadata = repo_management.get_repo_paths_and_commit_metadata(config.REPOSITORIES_FOLDER,
                                                                                        repo_paths,
                                                                                        progress)
+        start_time = time.time()
 
         logging.info(f'\nMining Lint Data for {repo_urls}')
 
@@ -216,7 +217,7 @@ def _mine_lint(repo_urls: list[str]):
 
         if config.WRITE_DATABASE:
             with DatabaseManager(data_directory / 'database.db') as dbm:
-                dbm.insert_lints(data=lint_data)
+                dbm.insert_lint_data(lint_data, progress)
 
         if config.WRITE_JSON:
             data_management.write_json(lint_data, data_directory / 'lint-raw.json', progress)
@@ -224,7 +225,9 @@ def _mine_lint(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.lint_data_to_csv(lint_data, data_directory / 'lint.csv', progress)
 
-        logging.info(f'\nMINE LINT COMPLETED: {repo_urls}')
+        duration = util.format_duration(time.time() - start_time)
+        logging.info(f'\nMINE LINT COMPLETED'
+                     f'\nRepo: {repo_urls} Duration: {duration}')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -238,13 +241,15 @@ def _mine_git(repo_urls: list[str]):
     """ Mine git data from a list of repositories. """
     try:
 
+        start_time = time.time()
+
         logging.info(f'\nMining Git Data for {repo_urls}')
 
         git_data = git_mining.mine_git_data(config.REPOSITORIES_FOLDER, repo_urls, progress)
 
         if config.WRITE_DATABASE:
             with DatabaseManager(data_directory / 'database.db') as dbm:
-                dbm.insert_git(data=git_data)
+                dbm.insert_git_data(git_data, progress)
 
         if config.WRITE_JSON:
             data_management.write_json(git_data, data_directory / 'git-raw.json', progress)
@@ -252,7 +257,9 @@ def _mine_git(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.git_data_to_csv(git_data, data_directory / 'git.csv', progress)
 
-        logging.info(f'\nMINE GIT COMPLETED: {repo_urls}')
+        duration = util.format_duration(time.time() - start_time)
+        logging.info(f'\nMINE GIT COMPLETED'
+                     f'\nRepo: {repo_urls} Duration: {duration}')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -271,13 +278,15 @@ def _mine_test(repo_urls: list[str]):
                                                                                        repo_paths,
                                                                                        progress)
 
+        start_time = time.time()
+
         logging.info(f'\nMining Test Data for {repo_urls}')
 
         test_data = test_mining.mine_test_data(repos_and_commit_metadata, progress)
 
         if config.WRITE_DATABASE:
             with DatabaseManager(data_directory / 'database.db') as dbm:
-                dbm.insert_tests(data=test_data)
+                dbm.insert_test_data(test_data, progress)
 
         if config.WRITE_JSON:
             data_management.write_json(test_data, data_directory / 'test-raw.json', progress)
@@ -285,7 +294,9 @@ def _mine_test(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.test_data_to_csv(test_data, data_directory / 'test.csv', progress)
 
-        logging.info(f'\nMINE TEST COMPLETED: {repo_urls}')
+        duration = util.format_duration(time.time() - start_time)
+        logging.info(f'\nMINE TEST COMPLETED'
+                     f'\nRepo: {repo_urls} Duration: {duration}')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -300,13 +311,15 @@ def _mine_stargazers(repo_urls: list[str]):
     """ Mine stargazers data from a list of repositories. """
     try:
 
+        start_time = time.time()
+
         logging.info(f'\nMining Stargazers for {repo_urls}')
 
         stargazers_data = git_mining.mine_stargazers_data(repo_urls, progress)
 
         if config.WRITE_DATABASE:
             with DatabaseManager(data_directory / 'database.db') as dbm:
-                dbm.insert_stargazers(data=stargazers_data)
+                dbm.insert_stargazers_data(stargazers_data, progress)
 
         if config.WRITE_JSON:
             data_management.write_json(stargazers_data, data_directory / 'stargazers-raw.json', progress)
@@ -314,7 +327,9 @@ def _mine_stargazers(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.stargazers_data_to_csv(stargazers_data, data_directory / 'stargazers.csv', progress)
 
-        logging.info(f'\nMINE STARGAZERS COMPLETED: {repo_urls}')
+        duration = util.format_duration(time.time() - start_time)
+        logging.info(f'\nMINE STARGAZERS COMPLETED'
+                     f'\nRepo: {repo_urls} Duration: {duration}')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -328,13 +343,15 @@ def _mine_metadata(repo_urls: list[str]):
     """Mine repo metadata from a list of repositories."""
     try:
 
+        start_time = time.time()
+
         logging.info(f'\nMining Metadata for {repo_urls}')
 
         metadata = git_mining.mine_repo_metadata(repo_urls, progress)
 
         if config.WRITE_DATABASE:
             with DatabaseManager(data_directory / 'database.db') as dbm:
-                dbm.insert_metadata(data=metadata)
+                dbm.insert_metadata(metadata, progress)
 
         if config.WRITE_JSON:
             data_management.write_json(metadata, data_directory / 'metadata-raw.json', progress)
@@ -342,7 +359,9 @@ def _mine_metadata(repo_urls: list[str]):
         if config.WRITE_CSV:
             data_management.metadata_to_csv(metadata, data_directory / 'metadata.csv', progress)
 
-            logging.info(f'\nMINE METADATA COMPLETED: {repo_urls}')
+        duration = util.format_duration(time.time() - start_time)
+        logging.info(f'\nMINE METADATA COMPLETED'
+                     f'\nRepo: {repo_urls} Duration: {duration}')
 
     except Exception:
         repos = [util.get_repo_name_from_url_or_path(url) for url in repo_urls]
@@ -355,9 +374,17 @@ def _mine_metadata(repo_urls: list[str]):
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
     """Clone a list of repositories."""
 
+    start_time = time.time()
+
     logging.info(f'\nCloning Repos: {repo_urls}')
 
-    return repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls, progress)
+    repos = repo_management.clone_repos(config.REPOSITORIES_FOLDER, repo_urls, progress)
+
+    duration = util.format_duration(time.time() - start_time)
+    logging.info(f'\nCLONE REPOS COMPLETED'
+                 f'\nRepo: {repo_urls} Duration: {duration}')
+
+    return repos
 
 
 def _process_chunk(repo_urls: list[str],
@@ -417,7 +444,7 @@ if __name__ == '__main__':
 
     run_mining(repo_urls=None,
                chunk_size=1,
-               multiprocessing=True,
+               multiprocessing=False,
                persist_repos=False,  # Testa false, tar den bort nedladdade?
                stargazers=True,
                metadata=True,

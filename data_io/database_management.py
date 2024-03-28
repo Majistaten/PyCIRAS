@@ -1,17 +1,18 @@
 import json
 from pathlib import Path
 
+from rich.progress import Progress
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from data_io.data_management import CustomEncoder
 from data_io.database_models import Base, Git, Lint, LintCommit, Metadata, Repository, Stargazers, Test, TestCommit
+from utility.progress_bars import IterableProgressWrapper
 
 
 def dumps(data):
     return json.dumps(data, cls=CustomEncoder)
 
-# TODO progress
 
 class DatabaseManager:
     def __init__(self, database_path: Path):
@@ -26,8 +27,13 @@ class DatabaseManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
 
-    def insert_metadata(self, data: dict):
-        for repo_name, repo_info in data.items():
+    def insert_metadata(self, data: dict, progress: Progress):
+
+        for repo_name, repo_info in IterableProgressWrapper(data.items(),
+                                                            progress,
+                                                            description="Inserting metadata",
+                                                            postfix="Repos"):
+
             repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
             if not repository:
                 repository = Repository(repo_name=repo_name)
@@ -38,8 +44,13 @@ class DatabaseManager:
 
         self.session.commit()
 
-    def insert_stargazers(self, data: dict):
-        for repo_name, repo_info in data.items():
+    def insert_stargazers_data(self, data: dict, progress: Progress):
+
+        for repo_name, repo_info in IterableProgressWrapper(data.items(),
+                                                            progress,
+                                                            description="Inserting stargazers data",
+                                                            postfix="Repos"):
+
             repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
             if not repository:
                 repository = Repository(repo_name=repo_name)
@@ -50,8 +61,13 @@ class DatabaseManager:
 
         self.session.commit()
 
-    def insert_tests(self, data: dict):
-        for repo_name, repo_info in data.items():
+    def insert_test_data(self, data: dict, progress: Progress):
+
+        for repo_name, repo_info in IterableProgressWrapper(data.items(),
+                                                            progress,
+                                                            description="Inserting test data",
+                                                            postfix="Repos"):
+
             repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
             if not repository:
                 repository = Repository(repo_name=repo_name)
@@ -62,7 +78,10 @@ class DatabaseManager:
             self.session.add(test_entry)
             self.session.commit()
 
-            for commit, commit_info in repo_info.items():
+            for commit, commit_info in IterableProgressWrapper(repo_info.items(),
+                                                               progress,
+                                                               description=repo_name,
+                                                               postfix="Commits"):
                 self.insert_test_commit(repo_name, commit, commit_info)
 
     def insert_test_commit(self, repo_name: str, commit: str, commit_info: dict):
@@ -77,8 +96,14 @@ class DatabaseManager:
         self.session.add(test_commit)
         self.session.commit()
 
-    def insert_lints(self, data: dict):
-        for repo_name, repo_info in data.items():
+    def insert_lint_data(self, data: dict, progress: Progress):
+        """Inserts the lint data into the database."""
+
+        for repo_name, repo_info in IterableProgressWrapper(data.items(),
+                                                            progress,
+                                                            description="Inserting lint data to DB",
+                                                            postfix="Repos"):
+
             repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
             if not repository:
                 repository = Repository(repo_name=repo_name)
@@ -88,7 +113,10 @@ class DatabaseManager:
             self.session.add(lint_entry)
             self.session.commit()
 
-            for commit, commit_info in repo_info.items():
+            for commit, commit_info in IterableProgressWrapper(repo_info.items(),
+                                                               progress,
+                                                               description=repo_name,
+                                                               postfix="Commits"):
                 self.insert_lint_commit(repo_name, commit, commit_info)
 
     def insert_lint_commit(self, repo_name: str, commit: str, commit_info: dict):
@@ -103,8 +131,14 @@ class DatabaseManager:
         self.session.add(lint_commit)
         self.session.commit()
 
-    def insert_git(self, data: dict):
-        for repo_name, repo_info in data.items():
+    def insert_git_data(self, data: dict, progress: Progress):
+        """Inserts the git data into the database."""
+
+        for repo_name, repo_info in IterableProgressWrapper(data.items(),
+                                                            progress,
+                                                            description="Inserting git data to DB",
+                                                            postfix="Repos"):
+
             repository = self.session.query(Repository).filter_by(repo_name=repo_name).first()
             if not repository:
                 repository = Repository(repo_name=repo_name)
