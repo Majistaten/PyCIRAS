@@ -75,7 +75,7 @@ FILE_LOGGING_LEVEL: int = logging.DEBUG
 # If set to true, the collected raw data will be inserted into a database.
 WRITE_DATABASE: bool = True
 # If set to true, the collected raw data will be written to a JSON file.
-WRITE_JSON: bool = True
+WRITE_JSON: bool = False
 # If set to true, the collected data will be parsed and written to a CSV file.
 WRITE_CSV: bool = True
 # If set to true, a notification will be sent when the process is complete using ntfyer. This requires valid credentials added to the .env file.
