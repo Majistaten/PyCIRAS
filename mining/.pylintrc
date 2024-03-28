@@ -10,10 +10,10 @@ verbose=no
 # Processes, 0 for max
 
 # for mining
-#jobs=2
+jobs=2
 
 # for testing
-jobs=1
+#jobs=1
 
 # Allow python 2 syntax
 analyse-fallback-blocks=yes
