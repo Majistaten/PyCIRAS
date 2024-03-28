@@ -69,7 +69,7 @@ IGNORE_DIRECTORIES: list[str] = [
 # Disables the console progress bars if set to true.
 DISABLE_PROGRESS_BARS: bool = False
 # Specify the level of logging for the console.
-CONSOLE_LOGGING_LEVEL: int = logging.INFO
+CONSOLE_LOGGING_LEVEL: int = logging.WARNING
 # Specify the level of logging for the log files.
 FILE_LOGGING_LEVEL: int = logging.DEBUG
 # If set to true, the collected raw data will be inserted into a database.
@@ -79,4 +79,4 @@ WRITE_JSON: bool = False
 # If set to true, the collected data will be parsed and written to a CSV file.
 WRITE_CSV: bool = True
 # If set to true, a notification will be sent when the process is complete using ntfyer. This requires valid credentials added to the .env file.
-ENABLE_NTFYER: bool = False
+ENABLE_NTFYER: bool = True
