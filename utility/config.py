@@ -61,6 +61,6 @@ DISABLE_PROGRESS_BARS: bool = False
 CONSOLE_LOGGING_LEVEL: int = logging.INFO
 FILE_LOGGING_LEVEL: int = logging.DEBUG
 WRITE_DATABASE: bool = True
-WRITE_JSON: bool = True
+WRITE_JSON: bool = False
 WRITE_CSV: bool = True
 ENABLE_NTFYER: bool = False
