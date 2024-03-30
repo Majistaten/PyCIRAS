@@ -442,12 +442,12 @@ if __name__ == '__main__':
                     chunk_size=100,
                     multiprocessing=True)
 
-    run_mining(repo_urls=None,
-               chunk_size=1,
-               multiprocessing=False,
-               persist_repos=False,  # Testa false, tar den bort nedladdade?
-               stargazers=True,
-               metadata=True,
-               test=True,
-               git=True,
-               lint=True)
+    # run_mining(repo_urls=None,
+    #           chunk_size=1,
+    #           multiprocessing=False,
+    #           persist_repos=False,  # Testa false, tar den bort nedladdade?
+    #           stargazers=True,
+    #           metadata=True,
+    #           test=True,
+    #           git=True,
+    #           lint=True)
