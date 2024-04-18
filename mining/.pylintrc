@@ -85,17 +85,16 @@ max-complexity=1
 [REPORTS]
 
 # Template used to display messages. This is a python new-style format string
-# used to format the message information. See doc for all details. # TODO användbart?
+# used to format the message information. See doc for all details.
 # msg-template=
 
-evaluation=max(-10, -10 if fatal else 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10))
+evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
 
 [SIMILARITIES]
 
 [SPELLING]
 
 # Limits count of emitted suggestions for spelling mistakes.
-# TODO Testa 0 på denna och se om nån stavar helt sjukt lol
 # max-spelling-suggestions=4
 # max-spelling-suggestions=0
 
