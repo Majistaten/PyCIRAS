@@ -12,9 +12,9 @@ LOG_FILE = datetime.now().strftime('%Y-%m-%d_%H-%M.log')
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# TODO få ut pydriller och pylint logs på debug nivå in i loggen
 def setup_root_logger():
     """Configure the root logger with custom handlers."""
+
     if not logging.root.handlers:
         console = Console()
 
@@ -30,8 +30,6 @@ def setup_root_logger():
 
         logging.basicConfig(level=logging.DEBUG, handlers=[file_handler, rich_handler])
 
-        # TODO försök komma åt pylints logger        logging.getLogger('pylint').setLevel(logging.INFO)
-
         logging.getLogger('pydriller.repository').setLevel(logging.WARNING)
 
         return console
@@ -39,5 +37,6 @@ def setup_root_logger():
 
 def get_logger(name=None):
     """Configure and return a custom or the root logger."""
+
     rich_console = setup_root_logger()
     return logging.getLogger(name), rich_console

@@ -16,6 +16,7 @@ def clone_repos(repo_directory: Path, repo_urls: list[str], progress: Progress) 
     Args:
         repo_directory: The folder to clone the repositories to.
         repo_urls: A list of repository URLs.
+        progress: The progress bar to show the progress of the cloning.
 
     Returns:
         A list of repository paths.
@@ -40,9 +41,11 @@ def _clone_repo(repos_directory: Path, repo_url: str, progress: Progress) -> Pat
     Args:
         repo_url: The URL of the Git repository to clone.
         repos_directory: The folder where repos are stored.
+        progress: The progress bar to show the progress of the cloning.
     Returns:
         The repository path.
     """
+
     try:
         repo_name = util.get_repo_name_from_url_or_path(repo_url)
 
@@ -70,11 +73,11 @@ def _clone_repo(repos_directory: Path, repo_url: str, progress: Progress) -> Pat
         return None
 
 
-# TODO: Baka in i pipeline och skriv ut i fil.
 def get_repo_paths_and_commit_metadata(repos_directory: Path,
                                        repo_paths: list[Path],
                                        progress: Progress) -> dict[str, list[tuple[str, datetime]]]:
     """Get a dict of repo paths with a list of tuples containing commit hashes and dates"""
+
     repos: dict[str, Repository] = load_repos(repos_directory, repo_paths, progress)
     repos_with_commit_hashes_and_dates = {}
     for repo_path, repo in repos.items():
@@ -90,7 +93,7 @@ def get_repo_paths_and_commit_metadata(repos_directory: Path,
 def load_repos(repos_directory: Path,
                repos: list[Path | str],
                progress: Progress) -> (dict[str, RepositoryWithProgress]):
-    """Load repos for mining, from an URL or a path."""
+    """Load repos for mining, from URL or a path."""
 
     repos_directory.mkdir(parents=True, exist_ok=True)
     logging.debug(f'Loading repositories {repos} from {repos_directory}')

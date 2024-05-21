@@ -1,23 +1,5 @@
 """This module provides the main entry point for the PyCIRAS application and the main mining functionality."""
 
-# TODO Skriv docs på allt, inklusive moduler, parametrar, typer, och README
-# TODO linta, döp om saker, refaktorera allmänt
-# TODO gå igenom linter issues och fixa allt
-# TODO insertera log statements på alla olika execution branches på info-nivå
-# TODO kolla .pylintrc settings så man får ut alla andra intressanta metrics
-# TODO progressbar stannar om det kastas error för ett syntax error i en fil under unit testing analysis
-# TODO error handling här i denna filen?
-# TODO fixa bättre docstrings som förklarar parametrar
-# TODO Sätt ut logging.info överallt, se över så det är samma format överallt
-# TODO kolla igenom git mining så vi får med exakt alla metrics vi vill ha
-# TODO flytta datamappen utanför projekt-directory
-# TODO mina och skriv per commit istället för per repo, mindre minnesanvändning
-# TODO byt ut alla any type annotations till Any
-# TODO specifiera en config option för att sätta workers till både pylint och pydriller
-# TODO läs koden och dokumentation till Pydriller och Pylint och kolla alla options
-
-# TODO testa progressbars i Jupyter, advance/update? refresh=true?
-
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -153,6 +135,7 @@ def run_mining(repo_urls: list[str] = None,
         - Logs progress and results to predefined logging and results directories.
         - Notifies the user upon completion of the mining process via a notification system if correctly configured.
     """
+
     with progress:
         start_time = time.time()
         if repo_urls is None:
@@ -203,6 +186,7 @@ def run_mining(repo_urls: list[str] = None,
 @timed
 def _mine_lint(repo_urls: list[str]):
     """ Mine lint data from a list of repositories. """
+
     try:
         repo_paths = _clone_repos(repo_urls)
 
@@ -239,6 +223,7 @@ def _mine_lint(repo_urls: list[str]):
 @timed
 def _mine_git(repo_urls: list[str]):
     """ Mine git data from a list of repositories. """
+
     try:
 
         start_time = time.time()
@@ -271,6 +256,7 @@ def _mine_git(repo_urls: list[str]):
 @timed
 def _mine_test(repo_urls: list[str]):
     """ Mine test data from a list of repositories. """
+
     try:
         repo_paths = _clone_repos(repo_urls)
 
@@ -309,6 +295,7 @@ def _mine_test(repo_urls: list[str]):
 @timed
 def _mine_stargazers(repo_urls: list[str]):
     """ Mine stargazers data from a list of repositories. """
+
     try:
 
         start_time = time.time()
@@ -340,7 +327,8 @@ def _mine_stargazers(repo_urls: list[str]):
 
 @timed
 def _mine_metadata(repo_urls: list[str]):
-    """Mine repo metadata from a list of repositories."""
+    """ Mine repo metadata from a list of repositories. """
+
     try:
 
         start_time = time.time()
@@ -372,7 +360,7 @@ def _mine_metadata(repo_urls: list[str]):
 
 @timed
 def _clone_repos(repo_urls: list[str]) -> list[Path]:
-    """Clone a list of repositories."""
+    """ Clone a list of repositories. """
 
     start_time = time.time()
 
@@ -394,7 +382,7 @@ def _process_chunk(repo_urls: list[str],
                    chunk_size: int = 1,
                    multiprocessing: bool = False,
                    persist_repos: bool = True):
-    """Processes repos in chunks."""
+    """ Processes repos in chunks. """
 
     if stargazers is False and metadata is False and len(pyciras_functions) == 0:
         logging.error('At least one PyCIRAS function must be selected!')
@@ -445,7 +433,7 @@ if __name__ == '__main__':
     # run_mining(repo_urls=None,
     #           chunk_size=1,
     #           multiprocessing=False,
-    #           persist_repos=False,  # Testa false, tar den bort nedladdade?
+    #           persist_repos=False,
     #           stargazers=True,
     #           metadata=True,
     #           test=True,

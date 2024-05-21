@@ -1,19 +1,13 @@
 [MAIN]
-# disable=fixme
 
 # Save no persistent cache
 persistent=no
 
-# In verbose mode, extra non-checker-related info will be displayed.
+# In verbose mode, extra non-checker-related info will be displayed
 verbose=no
 
 # Processes, 0 for max
-
-# for mining
 jobs=2
-
-# for testing
-#jobs=1
 
 # Allow python 2 syntax
 analyse-fallback-blocks=yes
@@ -49,7 +43,6 @@ load-plugins=pylint.extensions.redefined_variable_type,
              pylint.extensions.overlapping_exceptions,
 
 
-
 [BASIC]
 
 [CLASSES]
@@ -64,8 +57,7 @@ max-complexity=1
 [FORMAT]
 
 # Maximum number of characters on a single line. Default 100
-# max-line-length=150
-# max-line-length=120
+# max-line-length=100
 
 # Maximum number of lines in a module. Default 1000
 # max-module-lines=1000

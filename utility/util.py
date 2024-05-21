@@ -44,6 +44,7 @@ def generate_dir_name_variations(dirs: list[str]) -> list[str]:
     Returns:
         List[str]: A list of directory names in all case variations.
     """
+
     expanded_dirs = []
     for dir_name in dirs:
         expanded_dirs.extend([dir_name.lower(), dir_name.upper(), dir_name.capitalize()])
@@ -52,11 +53,13 @@ def generate_dir_name_variations(dirs: list[str]) -> list[str]:
 
 def get_repo_owner_from_url(repo_url: str) -> str:
     """Returns the owner of a repository from a git URL"""
+
     return str(repo_url).rstrip('/').split('/')[-2].strip()
 
 
 def get_repo_name_from_url_or_path(path_or_url: Path | str) -> str:
     """Returns the name of a repository from either a file path or a URL."""
+
     if isinstance(path_or_url, Path):
         path_str = str(path_or_url)
     else:
@@ -69,6 +72,7 @@ def get_repo_name_from_url_or_path(path_or_url: Path | str) -> str:
 
 def get_repository_urls_from_file(file_path: Path) -> list[str]:
     """Get a list of repository URLs from a file"""
+
     urls = []
     with open(file_path, 'r') as file:
         for line in file:
@@ -78,27 +82,32 @@ def get_repository_urls_from_file(file_path: Path) -> list[str]:
 
 def absolute_repos_to_relative(absolute_path: str) -> str:
     """Returns the relative path of a repo from an absolute path"""
+
     return absolute_path.replace(str(config.REPOSITORIES_FOLDER), '').lstrip('/').strip()
 
 
 def absolute_data_path_to_relative(absolute_path: str) -> str:
     """Returns the relative path of a file from an absolute path"""
+
     return absolute_path.replace(str(config.DATA_FOLDER), '').lstrip('/').strip()
 
 
 def get_path_to_repo(repo_url: str) -> Path:
     """Returns the path to a repository based on the URL"""
+
     name = get_repo_name_from_url_or_path(repo_url)
     return config.REPOSITORIES_FOLDER / name
 
 
 def sanitize_url(url: str) -> str:
     """Removes any non-printable characters and whitespace"""
+
     return url.strip().removesuffix('/')
 
 
 def kb_to_mb_gb(size_in_kb: int) -> str:
     """Convert size from KB to MB or GB if large enough."""
+
     if size_in_kb < 1024:
         return f"{size_in_kb} KB"
     elif size_in_kb < 1024 * 1024:
@@ -111,11 +120,13 @@ def kb_to_mb_gb(size_in_kb: int) -> str:
 
 def kb_to_mb(size_in_kb: int) -> float:
     """Convert size from KB to MB."""
+
     return size_in_kb / 1024
 
 
 def format_duration(seconds):
     """Formats the duration from seconds to a string in HH:MM:SS format."""
+
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = seconds % 60

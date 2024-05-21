@@ -6,6 +6,7 @@ from utility import util
 
 def timed(func):
     """This decorator is used to measure the execution time of a function."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         start = time.time()

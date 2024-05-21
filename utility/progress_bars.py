@@ -17,8 +17,6 @@ from pydriller.git import Git
 from rich.progress import Progress, ProgressColumn, Task, TextColumn
 
 
-# TODO implementera disable
-
 class RepositoryWithProgress(Repository):
     """Overrides the traverse_commits method to show a progress bar, and removes INFO level logs."""
 
@@ -45,6 +43,7 @@ class RepositoryWithProgress(Repository):
         Analyze all the specified commits (all of them by default), returning
         a generator of commits.
         """
+
         for path_repo in self._conf.get('path_to_repos'):
             with self._prep_repo(path_repo=path_repo) as git:
                 # Get the commits that modified the filepath. In this case, we can not use
@@ -72,6 +71,8 @@ class RepositoryWithProgress(Repository):
 
     @contextmanager
     def _prep_repo(self, path_repo: str) -> Generator[Git, None, None]:
+        """Prepare the repository for analysis."""
+
         local_path_repo = path_repo
         if self._is_remote(path_repo):
             local_path_repo = self._clone_remote_repo(self._clone_folder(), path_repo)
@@ -105,6 +106,7 @@ class RepositoryWithProgress(Repository):
                 shutil.rmtree(self._tmp_dir.name, ignore_errors=True)
 
     def _clone_remote_repo(self, tmp_folder: str, repo: str) -> str:
+        """Clone a remote repository to a folder."""
         repo_folder = os.path.join(tmp_folder, self._get_repo_name_from_url(repo))
 
         Repo.clone_from(url=repo,
@@ -145,6 +147,7 @@ class GitProgress(RemoteProgress):
     @classmethod
     def get_curr_op(cls, op_code: int) -> str:
         """Get OP name from OP code."""
+
         op_code_masked = op_code & cls.OP_MASK
         return cls.OP_CODE_MAP.get(op_code_masked, "?").title()
 
@@ -155,7 +158,6 @@ class GitProgress(RemoteProgress):
             max_count: Union[str, float, None] = None,
             message: str = "",
     ) -> None:
-
         """Update the progress instance with the current operation."""
 
         self.current_operation = self.get_curr_op(op_code)
@@ -204,10 +206,9 @@ class IterableProgressWrapper:
         return self
 
     def __next__(self):
-
         try:
             item = next(self.iterable_iterator)
-            self.progress.advance(self.task_id)  # TODO update med refresh=True?
+            self.progress.advance(self.task_id)
             return item
 
         except StopIteration:

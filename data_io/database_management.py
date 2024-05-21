@@ -11,10 +11,14 @@ from utility.progress_bars import IterableProgressWrapper
 
 
 def dumps(data):
+    """ Custom JSON serializer. """
+
     return json.dumps(data, cls=CustomEncoder)
 
 
 class DatabaseManager:
+    """ Class for managing the database. """
+
     def __init__(self, database_path: Path):
         self.engine = create_engine(f'sqlite:///{database_path}', echo=False, json_serializer=dumps)
         Base.metadata.create_all(self.engine)
@@ -28,6 +32,7 @@ class DatabaseManager:
         self.session.close()
 
     def insert_metadata(self, data: dict, progress: Progress):
+        """ Inserts the metadata into the database. """
 
         for repo_name, repo_info in IterableProgressWrapper(data.items(),
                                                             progress,
@@ -45,6 +50,7 @@ class DatabaseManager:
         self.session.commit()
 
     def insert_stargazers_data(self, data: dict, progress: Progress):
+        """ Inserts the stargazers data into the database. """
 
         for repo_name, repo_info in IterableProgressWrapper(data.items(),
                                                             progress,
@@ -62,6 +68,7 @@ class DatabaseManager:
         self.session.commit()
 
     def insert_test_data(self, data: dict, progress: Progress):
+        """ Inserts the test data into the database. """
 
         for repo_name, repo_info in IterableProgressWrapper(data.items(),
                                                             progress,
@@ -85,6 +92,8 @@ class DatabaseManager:
                 self.insert_test_commit(repo_name, commit, commit_info)
 
     def insert_test_commit(self, repo_name: str, commit: str, commit_info: dict):
+        """ Inserts the test commit data into the database. """
+
         test = self.session.query(Test).filter_by(repository_name=repo_name).first()
 
         test_commit = TestCommit(hash=commit,
@@ -120,6 +129,8 @@ class DatabaseManager:
                 self.insert_lint_commit(repo_name, commit, commit_info)
 
     def insert_lint_commit(self, repo_name: str, commit: str, commit_info: dict):
+        """ Inserts the lint commit data into the database. """
+
         lint = self.session.query(Lint).filter_by(repository_name=repo_name).first()
 
         lint_commit = LintCommit(hash=commit,
@@ -132,7 +143,7 @@ class DatabaseManager:
         self.session.commit()
 
     def insert_git_data(self, data: dict, progress: Progress):
-        """Inserts the git data into the database."""
+        """ Inserts the git data into the database. """
 
         for repo_name, repo_info in IterableProgressWrapper(data.items(),
                                                             progress,

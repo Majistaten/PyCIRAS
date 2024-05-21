@@ -33,6 +33,7 @@ class LintReporter(TextReporter):
 def mine_lint_data(repo_paths_with_commit_metadata: dict[str, list[tuple[str, datetime]]],
                    progress: Progress) -> dict[str, any]:
     """Mine lint data from the commits of multiple git repositories"""
+
     data = {}
     for repo_path, commit_metadata in IterableProgressWrapper(repo_paths_with_commit_metadata.items(),
                                                               progress,
@@ -71,8 +72,6 @@ def _mine_commit_data(repo_path: Path,
     return data
 
 
-# TODO testa om resultat blir olika för andra repos också
-# TODO vad returneras om pylint inte hittar några pythonfiler?
 def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     """Runs Pylint on Python files"""
 
@@ -84,8 +83,6 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     escaped_chars = [f'\\{char}' if char in {'.', '^', '$', '*', '+', '?', '{', '}', '[', ']', '\\', '|', '(', ')'}
                      else char for char in config.IGNORE_STARTSWITH]
 
-    # TODO denna kommer nypa om man har någon av symbolerna i sin working dir.
-    #  måste fixa så den bara tittar på directories från data/ och neråt
     re_ignore = r'.*[/\\]' + r'[' + r'|'.join(escaped_chars) + r']' + r'.*[/\\].*$'
 
     pylint_options = [
@@ -118,7 +115,6 @@ def _run_pylint(repository_path: Path, commit: str) -> dict[str, any] | None:
     return data
 
 
-# TODO plocka fram Max komplexitet / min komplexitet per commit
 def _parse_pylint_messages(messages: list[Message], commit: str) -> dict[str, any]:
     """Parses Pylint Messages and returns them in a formatted dictionary using strings"""
 
@@ -147,7 +143,6 @@ def _parse_pylint_messages(messages: list[Message], commit: str) -> dict[str, an
 
     data['avg_mccabe_complexity'] = _calculate_avg_mccabe_complexity(messages)
 
-    # TODO räkna ihop files här också och logga
     logging.info(f"{commit}: {len(messages)} Pylint messages\n")
 
     return data

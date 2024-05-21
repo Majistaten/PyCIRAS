@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, Text, ForeignKey, JSON, Float, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, JSON, Float
 from sqlalchemy.orm import declarative_base, relationship
 
 # Define the base class for the database schema
@@ -6,6 +6,7 @@ Base = declarative_base()
 
 
 class Repository(Base):
+    """ Define the schema for the repositories table in the database. """
     __tablename__ = 'repositories'
     repo_name = Column(String, primary_key=True)
     repo_metadata = relationship('Metadata', back_populates='repository', uselist=False)
@@ -16,6 +17,7 @@ class Repository(Base):
 
 
 class Metadata(Base):
+    """ Define the schema for the metadata table in the database. """
     __tablename__ = 'metadata'
     id = Column(Integer, primary_key=True)
     repository_name = Column(String, ForeignKey('repositories.repo_name'))
@@ -24,6 +26,7 @@ class Metadata(Base):
 
 
 class Stargazers(Base):
+    """ Define the schema for the stargazers table in the database. """
     __tablename__ = 'stargazers'
     id = Column(Integer, primary_key=True)
     repository_name = Column(String, ForeignKey('repositories.repo_name'))
@@ -32,6 +35,7 @@ class Stargazers(Base):
 
 
 class Test(Base):
+    """ Define the schema for the tests table in the database. """
     __tablename__ = 'tests'
     id = Column(Integer, primary_key=True)
     repository_name = Column(String, ForeignKey('repositories.repo_name'))
@@ -40,6 +44,7 @@ class Test(Base):
 
 
 class TestCommit(Base):
+    """ Define the schema for the test_commits table in the database. """
     __tablename__ = 'test_commits'
     id = Column(Integer, primary_key=True)
     test_id = Column(Integer, ForeignKey('tests.id'))
@@ -51,6 +56,7 @@ class TestCommit(Base):
 
 
 class Lint(Base):
+    """ Define the schema for the lints table in the database. """
     __tablename__ = 'lints'
     id = Column(Integer, primary_key=True)
     repository_name = Column(String, ForeignKey('repositories.repo_name'))
@@ -58,6 +64,7 @@ class Lint(Base):
 
 
 class LintCommit(Base):
+    """ Define the schema for the lint_commits table in the database. """
     __tablename__ = 'lint_commits'
     id = Column(Integer, primary_key=True)
     lint_id = Column(Integer, ForeignKey('lints.id'))
@@ -67,23 +74,8 @@ class LintCommit(Base):
     date = Column(String)
 
 
-# class LintMessages(Base):
-#     __tablename__ = 'lint_messages'
-#     id = Column(Integer, primary_key=True)
-#     lint_commit_id = Column(Integer, ForeignKey('lint_commits.id'))
-#     lint_commit = relationship("LintCommit", back_populates="messages")
-#     data = Column(JSON)
-#
-#
-# class LintStats(Base):
-#     __tablename__ = 'lint_stats'
-#     id = Column(Integer, primary_key=True)
-#     lint_commit_id = Column(Integer, ForeignKey('lint_commits.id'))
-#     lint_commit = relationship("LintCommit", back_populates="stats")
-#     data = Column(JSON)
-
-
 class Git(Base):
+    """ Define the schema for the gits table in the database. """
     __tablename__ = 'gits'
     id = Column(Integer, primary_key=True)
     repository_name = Column(String, ForeignKey('repositories.repo_name'))

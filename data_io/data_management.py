@@ -27,7 +27,7 @@ def get_lock_for_file(file_path: Path) -> threading.Lock:
             logging.debug(f'{current_process().name} creating lock for file {file_path}')
             file_locks[file_path] = threading.Lock()
 
-        logging.debug(f'{current_process().name} aquiring lock for file {file_path}')
+        logging.debug(f'{current_process().name} acquiring lock for file {file_path}')
         return file_locks[file_path]
 
 
@@ -152,7 +152,6 @@ def lint_data_to_csv(lint_data: dict, path: Path, progress: Progress):
     _update_csv(path, df, fixed_columns + fixed_dynamic_columns, progress)
 
 
-# TODO mata in mer rådata
 def git_data_to_csv(git_data: dict, path: Path, progress: Progress):
     """Write git data to a CSV file."""
 
@@ -193,8 +192,6 @@ def git_data_to_csv(git_data: dict, path: Path, progress: Progress):
         progress.remove_task(write_task)
 
 
-# TODO få in commithashen också
-# TODO mata in mer rådata förrutom summeringarna
 def test_data_to_csv(test_data: dict, path: Path, progress: Progress):
     """Write test data to a CSV file."""
 
@@ -224,7 +221,7 @@ def test_data_to_csv(test_data: dict, path: Path, progress: Progress):
     progress.stop_task(processing_task)
     progress.remove_task(processing_task)
 
-    _update_csv(path, df, ['repo', 'date'], progress)  # TODO commit hash också?
+    _update_csv(path, df, ['repo', 'date'], progress)
 
 
 def stargazers_data_to_csv(stargazers_data: dict, path: Path, progress):

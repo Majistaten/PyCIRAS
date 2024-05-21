@@ -78,5 +78,6 @@ WRITE_DATABASE: bool = True
 WRITE_JSON: bool = False
 # If set to true, the collected data will be parsed and written to a CSV file.
 WRITE_CSV: bool = True
-# If set to true, a notification will be sent when the process is complete using ntfyer. This requires valid credentials added to the .env file.
+# If set to true, a notification will be sent when the process is complete using ntfyer.
+# This requires valid credentials added to the .env file.
 ENABLE_NTFYER: bool = True

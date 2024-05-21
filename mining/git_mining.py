@@ -45,7 +45,6 @@ def mine_git_data(repo_directory: Path,
     return data
 
 
-# TODO fundera på hur beräkningarna på verkas om man kör flera workers
 def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[str, any]:
     """Mine commit data from a repository."""
 
@@ -64,7 +63,7 @@ def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[
     dmm_mloc_sum = 0
     dmm_mcc_sum = 0
     dmm_mnop_sum = 0
-    for commit in IterableProgressWrapper(repo.traverse_commits(),  # TODO disable if multiprocessing or config
+    for commit in IterableProgressWrapper(repo.traverse_commits(),
                                           progress,
                                           description=
                                           util.get_repo_name_from_url_or_path(repo._conf.get('path_to_repo')),
@@ -78,9 +77,6 @@ def _mine_commit_data(repo: RepositoryWithProgress, progress: Progress) -> dict[
         for file in commit.modified_files:
             data["lines_added"] += file.added_lines
             data["lines_deleted"] += file.deleted_lines
-
-        # TODO history complexity
-        # TODO samla in DMM per commit
 
         if commit.dmm_unit_size:
             dmm_mloc_valid_changes += 1
@@ -160,19 +156,19 @@ def _mine_process_data(repo_path: Path,
 
 
 def _lines_count(repo_path: Path, since: datetime = None, to: datetime = None):
-    """Mine lines count data from a repository. The lines count is the number of lines added and removed in a file."""
+    """ Mine lines count data from a repository. The lines count is the number of lines added and removed in a file. """
     data = LinesCount(path_to_repo=str(repo_path), since=since, to=to)
     avg_lines_added = sum([lines for lines in data.count_added().values()]) / len(data.count_added())
     avg_lines_removed = sum([lines for lines in data.count_removed().values()]) / len(data.count_removed())
     avg_avg_lines_added = sum([lines for lines in data.avg_added().values()]) / len(data.avg_added())
     return ({
-        'average_lines_added_to_files': avg_lines_added,
-        'average_lines_deleted_from_files': avg_lines_removed,
-        'average_avg_lines_added_to_files': avg_avg_lines_added},
+                'average_lines_added_to_files': avg_lines_added,
+                'average_lines_deleted_from_files': avg_lines_removed,
+                'average_avg_lines_added_to_files': avg_avg_lines_added},
             {
-        'added': data.count_added(),
-        'removed': data.count_removed(),
-        'avg_added': data.avg_added()
+                'added': data.count_added(),
+                'removed': data.count_removed(),
+                'avg_added': data.avg_added()
             })
 
 
@@ -201,15 +197,15 @@ def _contributor_count(repo_path: Path, since: datetime = None, to: datetime = N
     avg_contributors_minor = sum([contributors for contributors in data.count_minor().values()]) / len(
         data.count_minor())
     return ({
-        'average_contributors': avg_contributors,
-        'average_minor_contributors': avg_contributors_minor},
+                'average_contributors': avg_contributors,
+                'average_minor_contributors': avg_contributors_minor},
             {
-        'total': data.count(),
-        'minor': data.count_minor()})
+                'total': data.count(),
+                'minor': data.count_minor()})
 
 
 def _code_churn(repo_path: Path, since: datetime = None, to: datetime = None):
-    """"
+    """
     Mine code churn data from a repository. The code churn is the number of lines added and removed in a commit.
     The code churn is either the sum of, or the difference between the added and removed lines.
     """
@@ -218,13 +214,13 @@ def _code_churn(repo_path: Path, since: datetime = None, to: datetime = None):
     avg_code_churn_max = sum([churn for churn in data.max().values()]) / len(data.max())
     avg_code_churn_avg = sum([churn for churn in data.avg().values()]) / len(data.avg())
     return ({
-        'average_code_churn_total': avg_code_churn_total,
-        'average_code_churn_max': avg_code_churn_max,
-        'average_code_churn_avg': avg_code_churn_avg},
+                'average_code_churn_total': avg_code_churn_total,
+                'average_code_churn_max': avg_code_churn_max,
+                'average_code_churn_avg': avg_code_churn_avg},
             {
-        'total': data.count(),
-        'max': data.max(),
-        'avg': data.avg()})
+                'total': data.count(),
+                'max': data.max(),
+                'avg': data.avg()})
 
 
 def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
@@ -233,7 +229,6 @@ def _change_set(repo_path: Path, since: datetime = None, to: datetime = None):
     return change_set_metric.max(), change_set_metric.avg()
 
 
-# TODO: Make sure this works as intended, not included in the documentation
 def _history_complexity(repo_path: Path, since: datetime = None, to: datetime = None):
     """Mine history complexity data from a repository"""
     data = HistoryComplexity(path_to_repo=str(repo_path), since=since, to=to)

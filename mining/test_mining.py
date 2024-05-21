@@ -12,8 +12,6 @@ from utility import config, util
 from utility.progress_bars import IterableProgressWrapper
 
 
-# TODO add exclusions for datasets/venv etc
-
 class StatementVisitor(ast.NodeVisitor):
     """Used to find unit-testing imports and count test/production statements in a Python file"""
 
@@ -165,7 +163,7 @@ def _run_ast_mining(repo_path: Path,
                                                         config.IGNORE_STARTSWITH)
     if target_files is None or len(target_files) == 0:
         logging.warning(f"\nThis commit has no Python files\n"
-                     f"Skipping commit: {commit}")
+                        f"Skipping commit: {commit}")
         return None
 
     data = {
