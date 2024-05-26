@@ -62,6 +62,16 @@ jupyter lab
 
 4. Open and interact with the provided notebook `notebooks/thesis.ipynb` to conduct the data analysis and visualization.
 
+### Jupyter Notebook demo
+
+1. Start JupyterLab:
+
+```bash
+jupyter lab
+```
+
+2. Open the provided notebook `notebooks/DEMO.ipynb` to see a demonstration of the PyCIRAS tool.
+
 ### Custom usage
 
 1. Start JupyterLab:
